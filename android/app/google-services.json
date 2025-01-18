@@ -1,26 +1,315 @@
 {
   "project_info": {
-    "project_number": "741933552398",
-    "project_id": "txyco-test",
-    "storage_bucket": "txyco-test.appspot.com"
+    "project_number": "1007840790593",
+    "firebase_url": "https://txyco-ebd49-default-rtdb.firebaseio.com",
+    "project_id": "txyco-ebd49",
+    "storage_bucket": "txyco-ebd49.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:741933552398:android:f19b6b9907c7cf089dfd5f",
+        "mobilesdk_app_id": "1:1007840790593:android:0af78fb933bd9bc3ac9ec0",
         "android_client_info": {
-          "package_name": "com.txyco"
+          "package_name": "co.txy.riderapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-j76qa44vimj1m1iku69pv29vber97qet.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "co.txy.riderapp",
+            "certificate_hash": "a6d698fde62e8198480c0d49f9dcadca8638fd77"
+          }
+        },
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDNZgA64olb7US5D6VjMi8-CTW3lPGCNzM"
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007840790593:android:1105919949c2529aac9ec0",
+        "android_client_info": {
+          "package_name": "co.txy.taxidriverlight"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-342ldkgbebrmkd6odnjatkbe97m7lva2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "co.txy.taxidriverlight",
+            "certificate_hash": "a6d698fde62e8198480c0d49f9dcadca8638fd77"
+          }
+        },
+        {
+          "client_id": "1007840790593-b42mp94oikd12bd83b9j1ro0fi9v40kj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "co.txy.taxidriverlight",
+            "certificate_hash": "5902bab547fe1ab472462237858962ef07ef7eec"
+          }
+        },
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007840790593:android:2ad796ab4b7b1765ac9ec0",
+        "android_client_info": {
+          "package_name": "co.txy.taxirider"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-s4s9m2lb2jk1h0lj2a2jco0r88m15hpu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "co.txy.taxirider",
+            "certificate_hash": "94b2977935864a0f7da7857c98808a214bf1bfd7"
+          }
+        },
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007840790593:android:ee7e321d33f5fb7eac9ec0",
+        "android_client_info": {
+          "package_name": "com.taxi.txyco"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007840790593:android:cde117dd239e4099ac9ec0",
+        "android_client_info": {
+          "package_name": "com.txy.driverapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-gilklugd8kkbu80qi8nlqo0lngie5slc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.txy.driverapp",
+            "certificate_hash": "a6d698fde62e8198480c0d49f9dcadca8638fd77"
+          }
+        },
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007840790593:android:895cb49b736e4b6dac9ec0",
+        "android_client_info": {
+          "package_name": "com.txy.riderapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-fh41r9lvtgj4kk7nrpn7q7dihtmf30sa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.txy.riderapp",
+            "certificate_hash": "a6d698fde62e8198480c0d49f9dcadca8638fd77"
+          }
+        },
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007840790593:android:f32a7d1706cc6984ac9ec0",
+        "android_client_info": {
+          "package_name": "com.txyco"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4L_iXTYXORODzICBl69GLEkrZ42DiGig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007840790593-6p6psjimbvf6kp5bvitn2bdmat2afbno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007840790593-21a8ea3b9shc45lg0pogbcbblla4foid.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.txy.driverapp",
+                "app_store_id": "6523429654"
+              }
+            }
+          ]
         }
       }
     }

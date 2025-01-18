@@ -83,78 +83,57 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
         return Math.floor(Date.now() / 1000) // Current timestamp in seconds
     }
 
-    const saveDataAcceptRide = async () => {
-        const currentTimestamp = getCurrentUnixTimestamp()
-        console.log('currentTimestamp', currentTimestamp)
-        console.log('newRideRequest = ab', newRideRequest)
-        const msgData = {
-            action: 'driver-bid-notify',
-            bid_fare: newRideRequest?.fare,
-            booking_id: newRideRequest?.booking_id,
-            driver_carid: user?.driver_ride_id,
-            driver_carmodel: user?.car_model,
-            driver_firstname: user?.firstname,
-            driver_image: user
-                ? { uri: user?.photo }
-                : require('../assets/driver.png'),
-            driver_carcolor: user?.car_color,
-            driver_completed_rides: user?.completed_rides,
-            driver_id: user?.driverid,
-            driver_location_lat: location.latitude,
-            driver_location_long: location.longitude,
-            driver_phone: user?.phone,
-            driver_photo: user?.photo,
-            driver_platenum: user?.car_plate_num,
-            driver_car_year: user?.car_year,
-            driver_rating: user?.driver_rating,
-            pickup_addr: newRideRequest?.pickup_addr,
-            pickup_lat: newRideRequest?.p_lat,
-            pickup_long: newRideRequest?.p_lng,
-            time_notified: getCurrentUnixTimestamp(),
-            ttl: 30,
-            dropoff_lat: newRideRequest?.d_lat,
-            dropoff_long: newRideRequest?.d_lng,
-            distance: newRideRequest?.distance,
-            destination_time_to_reach: newRideRequest?.time_to_pickup,
+    // const saveDataAcceptRide = async () => {
+    //     const currentTimestamp = getCurrentUnixTimestamp()
+    //     console.log('currentTimestamp', currentTimestamp)
+    //     console.log('newRideRequest = ab', newRideRequest)
+    //     const msgData = {
+    //         action: 'driver-bid-notify',
+    //         bid_fare: newRideRequest?.fare,
+    //         booking_id: newRideRequest?.booking_id,
+    //         driver_carid: user?.driver_ride_id,
+    //         driver_carmodel: user?.car_model,
+    //         driver_firstname: user?.firstname,
+    //         driver_image: user
+    //             ? { uri: user?.photo }
+    //             : require('../assets/driver.png'),
+    //         driver_carcolor: user?.car_color,
+    //         driver_completed_rides: user?.completed_rides,
+    //         driver_id: user?.driverid,
+    //         driver_location_lat: location.latitude,
+    //         driver_location_long: location.longitude,
+    //         driver_phone: user?.phone,
+    //         driver_photo: user?.photo,
+    //         driver_platenum: user?.car_plate_num,
+    //         driver_car_year: user?.car_year,
+    //         driver_rating: user?.driver_rating,
+    //         pickup_addr: newRideRequest?.pickup_addr,
+    //         pickup_lat: newRideRequest?.p_lat,
+    //         pickup_long: newRideRequest?.p_lng,
+    //         time_notified: getCurrentUnixTimestamp(),
+    //         ttl: 30,
+    //         dropoff_lat: newRideRequest?.d_lat,
+    //         dropoff_long: newRideRequest?.d_lng,
+    //         distance: newRideRequest?.distance,
+    //         destination_time_to_reach: newRideRequest?.time_to_pickup,
 
-            // city_currency_symbol: newRideRequest?.city_currency_symbol,
-            // coupon_type: newRideRequest?.coupon_type,
-            // coupon_used: newRideRequest?.coupon_used,
-            // coupon_val: newRideRequest?.coupon_val,
-            // driver_firstname: newRideRequest?.driver_firstname,
+    //     }
+    //     try {
+    //         const userId = newRideRequest?.rider_id
+    //         await database().ref(`/Riders/ridr-${userId}/notf/msg`).set(msgData)
+    //         await database()
+    //             .ref(`/Riders/ridr-${userId}/notf/msg_t`)
+    //             .set(currentTimestamp)
 
-            // dropoff_addr: newRideRequest?.dropoff_addr,
-            // payment_method: newRideRequest?.payment_method,
-
-            // referral_discount: newRideRequest?.referral_discount,
-            // referral_used: newRideRequest?.referral_used,
-            // reward_points_earned: newRideRequest?.reward_points_earned,
-            // ride_amount: newRideRequest?.ride_amount,
-            // ride_distance: newRideRequest?.ride_distance,
-            // ride_duration: newRideRequest?.ride_duration,
-        }
-        try {
-            const userId = newRideRequest?.rider_id
-            await database().ref(`/Riders/ridr-${userId}/notf/msg`).set(msgData)
-            await database()
-                .ref(`/Riders/ridr-${userId}/notf/msg_t`)
-                .set(currentTimestamp)
-
-            console.log(
-                'Data saved successfully from driver',
-                userId,
-                currentTimestamp,
-            )
-        } catch (error) {
-            console.error('Error saving data for driverId:', error)
-        }
-        // try {
-        //     await database().ref(`/Drivers/${driverId}/notf/msg`).set(msgData)
-        //     console.log('Data saved successfully from Driver')
-        // } catch (error) {
-        //     console.error('Error saving data: ', error)
-        // }
-    }
+    //         console.log(
+    //             'Data saved successfully from driver',
+    //             userId,
+    //             currentTimestamp,
+    //         )
+    //     } catch (error) {
+    //         console.error('Error saving data for driverId:', error)
+    //     }
+    // }
 
     const acceptRide = async () => {
         const sessId = getSessionId()
@@ -183,7 +162,7 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
                 console.log('res=', res.ok)
                 // const data = await res.json()
                 // console.log('========acceptRide=======', data)
-                saveDataAcceptRide()
+                // saveDataAcceptRide()
             } else {
                 console.log('Request failed with status: ', res.status)
             }
