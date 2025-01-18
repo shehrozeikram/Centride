@@ -176,11 +176,11 @@ const RiderMapScreen = ({ route }) => {
                 .ref(`Riders/ridr-${userId}/notf`)
                 .on('value', async (snapshot) => {
                     const data = snapshot.val()
-                    console.log('data==', data)
+                    console.log('data==', data.msg_t)
                     // console.log(typeof data.msg_t === 'string')
                     const stringValue = JSON.stringify(data.msg_t)
-                    // console.log('Converted string:', stringValue)
-                    // console.log(typeof stringValue === 'string')
+                    console.log('Converted string:', stringValue)
+                    console.log(typeof stringValue === 'string')
                     if (data == null) return
                     if (!(data?.msg && data?.msg_t)) return
 
@@ -234,7 +234,6 @@ const RiderMapScreen = ({ route }) => {
                         // Switch based on action type
                         switch (message.action) {
                             case 'driver-assigned':
-                                // accept_driver_bid_notify(message)
                                 driver_assigned_notify(message)
                                 break
                             case 'driver-bid-notify':
@@ -386,11 +385,6 @@ const RiderMapScreen = ({ route }) => {
                 console.log(err)
             })
     }
-
-    const driver_cancelled_notify = (notification) => {
-        console.log('driver_cancelled_notify===')
-    }
-
     const customer_onride_notify = (notification) => {
         console.log('customer_onride_notify notification=', notification)
         // Update newRideRequest state with relevant data
@@ -817,8 +811,8 @@ const RiderMapScreen = ({ route }) => {
         )
     }
 
-    const driver_assigned_notify = (notification) => {
-        console.log('noti-driver_assigned_notify', notification)
+    const accept_driver_bid_notify = (notification) => {
+        console.log('notifi=', notification)
         setShowDriverOnWay(true)
         setNewRideRequest({
             ...notification, // Keep the existing notification data
@@ -883,78 +877,78 @@ const RiderMapScreen = ({ route }) => {
         )
     }
 
-    const accept_driver_bid_notify = (notification) => {
-        console.log('notifi=', notification)
-        setShowDriverOnWay(true)
-        setNewRideRequest({
-            ...notification, // Keep the existing notification data
-            titleText: 'Driver is on his way', // Set title based on action
-        })
+    // const accept_driver_bid_notify = (notification) => {
+    //     console.log('notifi=', notification)
+    //     setShowDriverOnWay(true)
+    //     setNewRideRequest({
+    //         ...notification, // Keep the existing notification data
+    //         titleText: 'Driver is on his way', // Set title based on action
+    //     })
 
-        // if (mapRef.current) {
-        //     mapRef.current.animateToRegion({
-        //         latitude: notification?.driver_location_lat,
-        //         longitude: notification?.driver_location_long,
-        //         // latitudeDelta: 0.01,
-        //         // longitudeDelta: 0.01,
-        //         latitudeDelta: 0.9,
-        //         longitudeDelta: 0.9,
-        //     })
-        // }
-        if (mapRef.current) {
-            const driverLocationLat = notification?.driver_location_lat
-            const driverLocationLong = notification?.driver_location_long
+    //     // if (mapRef.current) {
+    //     //     mapRef.current.animateToRegion({
+    //     //         latitude: notification?.driver_location_lat,
+    //     //         longitude: notification?.driver_location_long,
+    //     //         // latitudeDelta: 0.01,
+    //     //         // longitudeDelta: 0.01,
+    //     //         latitudeDelta: 0.9,
+    //     //         longitudeDelta: 0.9,
+    //     //     })
+    //     // }
+    //     if (mapRef.current) {
+    //         const driverLocationLat = notification?.driver_location_lat
+    //         const driverLocationLong = notification?.driver_location_long
 
-            const riderPickupLocationLat = notification?.pickup_lat
-            const riderPickupLocationLng = notification?.pickup_long
+    //         const riderPickupLocationLat = notification?.pickup_lat
+    //         const riderPickupLocationLng = notification?.pickup_long
 
-            // Get destination coordinates from the push data
-            const destinationLat = parseFloat(notification?.dropoff_lat)
-            const destinationLng = parseFloat(notification?.dropoff_long)
+    //         // Get destination coordinates from the push data
+    //         const destinationLat = parseFloat(notification?.dropoff_lat)
+    //         const destinationLng = parseFloat(notification?.dropoff_long)
 
-            if (
-                driverLocationLat &&
-                driverLocationLong &&
-                destinationLat &&
-                destinationLng
-            ) {
-                // Calculate the center of the region (midpoint)
-                const centerLat =
-                    (driverLocationLat + riderPickupLocationLat) / 2
-                const centerLng =
-                    (driverLocationLong + riderPickupLocationLng) / 2
+    //         if (
+    //             driverLocationLat &&
+    //             driverLocationLong &&
+    //             destinationLat &&
+    //             destinationLng
+    //         ) {
+    //             // Calculate the center of the region (midpoint)
+    //             const centerLat =
+    //                 (driverLocationLat + riderPickupLocationLat) / 2
+    //             const centerLng =
+    //                 (driverLocationLong + riderPickupLocationLng) / 2
 
-                // Calculate the lat/lng difference between pickup and destination
-                const latDiff = Math.abs(
-                    driverLocationLat - riderPickupLocationLng,
-                )
-                const lngDiff = Math.abs(driverLocationLong - destinationLng)
+    //             // Calculate the lat/lng difference between pickup and destination
+    //             const latDiff = Math.abs(
+    //                 driverLocationLat - riderPickupLocationLng,
+    //             )
+    //             const lngDiff = Math.abs(driverLocationLong - destinationLng)
 
-                // Set dynamic deltas (latitudeDelta and longitudeDelta)
-                const latitudeDelta = latDiff + 0.05 // Adding some buffer to the region
-                const longitudeDelta = lngDiff + 0.05 // Adding some buffer to the region
+    //             // Set dynamic deltas (latitudeDelta and longitudeDelta)
+    //             const latitudeDelta = latDiff + 0.05 // Adding some buffer to the region
+    //             const longitudeDelta = lngDiff + 0.05 // Adding some buffer to the region
 
-                mapRef.current.animateToRegion({
-                    latitude: centerLat,
-                    longitude: centerLng,
-                    latitudeDelta: latitudeDelta,
-                    longitudeDelta: longitudeDelta,
-                })
-            }
-        }
-        showDriverOnWayModal('ride_alloc.mp3', notification.action)
-        Alert.alert(
-            'Driver Assigned',
-            'A driver has been assigned to you and is on his way.',
-            [
-                {
-                    text: 'OK',
-                    onPress: () => setShowDriverAssignedModal(false), // Close alert
-                },
-            ],
-            { cancelable: false }, // Prevents dismissing by tapping outside
-        )
-    }
+    //             mapRef.current.animateToRegion({
+    //                 latitude: centerLat,
+    //                 longitude: centerLng,
+    //                 latitudeDelta: latitudeDelta,
+    //                 longitudeDelta: longitudeDelta,
+    //             })
+    //         }
+    //     }
+    //     showDriverOnWayModal('ride_alloc.mp3', notification.action)
+    //     Alert.alert(
+    //         'Driver Assigned',
+    //         'A driver has been assigned to you and is on his way.',
+    //         [
+    //             {
+    //                 text: 'OK',
+    //                 onPress: () => setShowDriverAssignedModal(false), // Close alert
+    //             },
+    //         ],
+    //         { cancelable: false }, // Prevents dismissing by tapping outside
+    //     )
+    // }
 
     const syncServer = async () => {
         const body = new URLSearchParams({
@@ -1498,6 +1492,7 @@ const RiderMapScreen = ({ route }) => {
 
     const onBook = async () => {
         try {
+            // Get the current date and time
             const scheduled = 0
             const dateTimeOneHourAhead = getCurrentDateTimePlusOneHour()
             const currentDateTime = getCurrentDateTime()
@@ -1558,7 +1553,7 @@ const RiderMapScreen = ({ route }) => {
                 const bookingid = response.data?.new_booking_id
                 setBookingId(bookingid)
 
-                // saveData(bookingid)
+                saveData(bookingid)
                 if (origin) {
                     // Set the ring position to the center of the map
                     const centerX = mapDimensions.width / 2
@@ -1622,118 +1617,118 @@ const RiderMapScreen = ({ route }) => {
         return Math.floor(Date.now() / 1000) // Current timestamp in seconds
     }
 
-    // const saveData = async (bookingid) => {
-    //     if (!bookingid) {
-    //         console.error('No booking ID available, cannot save data.')
-    //         return
-    //     }
+    const saveData = async (bookingid) => {
+        if (!bookingid) {
+            console.error('No booking ID available, cannot save data.')
+            return
+        }
 
-    //     const currentTimestamp = getCurrentUnixTimestamp()
-    //     const bookingPrice = selectedVehicle?.npickup_cost
-    //     const encryptedPrice = CryptoJS.MD5(
-    //         'projectgics' + bookingPrice?.toString(),
-    //     ).toString()
+        const currentTimestamp = getCurrentUnixTimestamp()
+        const bookingPrice = selectedVehicle?.npickup_cost
+        const encryptedPrice = CryptoJS.MD5(
+            'projectgics' + bookingPrice?.toString(),
+        ).toString()
 
-    //     const msgData = {
-    //         action: 'driver-allocate',
-    //         booking_id: bookingid, // Now bookingId should be set
-    //         completion_code: '',
-    //         coupon_code: '',
-    //         coupon_discount_type: '0',
-    //         coupon_discount_value: '0.00',
-    //         coupon_max_discount: '0.00',
-    //         coupon_min_fare: '0.00',
-    //         d_address: route?.params.dropOffAddress,
-    //         d_lat: route?.params.dropOffLoactionLatLng.latitude,
-    //         d_lng: route?.params.dropOffLoactionLatLng.longitude,
-    //         driver_accept_duration: '180',
-    //         fare: '179.00',
-    //         p_address: route?.params.pickUpAddreess,
-    //         p_lat: route?.params.picuploactionLatLng.latitude,
-    //         p_lng: route?.params.picuploactionLatLng.longitude,
-    //         payment_type: '1',
-    //         referral_discount_value: '0.00',
-    //         referral_used: newRideRequest?.referral_used,
-    //         ride_bid_max_val: '20.0',
-    //         ride_bid_min_val: '10.0',
-    //         ride_bid_fare: '179.0',
-    //         rider_image: user
-    //             ? { uri: user?.photo }
-    //             : require('../../assets/driver.png'),
-    //         rider_name: user?.firstname,
-    //         rider_phone: user?.phone,
-    //         rider_id: user?.userid,
-    //         rider_rating: user?.user_rating,
-    //         sent_time: currentTimestamp,
-    //         waypoint1_address: '',
-    //         waypoint1_lat: '',
-    //         waypoint1_long: '',
-    //         waypoint2_address: '',
-    //         waypoint2_lat: '',
-    //         waypoint2_long: '',
-    //     }
+        const msgData = {
+            action: 'driver-allocate',
+            booking_id: bookingid, // Now bookingId should be set
+            completion_code: '',
+            coupon_code: '',
+            coupon_discount_type: '0',
+            coupon_discount_value: '0.00',
+            coupon_max_discount: '0.00',
+            coupon_min_fare: '0.00',
+            d_address: route?.params.dropOffAddress,
+            d_lat: route?.params.dropOffLoactionLatLng.latitude,
+            d_lng: route?.params.dropOffLoactionLatLng.longitude,
+            driver_accept_duration: '180',
+            fare: '179.00',
+            p_address: route?.params.pickUpAddreess,
+            p_lat: route?.params.picuploactionLatLng.latitude,
+            p_lng: route?.params.picuploactionLatLng.longitude,
+            payment_type: '1',
+            referral_discount_value: '0.00',
+            referral_used: newRideRequest?.referral_used,
+            ride_bid_max_val: '20.0',
+            ride_bid_min_val: '10.0',
+            ride_bid_fare: '179.0',
+            rider_image: user
+                ? { uri: user?.photo }
+                : require('../../assets/driver.png'),
+            rider_name: user?.firstname,
+            rider_phone: user?.phone,
+            rider_id: user?.userid,
+            rider_rating: user?.user_rating,
+            sent_time: currentTimestamp,
+            waypoint1_address: '',
+            waypoint1_lat: '',
+            waypoint1_long: '',
+            waypoint2_address: '',
+            waypoint2_lat: '',
+            waypoint2_long: '',
+        }
 
-    //     try {
-    //         console.log('====driverLocations====1', driverLocations.length)
-    //         if (driverLocations.length > 0) {
-    //             // Filter the driverLocations based on the selectedVehicle.ride_type without regex
-    //             const filteredDrivers = driverLocations.filter((driver) => {
-    //                 const driverTitle = driver.title.toLowerCase() // Normalize driver title to lowercase
-    //                 if (selectedVehicle.ride_type === 'Ride A/C') {
-    //                     return (
-    //                         driverTitle === 'ride a/c' ||
-    //                         driverTitle === 'ride' ||
-    //                         driverTitle === 'ride mini'
-    //                     )
-    //                 } else if (selectedVehicle.ride_type === 'Ride') {
-    //                     return (
-    //                         driverTitle === 'ride' ||
-    //                         driverTitle === 'ride mini'
-    //                     )
-    //                 } else if (selectedVehicle.ride_type === 'Ride Mini') {
-    //                     return driverTitle === 'ride mini'
-    //                 } else if (selectedVehicle.ride_type === 'Moto') {
-    //                     return driverTitle === 'moto'
-    //                 } else if (
-    //                     selectedVehicle.ride_type === 'Prado Deluxe 12hr'
-    //                 ) {
-    //                     return driverTitle === 'prado deluxe 12hr'
-    //                 }
+        try {
+            console.log('====driverLocations====1', driverLocations.length)
+            if (driverLocations.length > 0) {
+                // Filter the driverLocations based on the selectedVehicle.ride_type without regex
+                const filteredDrivers = driverLocations.filter((driver) => {
+                    const driverTitle = driver.title.toLowerCase() // Normalize driver title to lowercase
+                    if (selectedVehicle.ride_type === 'Ride A/C') {
+                        return (
+                            driverTitle === 'ride a/c' ||
+                            driverTitle === 'ride' ||
+                            driverTitle === 'ride mini'
+                        )
+                    } else if (selectedVehicle.ride_type === 'Ride') {
+                        return (
+                            driverTitle === 'ride' ||
+                            driverTitle === 'ride mini'
+                        )
+                    } else if (selectedVehicle.ride_type === 'Ride Mini') {
+                        return driverTitle === 'ride mini'
+                    } else if (selectedVehicle.ride_type === 'Moto') {
+                        return driverTitle === 'moto'
+                    } else if (
+                        selectedVehicle.ride_type === 'Prado Deluxe 12hr'
+                    ) {
+                        return driverTitle === 'prado deluxe 12hr'
+                    }
 
-    //                 return false // Default case if no condition matches
-    //             })
-    //             // Now loop over the filtered drivers and process them
-    //             filteredDrivers.map(async (driver) => {
-    //                 const driverId = driver.driver_id
-    //                 // Ensure driverId exists before proceeding
-    //                 if (!driverId) {
-    //                     console.error('Driver ID not found for driver:', driver)
-    //                     return
-    //                 }
+                    return false // Default case if no condition matches
+                })
+                // Now loop over the filtered drivers and process them
+                filteredDrivers.map(async (driver) => {
+                    const driverId = driver.driver_id
+                    // Ensure driverId exists before proceeding
+                    if (!driverId) {
+                        console.error('Driver ID not found for driver:', driver)
+                        return
+                    }
 
-    //                 // Saving data to the database for each driver
-    //                 try {
-    //                     await database()
-    //                         .ref(`/Drivers/drvr-${driverId}/notf/msg`)
-    //                         .set(msgData)
-    //                     await database()
-    //                         .ref(`/Drivers/drvr-${driverId}/notf/msg_t`)
-    //                         .set(currentTimestamp)
-    //                 } catch (error) {
-    //                     console.error(
-    //                         'Error saving data for driverId:',
-    //                         driverId,
-    //                         error,
-    //                     )
-    //                 }
-    //             })
-    //         } else {
-    //             console.log('No drivers to process.')
-    //         }
-    //     } catch (error) {
-    //         console.error('Error saving data: ', error)
-    //     }
-    // }
+                    // Saving data to the database for each driver
+                    try {
+                        await database()
+                            .ref(`/Drivers/drvr-${driverId}/notf/msg`)
+                            .set(msgData)
+                        await database()
+                            .ref(`/Drivers/drvr-${driverId}/notf/msg_t`)
+                            .set(currentTimestamp)
+                    } catch (error) {
+                        console.error(
+                            'Error saving data for driverId:',
+                            driverId,
+                            error,
+                        )
+                    }
+                })
+            } else {
+                console.log('No drivers to process.')
+            }
+        } catch (error) {
+            console.error('Error saving data: ', error)
+        }
+    }
 
     const handleDeclineBid = async (bookingid) => {
         const sess_id = await getSessionId()
@@ -1871,7 +1866,7 @@ const RiderMapScreen = ({ route }) => {
                         ref={mapRef}
                         style={styles.map}
                         onLayout={onLayout}
-                        provider={PROVIDER_GOOGLE}
+                        provider={Platform.OS === 'android' ? MapView.PROVIDER_GOOGLE : MapView.PROVIDER_DEFAULT}
                         mapType={mapType}
                         initialRegion={{
                             latitude: origin?.latitude || 33.6844,

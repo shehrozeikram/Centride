@@ -2787,18 +2787,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-native-community/cli-config-android@npm:15.1.3":
-  version: 15.1.3
-  resolution: "@react-native-community/cli-config-android@npm:15.1.3"
-  dependencies:
-    "@react-native-community/cli-tools": 15.1.3
-    chalk: ^4.1.2
-    fast-glob: ^3.3.2
-    fast-xml-parser: ^4.4.1
-  checksum: 07c207c5b9d9f21240c40c771a8761709c6f62e2d01272ca83d1649c728569e5447c172b0ef8868f1ba188217591fe63b731578cc2cec8b3c8705d4056e03186
-  languageName: node
-  linkType: hard
-
 "@react-native-community/cli-config@npm:14.0.0":
   version: 14.0.0
   resolution: "@react-native-community/cli-config@npm:14.0.0"
@@ -2866,19 +2854,6 @@ __metadata:
     fast-xml-parser: ^4.2.4
     logkitty: ^0.7.1
   checksum: 57fee4e7b243354fec87b3e3b8e99c070de39f6d55d265f4917c1def786d5675fb13ff40d50a8c87ef3af57ed5be4c603a776402c77a9279067875188bf5e183
-  languageName: node
-  linkType: hard
-
-"@react-native-community/cli-platform-android@npm:^15.1.3":
-  version: 15.1.3
-  resolution: "@react-native-community/cli-platform-android@npm:15.1.3"
-  dependencies:
-    "@react-native-community/cli-config-android": 15.1.3
-    "@react-native-community/cli-tools": 15.1.3
-    chalk: ^4.1.2
-    execa: ^5.0.0
-    logkitty: ^0.7.1
-  checksum: 5fd57035dfc3a07f0bab42acb816fd2fbdb81a5aac21fc5f6c2b389611ffac571a99deb99e36858771c0480087e02b30a8a584e69fcba5ad5b5a8b241aa3d886
   languageName: node
   linkType: hard
 
@@ -2972,25 +2947,6 @@ __metadata:
     shell-quote: ^1.7.3
     sudo-prompt: ^9.0.0
   checksum: eb058335ad83c333709e50f6f8fd53a88e4a392cd710f1e3cc5ac5931aa1b0543da78c1aa82b5cb7834ce19a21fbd3b820a39632cb54fd179358674581e0078d
-  languageName: node
-  linkType: hard
-
-"@react-native-community/cli-tools@npm:15.1.3":
-  version: 15.1.3
-  resolution: "@react-native-community/cli-tools@npm:15.1.3"
-  dependencies:
-    appdirsjs: ^1.2.4
-    chalk: ^4.1.2
-    execa: ^5.0.0
-    find-up: ^5.0.0
-    mime: ^2.4.1
-    open: ^6.2.0
-    ora: ^5.4.1
-    prompts: ^2.4.2
-    semver: ^7.5.2
-    shell-quote: ^1.7.3
-    sudo-prompt: ^9.0.0
-  checksum: f62997b7ed16df5beffc699c7556eebe0b27a63ac0b10dcf8af3e2875231183752e4a1a7e55e9d60f0b9cbfd7c3a2dd264eccc0e3430b81660538e27d5deffc8
   languageName: node
   linkType: hard
 
@@ -3902,7 +3858,6 @@ __metadata:
     "@babel/preset-env": ^7.20.0
     "@babel/runtime": ^7.20.0
     "@react-native-async-storage/async-storage": ^2.0.0
-    "@react-native-community/cli-platform-android": ^15.1.3
     "@react-native-community/geolocation": ^3.3.0
     "@react-native-community/hooks": ^3.0.0
     "@react-native-firebase/app": ^21.0.0
@@ -5984,7 +5939,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-xml-parser@npm:^4.2.4, fast-xml-parser@npm:^4.4.1":
+"fast-xml-parser@npm:^4.2.4":
   version: 4.5.1
   resolution: "fast-xml-parser@npm:4.5.1"
   dependencies:

@@ -516,18 +516,11 @@ const DriverOnWay = ({
     const [driverLocationAddress, setDriverLocationAddress] = useState('')
     const [pickupLocationAddress, setPickupLocationAddress] = useState('')
     const [dropoffLocationAddress, setDropoffLocationAddress] = useState('')
-    const [rideRequest, setRideRequest] = useState(newRideRequest)
     const [finalDistance, setFinalDistance] = useState('')
     const [finalTimeToReach, setFinalTimeToReach] = useState('')
 
     const geocodeUrl = 'https://maps.googleapis.com/maps/api/geocode/json'
     const Google_Maps_Apikey = 'AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw'
-
-    useEffect(() => {
-        setRideRequest(newRideRequest)
-        console.log('newRideRequest=', newRideRequest)
-    }, [newRideRequest])
-    // console.log('rideRequest=', rideRequest)
 
     const fetchAddress = async (lat, long) => {
         try {
@@ -692,7 +685,7 @@ const DriverOnWay = ({
                                             : titleText ===
                                                 'Your trip has started'
                                               ? finalTimeToReach
-                                              : rideRequest?.time_to_pickup}
+                                              : newRideRequest?.time_to_pickup}
                                     </Text>
 
                                     <Text style={styles.timeText}>Mins</Text>
@@ -709,9 +702,12 @@ const DriverOnWay = ({
                                     <View style={styles.profileAndRating}>
                                         <Image
                                             source={
-                                                rideRequest?.driver_photo
+                                                newRideRequest?.driver_image
+                                                    ?.uri
                                                     ? {
-                                                          uri: rideRequest?.driver_photo,
+                                                          uri: newRideRequest
+                                                              ?.driver_image
+                                                              ?.uri,
                                                       }
                                                     : require('../assets/driver.png')
                                             }
@@ -720,9 +716,7 @@ const DriverOnWay = ({
 
                                         <View style={styles.ratingContainer}>
                                             <Text style={styles.ratingText}>
-                                                {rideRequest?.driver_firstname?.toString() ||
-                                                    'Loading...'}
-                                                {/* {newRideRequest?.driver_rating} */}
+                                                {newRideRequest?.driver_rating}
                                             </Text>
                                             <FontAwesome
                                                 name='star'
@@ -735,19 +729,16 @@ const DriverOnWay = ({
                                 <View style={styles.driverDetailsContainer}>
                                     <View style={styles.driverDetails}>
                                         <Text style={styles.driverName}>
-                                            {rideRequest?.driver_firstname ||
-                                                'Loading...'}
-
-                                            {/* {newRideRequest?.driver_firstname} */}
+                                            {newRideRequest?.driver_firstname}
                                         </Text>
                                         <Text style={styles.driverTrips}>
                                             {
-                                                rideRequest?.driver_completed_rides
+                                                newRideRequest?.driver_completed_rides
                                             }{' '}
                                             Trips
                                         </Text>
                                         <Text style={styles.driverId}>
-                                            {rideRequest?.driver_id}
+                                            {newRideRequest?.driver_id}
                                         </Text>
                                     </View>
                                 </View>
@@ -757,10 +748,10 @@ const DriverOnWay = ({
                                         style={styles.vehicleImage}
                                     />
                                     <Text style={styles.vehicleText}>
-                                        {rideRequest?.driver_platenum}
+                                        {newRideRequest?.driver_platenum}
                                     </Text>
                                     <Text style={styles.vehicleYear}>
-                                        {rideRequest?.driver_carcolor} 2021
+                                        {newRideRequest?.driver_carcolor} 2021
                                     </Text>
                                 </View>
                             </View>
