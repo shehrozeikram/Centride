@@ -1822,7 +1822,7 @@ const RiderMapScreen = ({ route }) => {
             ref={mapRef}
             style={styles.map}
             onLayout={onLayout}
-            provider={PROVIDER_GOOGLE}
+            provider={Platform.OS === 'android' ? MapView.PROVIDER_GOOGLE : MapView.PROVIDER_DEFAULT}
             mapType={mapType}
             initialRegion={{
               latitude: origin?.latitude || 33.6844,
