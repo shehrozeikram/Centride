@@ -186,7 +186,7 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
                   <View style={styles.profileAndRating}>
                     <Image
                       source={{
-                        uri: newRideRequest?.rider_image?.uri,
+                        uri: newRideRequest?.rider_image,
                       }}
                       style={styles.profileImage}
                     />
