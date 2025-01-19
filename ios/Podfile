@@ -32,7 +32,7 @@ target 'TxyCo' do
   pod 'Firebase/Auth'
   pod 'Firebase/Database'
   pod 'GoogleMaps'
-
+  pod 'GooglePlaces'
   target 'TxyCoTests' do
     inherit! :complete
     # Pods for testing
