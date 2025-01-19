@@ -36,7 +36,7 @@ const DriverAssignedModal = () => {
 
                         {/* Heading */}
                         <Text style={styles.heading}>
-                            Txyco - Driver Assigned
+                        Centride - Driver Assigned
                         </Text>
 
                         {/* Body Text */}

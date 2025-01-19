@@ -238,7 +238,7 @@ const Support = ({ navigation }) => {
         },
         {
             id: '7',
-            title: 'About TxyCo',
+            title: 'About Centride',
             description: 'Learn more about our company and mission.',
             icon: 'info-circle',
             color: '#3EA5F5',

@@ -47,14 +47,14 @@ const english = {
             discout_code: 'Promo discount will be applied on your next ride',
             apply: 'Apply',
             // Safety Screen
-            txyco_support: 'Txyco Support',
+            txyco_support: 'Centride Support',
             call_emergency: 'Call emergency',
             protected_text: "How you're protected",
             pre_ride: 'Pre Ride',
             driver_verification: 'Driver Verification',
             safety_protocols: 'Safety Protocols',
             // Txyco Support Screen
-            txyco_support_title: 'How to Get Txyco Support',
+            txyco_support_title: 'How to Get Centride Support',
             bullet_point_1: 'Login and open the app.',
             bullet_point_2: 'Click the menu icon.',
             bullet_point_3: 'Click the Support option from the list.',
@@ -83,7 +83,7 @@ const english = {
             rate_app_description: 'Give us feedback on your experience.',
             software_licenses: 'Software Licenses',
             licenses_description: 'View the software licenses we use.',
-            about_txyco: 'About Txyco',
+            about_txyco: 'About Centride',
             about_txyco_description:
                 'Learn more about our company and mission.',
             // HelpGuide Screen
@@ -138,7 +138,7 @@ const english = {
                     'A free software license that guarantees end users the freedom to run, study, share, and modify the software.',
             },
             // About TxyCo Screen
-            about_txyco_title: 'About TxyCo',
+            about_txyco_title: 'About Centride',
             about_txyco_description:
                 'TxyCo is committed to providing top-notch solutions in the tech industry. We strive to innovate and deliver exceptional value to our clients through our cutting-edge technology and dedicated team.',
             about_txyco_our_mission: 'Our Mission',

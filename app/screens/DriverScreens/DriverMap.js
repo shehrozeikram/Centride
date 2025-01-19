@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     Animated,
     Alert,
+    Platform,
 } from 'react-native'
 import Sound from 'react-native-sound'
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
@@ -1042,7 +1043,7 @@ const DriverMap = ({ navigation }) => {
                 <MapView
                     ref={mapRef}
                     style={styles.map}
-                    provider={PROVIDER_GOOGLE}
+                    provider={Platform.OS === 'android' ? MapView.PROVIDER_GOOGLE : MapView.PROVIDER_DEFAULT}
                     initialRegion={{
                         latitude: origin?.latitude || 33.6844,
                         longitude: origin?.longitude || 73.0479,
