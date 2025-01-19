@@ -9,7 +9,8 @@ import {
 } from 'react-native'
 import Style from '../utils/Styles'
 import Spacing from '../components/Spacing'
-import backgroundImage from '../assets/startImage1.jpeg'
+// import backgroundImage from '../assets/startImage1.jpeg'
+import backgroundImage from '../assets/bike_new.png'
 import { DRIVER, RIDER, setAppSide } from '../utils/common'
 import { useNavigation } from '@react-navigation/native'
 

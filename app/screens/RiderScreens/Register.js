@@ -30,7 +30,7 @@ import {
 
 import { useTranslation } from 'react-i18next'
 
-const logo = require('../../assets/logo.png')
+const logo = require('../../assets/bike_new.png')
 
 export default function Register({ navigation }) {
     const { t, i18n } = useTranslation()

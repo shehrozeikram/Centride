@@ -5,10 +5,11 @@ const AppLoader = () => {
     return (
         <View style={styles.container}>
             <Image
+                resizeMode='contain'
                 style={styles.logoPic}
-                source={require('../assets/logo.jpeg')}
+                source={require('../assets/bike_new.png')}
             />
-            <ActivityIndicator size='large' color='#0000ff' />
+            {/* <ActivityIndicator size='large' color='#0000ff' /> */}
         </View>
     )
 }

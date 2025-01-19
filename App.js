@@ -130,11 +130,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 // Import i18n (make sure i18next is initialized)
 import '././app/localization' // Make sure this imports your i18n.js initialization
+import { LogBox } from 'react-native'
 
 // Setup Navigation Stack
 const Stack = createNativeStackNavigator()
 
 const App = () => {
+    LogBox.ignoreAllLogs()
     return (
         <Provider store={store}>
             <NavigationContainer>
