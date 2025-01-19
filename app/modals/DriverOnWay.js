@@ -545,23 +545,56 @@ const DriverOnWay = ({
 
   useEffect(() => {
     const fetchData = async () => {
+      // Ensure coordinates are available for distance calculation
       if (
         rideRequest?.pickup_lat &&
         rideRequest?.pickup_long &&
         rideRequest?.dropoff_lat &&
-        rideRequest?.dropoff_long
+        rideRequest?.dropoff_long &&
+        rideRequest?.driver_location_lat &&
+        rideRequest?.driver_location_long
       ) {
-        const { distance, duration } = await fetchDistanceAndTime(
-          rideRequest?.pickup_lat,
-          rideRequest?.pickup_long,
-          rideRequest?.dropoff_lat,
-          rideRequest?.dropoff_long
-        );
+        let distance, duration;
+
+        if (rideRequest?.action === "driver-assigned") {
+          // If action is driver-assigned, calculate distance and time from driver's location to pickup
+          const {
+            distance: driverAssignedDistance,
+            duration: driverAssignedDuration,
+          } = await fetchDistanceAndTime(
+            rideRequest?.driver_location_lat,
+            rideRequest?.driver_location_long,
+            rideRequest?.pickup_lat,
+            rideRequest?.pickup_long
+          );
+          distance = driverAssignedDistance;
+          duration = driverAssignedDuration;
+        } else if (rideRequest?.action === "driver-arrived") {
+          // If action is driver-arrived, show 0 for both time and distance
+          distance = "0";
+          duration = "0";
+        } else if (rideRequest?.action === "customer-onride") {
+          // If action is customer-onride, calculate distance and time from pickup to dropoff
+          const { distance: onRideDistance, duration: onRideDuration } =
+            await fetchDistanceAndTime(
+              rideRequest?.pickup_lat,
+              rideRequest?.pickup_long,
+              rideRequest?.dropoff_lat,
+              rideRequest?.dropoff_long
+            );
+          distance = onRideDistance;
+          duration = onRideDuration;
+        }
+
         setDistance(distance);
         setDuration(duration);
 
-        // Calculate time at 60 km/h speed if distance is valid
-        if (distance !== "N/A" && distance !== "Invalid coordinates") {
+        // Calculate estimated time at 60 km/h if distance is valid
+        if (
+          distance &&
+          distance !== "N/A" &&
+          distance !== "Invalid coordinates"
+        ) {
           const distanceInKm = parseFloat(distance.split(" ")[0]); // Extract distance in km
           if (!isNaN(distanceInKm)) {
             const timeInHours = distanceInKm / 60; // Assuming a speed of 60 km/h
@@ -617,131 +650,81 @@ const DriverOnWay = ({
     }
   };
 
-  // console.log('rideRequest=', rideRequest)
+  //   useEffect(() => {
+  //     const fetchData = async () => {
+  //       if (
+  //         rideRequest?.pickup_lat &&
+  //         rideRequest?.pickup_long &&
+  //         rideRequest?.dropoff_lat &&
+  //         rideRequest?.dropoff_long
+  //       ) {
+  //         const { distance, duration } = await fetchDistanceAndTime(
+  //           rideRequest?.pickup_lat,
+  //           rideRequest?.pickup_long,
+  //           rideRequest?.dropoff_lat,
+  //           rideRequest?.dropoff_long
+  //         );
+  //         setDistance(distance);
+  //         setDuration(duration);
 
-  // const fetchDistanceAndTime = async (
+  //         // Calculate time at 60 km/h speed if distance is valid
+  //         if (distance !== "N/A" && distance !== "Invalid coordinates") {
+  //           const distanceInKm = parseFloat(distance.split(" ")[0]); // Extract distance in km
+  //           if (!isNaN(distanceInKm)) {
+  //             const timeInHours = distanceInKm / 60; // Assuming a speed of 60 km/h
+  //             const timeInMinutes = Math.round(timeInHours * 60); // Convert hours to minutes
+  //             setEstimatedTime(timeInMinutes);
+  //           }
+  //         }
+  //       }
+  //     };
+
+  //     fetchData();
+  //   }, [rideRequest]);
+
+  //   const fetchDistanceAndTime = async (
   //     pickupLat,
   //     pickupLong,
   //     dropoffLat,
-  //     dropoffLong,
-  // ) => {
-  //     const distanceUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${pickupLat},${pickupLong}&destinations=${dropoffLat},${dropoffLong}&key=${Google_Maps_Apikey}`
+  //     dropoffLong
+  //   ) => {
+  //     const distanceUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${pickupLat},${pickupLong}&destinations=${dropoffLat},${dropoffLong}&key=${Google_Maps_Apikey}`;
+
   //     try {
-  //         const response = await fetch(distanceUrl)
-  //         const data = await response.json()
-  //         if (data.status === 'OK') {
-  //             const distance = data.rows[0].elements[0].distance.text
-  //             const duration = data.rows[0].elements[0].duration.text
-  //             return { distance, duration }
-  //         } else {
-  //             return { distance: 'N/A', duration: 'N/A' }
-  //         }
+  //       const response = await fetch(distanceUrl);
+  //       const data = await response.json();
+
+  //       if (!pickupLat || !pickupLong || !dropoffLat || !dropoffLong) {
+  //         return {
+  //           distance: "Invalid coordinates",
+  //           duration: "Invalid coordinates",
+  //         };
+  //       }
+
+  //       if (
+  //         data?.status === "OK" &&
+  //         data?.rows &&
+  //         data?.rows[0]?.elements &&
+  //         data?.rows[0]?.elements[0]
+  //       ) {
+  //         const distance = data?.rows[0]?.elements[0]?.distance
+  //           ? data?.rows[0]?.elements[0]?.distance.text
+  //           : "N/A";
+  //         const duration = data?.rows[0]?.elements[0]?.duration
+  //           ? data?.rows[0]?.elements[0]?.duration.text
+  //           : "N/A";
+
+  //         return { distance, duration };
+  //       } else {
+  //         return { distance: "N/A", duration: "N/A" };
+  //       }
   //     } catch (error) {
-  //         console.error('Error fetching distance and time:', error)
-  //         return { distance: 'N/A', duration: 'N/A' }
-  //     }
-  // }
-
-  // const fetchDistanceAndTime = async (rideRequest) => {
-  //   const distanceUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${pickupLat},${pickupLong}&destinations=${dropoffLat},${dropoffLong}&key=${Google_Maps_Apikey}`;
-  //   try {
-  //     const response = await fetch(distanceUrl);
-  //     const data = await response.json();
-
-  //     // Log the response for debugging
-  //     console.log("Distance and Time API Response:", data);
-
-  //     if (
-  //       !rideRequest.pickup_lat ||
-  //       !rideRequest.pickup_long ||
-  //       !rideRequest.dropoff_lat ||
-  //       !rideRequest.dropoff_long
-  //     ) {
-  //       return {
-  //         distance: "Invalid coordinates",
-  //         duration: "Invalid coordinates",
-  //       };
-  //     }
-
-  //     if (
-  //       data?.status === "OK" &&
-  //       data?.rows &&
-  //       data?.rows[0] &&
-  //       data?.rows[0]?.elements &&
-  //       data?.rows[0]?.elements[0]
-  //     ) {
-  //       const distance = data?.rows[0]?.elements[0]?.distance
-  //         ? data?.rows[0]?.elements[0]?.distance.text
-  //         : "N/A";
-  //       const duration = data?.rows[0]?.elements[0]?.duration
-  //         ? data?.rows[0]?.elements[0]?.duration?.text
-  //         : "N/A";
-
-  //       return { distance, duration };
-  //     } else {
-  //       console.error("Invalid data or status from API:", data);
+  //       console.error("Error fetching distance and time:", error);
   //       return { distance: "N/A", duration: "N/A" };
   //     }
-  //   } catch (error) {
-  //     console.error("Error fetching distance and time:", error);
-  //     return { distance: "N/A", duration: "N/A" };
-  //   }
-  // };
+  //   };
 
-  // useEffect(() => {
-  //     const getAddressesAndDistance = async () => {
-  //         if (newRideRequest) {
-  //             try {
-  //                 // Fetch addresses
-  //                 const driverAddress = await fetchAddress(
-  //                     newRideRequest.driver_location_lat,
-  //                     newRideRequest.driver_location_long,
-  //                 )
-  //                 setDriverLocationAddress(driverAddress)
-
-  //                 const pickupAddress = await fetchAddress(
-  //                     newRideRequest.pickup_lat,
-  //                     newRideRequest.pickup_long,
-  //                 )
-  //                 setPickupLocationAddress(pickupAddress)
-
-  //                 const dropoffAddress = await fetchAddress(
-  //                     newRideRequest.dropoff_lat,
-  //                     newRideRequest.dropoff_long,
-  //                 )
-  //                 setDropoffLocationAddress(dropoffAddress)
-
-  //                 // Fetch distance and time
-  //                 const { distance, duration } = await fetchDistanceAndTime(
-  //                     newRideRequest.pickup_lat,
-  //                     newRideRequest.pickup_long,
-  //                     newRideRequest.dropoff_lat,
-  //                     newRideRequest.dropoff_long,
-  //                 )
-
-  //                 // Ensure that valid data is returned
-  //                 if (distance !== 'N/A' && duration !== 'N/A') {
-  //                     setFinalDistance(distance)
-  //                     setFinalTimeToReach(duration)
-  //                 } else {
-  //                     setFinalDistance('N/A')
-  //                     setFinalTimeToReach('N/A')
-  //                 }
-  //             } catch (error) {
-  //                 console.error(
-  //                     'Error fetching addresses or distance/time:',
-  //                     error,
-  //                 )
-  //                 setFinalDistance('N/A')
-  //                 setFinalTimeToReach('N/A')
-  //             }
-  //         }
-  //     }
-
-  //     if (newRideRequest) {
-  //         getAddressesAndDistance()
-  //     }
-  // }, [newRideRequest])
+  // console.log('rideRequest=', rideRequest)
 
   const getCarImage = (carId) => {
     switch (carId) {
@@ -774,16 +757,18 @@ const DriverOnWay = ({
             <View style={styles.section}>
               <View style={styles.row}>
                 <Text style={styles.titleText}>{displayText}</Text>
-                <View style={styles.timeContainer}>
-                  <Text style={styles.timeText}>
-                    {/* {duration} */}
-                    {duration ? duration.split(" ")[0] : "0"}
-                  </Text>
+                {rideRequest?.action !== "driver-arrived" && (
+                  <View style={styles.timeContainer}>
+                    <Text style={styles.timeText}>
+                      {/* {duration} */}
+                      {duration ? duration.split(" ")[0] : "0"}
+                    </Text>
 
-                  <Text style={styles.timeText}>
-                    {duration ? duration.split(" ")[1] : "0"}
-                  </Text>
-                </View>
+                    <Text style={styles.timeText}>
+                      {duration ? duration.split(" ")[1] : "0"}
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={styles.divider} />
             </View>
@@ -827,10 +812,6 @@ const DriverOnWay = ({
                   </View>
                 </View>
                 <View style={styles.vehicleInfo}>
-                  {/* <Image
-                    source={require("../assets/prado_delux.png")}
-                    style={styles.vehicleImage}
-                  /> */}
                   <Image
                     source={getCarImage(Number(rideRequest?.driver_carid))} // Ensure carId is a number
                     style={styles.vehicleImage}
@@ -850,18 +831,19 @@ const DriverOnWay = ({
             {/* Section 3 */}
             <View style={styles.section}>
               <View style={styles.column}>
-                {rideRequest?.action !== "driver-arrived" && (
-                  <View style={styles.pickupInfo}>
-                    <Image
-                      source={require("../assets/pick-up2.png")}
-                      style={styles.pickupImage}
-                    />
+                {rideRequest?.action !== "driver-arrived" &&
+                  rideRequest?.action !== "customer-onride" && (
+                    <View style={styles.pickupInfo}>
+                      <Image
+                        source={require("../assets/pick-up2.png")}
+                        style={styles.pickupImage}
+                      />
 
-                    <Text style={styles.pickupText} numberOfLines={1}>
-                      {rideRequest?.pickup_addr}
-                    </Text>
-                  </View>
-                )}
+                      <Text style={styles.pickupText} numberOfLines={1}>
+                        {rideRequest?.pickup_addr}
+                      </Text>
+                    </View>
+                  )}
                 <View style={styles.dropoffInfo}>
                   <Image
                     source={require("../assets/waypoint.png")}
