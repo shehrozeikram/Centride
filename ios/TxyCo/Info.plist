@@ -34,17 +34,17 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to allow you to take a photo.</string>
+	<string>$(PRODUCT_NAME) need access to your camera to allow you to take a photo and update profile.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We need your location to show it on the map.</string>
+	<string>$(PRODUCT_NAME) would like to access your current location to show it on the map.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need your location to show it on the map.</string>
+	<string>$(PRODUCT_NAME) would like to access your current location to show it on the map.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>$(PRODUCT_NAME) needs to get your location current location to show on the map</string>
+	<string>$(PRODUCT_NAME) would like to access your current to show it on the map</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>We need access to your microphone to allow you to record videos.</string>
+	<string>$(PRODUCT_NAME) need access to your microphone to allow you to record videos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to allow you to select a profile picture.</string>
+	<string>$(PRODUCT_NAME) would like to access to your photo library to allow you to select a profile picture.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Zocial.ttf</string>
