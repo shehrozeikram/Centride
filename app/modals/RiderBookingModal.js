@@ -190,16 +190,6 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
                       }}
                       style={styles.profileImage}
                     />
-                    <Image
-                      source={
-                        newRideRequest?.driver_photo
-                          ? {
-                              uri: newRideRequest?.driver_photo,
-                            }
-                          : require("../assets/driver.png")
-                      }
-                      style={styles.profileImage}
-                    />
                     <View style={styles.ratingContainer}>
                       <Text style={styles.ratingText}>
                         {newRideRequest?.rider_rating}

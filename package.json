@@ -11,7 +11,7 @@
         "ios15": "react-native run-ios --simulator 'iPhone 15'",
         "ios11": "react-native run-ios --simulator 'iPhone 11'",
         "ios14": "react-native run-ios --simulator 'iPhone 14'",
-        "upload": "cd ios && open learna.xcworkspace"
+        "upload": "cd ios && open TxyCo.xcworkspace"
     },
     "dependencies": {
         "@react-native-async-storage/async-storage": "^2.0.0",
