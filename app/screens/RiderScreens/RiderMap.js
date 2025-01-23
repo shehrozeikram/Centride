@@ -1385,7 +1385,7 @@ const RiderMapScreen = ({ route }) => {
 
   // Fetch drivers' locations
   const handleTest = async (data) => {
-    const sess_id = await getSessionId(); // Assuming this is a function that gets the session ID
+    const sess_id = await getSessionId();
 
     const url = `${RIDER_BASE_URL}?sess_id=${sess_id}&action_get=getavailablecitydrivers&city=${data?.city}&pickup_location[lat]=${data?.latitude}&pickup_location[lng]=${data?.longitude}&priority_driver=${data?.priority_driver}`;
 
@@ -1834,7 +1834,11 @@ const RiderMapScreen = ({ route }) => {
             ref={mapRef}
             style={styles.map}
             onLayout={onLayout}
-            provider={Platform.OS === 'android' ? MapView.PROVIDER_GOOGLE : MapView.PROVIDER_DEFAULT}
+            provider={
+              Platform.OS === "android"
+                ? MapView.PROVIDER_GOOGLE
+                : MapView.PROVIDER_DEFAULT
+            }
             mapType={mapType}
             initialRegion={{
               latitude: origin?.latitude || 33.6844,

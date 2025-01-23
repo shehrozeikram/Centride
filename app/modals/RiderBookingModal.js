@@ -15,13 +15,17 @@ import { getSessionId } from "../utils/common";
 import messaging from "@react-native-firebase/messaging";
 import database from "@react-native-firebase/database";
 import { useSelector } from "react-redux";
+import axios from "axios";
+import DriverArriveModal from "./DriverArriveModal";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
-const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
+const RiderBookingModal = ({ visible, onClose, newRideRequest }) => {
   const [updatedRiderId, setUpdatedRiderId] = useState(null);
   const [ridersData, setRidersData] = useState([]);
   const [newMessage, setNewMessage] = useState(null);
+  const [driverArriveModalVisible, setDriverArriveModalVisible] =
+    useState(false);
 
   const [matchingRiders, setMatchingRiders] = useState([]); // To hold the matching rider ids
   const [timestamp, setTimestamp] = useState(null); // Store the current Unix timestamp
@@ -32,7 +36,7 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
   const prevMessageRef = useRef(null);
 
   // console.log('======user in modal======', user)
-  console.log("newRideRequest in rider modal", newRideRequest);
+  // console.log("newRideRequest in rider modal", newRideRequest);
   // console.log('=====location======', location)
 
   let min_bid_fare = 0;
@@ -52,11 +56,6 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
     const bid_min = parseFloat(newRideRequest.ride_bid_min_val); // Min bid percentage
     const bid_max = parseFloat(newRideRequest.ride_bid_max_val); // Max bid percentage
 
-    // console.log('Fare:', fare)
-    // console.log('Rider Bid Fare:', bid_rider_fare)
-    // console.log('Min Bid Percentage:', bid_min)
-    // console.log('Max Bid Percentage:', bid_max)
-
     // Check if parsed values are valid numbers
     if (
       isNaN(fare) ||
@@ -67,86 +66,107 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
       console.error("Invalid values detected. One or more values are NaN.");
     } else {
       // Calculate min_bid_fare, max_bid_fare, and mid_bid_fare
-      min_bid_fare = Math.ceil((bid_min / 100) * fare) + fare; // Adding bid to base fare
-      max_bid_fare = Math.ceil((bid_max / 100) * fare) + fare; // Adding bid to base fare
-      mid_bid_fare = Math.ceil((min_bid_fare + max_bid_fare) / 2); // Midpoint of min and max bid fare
-
-      // console.log('Min Bid Fare:', min_bid_fare)
-      // console.log('Max Bid Fare:', max_bid_fare)
-      // console.log('Mid Bid Fare:', mid_bid_fare)
+      min_bid_fare = Math.ceil((bid_min / 100) * fare) + fare;
+      max_bid_fare = Math.ceil((bid_max / 100) * fare) + fare;
+      mid_bid_fare = Math.ceil((min_bid_fare + max_bid_fare) / 2);
     }
   }
 
-  const getCurrentUnixTimestamp = () => {
-    return Math.floor(Date.now() / 1000); // Current timestamp in seconds
+  const fetchAvailableDrivers = async () => {
+    const sessId = await getSessionId();
+    const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
+    axios
+      .get(url, {
+        params: {
+          action_get: "getavailablecitydrivers",
+          city: 1,
+        },
+        timeout: 10000,
+        withCredentials: true,
+      })
+      .then((response) => {
+        const data = response.data;
+        console.log("response=", data);
+
+        if (data.hasOwnProperty("error")) {
+          console.log("error=", data);
+          return;
+        }
+
+        if (data.hasOwnProperty("success")) {
+          console.log("data=", data);
+
+          // Handle driver stats (completed trips, earnings, etc.)
+          if (data.completed_trips) {
+            // setDriverStats({
+            //   completedTrips: data.completed_trips,
+            //   todayEarnings: data.driver_today_earning * city_curency_exchange_rate,
+            // });
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error communicating with server", error);
+      });
+    // }, 15000);
+
+    // Cleanup interval on component unmount
+    // return () => {
+    //   clearInterval(get_available_drivers_timer);
+    // };
   };
 
-  // const saveDataAcceptRide = async () => {
-  //     const currentTimestamp = getCurrentUnixTimestamp()
-  //     console.log('currentTimestamp', currentTimestamp)
-  //     console.log('newRideRequest = ab', newRideRequest)
-  //     const msgData = {
-  //         action: 'driver-bid-notify',
-  //         bid_fare: newRideRequest?.fare,
-  //         booking_id: newRideRequest?.booking_id,
-  //         driver_carid: user?.driver_ride_id,
-  //         driver_carmodel: user?.car_model,
-  //         driver_firstname: user?.firstname,
-  //         driver_image: user
-  //             ? { uri: user?.photo }
-  //             : require('../assets/driver.png'),
-  //         driver_carcolor: user?.car_color,
-  //         driver_completed_rides: user?.completed_rides,
-  //         driver_id: user?.driverid,
-  //         driver_location_lat: location.latitude,
-  //         driver_location_long: location.longitude,
-  //         driver_phone: user?.phone,
-  //         driver_photo: user?.photo,
-  //         driver_platenum: user?.car_plate_num,
-  //         driver_car_year: user?.car_year,
-  //         driver_rating: user?.driver_rating,
-  //         pickup_addr: newRideRequest?.pickup_addr,
-  //         pickup_lat: newRideRequest?.p_lat,
-  //         pickup_long: newRideRequest?.p_lng,
-  //         time_notified: getCurrentUnixTimestamp(),
-  //         ttl: 30,
-  //         dropoff_lat: newRideRequest?.d_lat,
-  //         dropoff_long: newRideRequest?.d_lng,
-  //         distance: newRideRequest?.distance,
-  //         destination_time_to_reach: newRideRequest?.time_to_pickup,
-
-  //     }
-  //     try {
-  //         const userId = newRideRequest?.rider_id
-  //         await database().ref(`/Riders/ridr-${userId}/notf/msg`).set(msgData)
-  //         await database()
-  //             .ref(`/Riders/ridr-${userId}/notf/msg_t`)
-  //             .set(currentTimestamp)
-
-  //         console.log(
-  //             'Data saved successfully from driver',
-  //             userId,
-  //             currentTimestamp,
-  //         )
-  //     } catch (error) {
-  //         console.error('Error saving data for driverId:', error)
-  //     }
-  // }
-
   const acceptRide = async () => {
+    const post_data = {
+      action_get: "acceptride",
+      bookingid: newRideRequest.booking_id,
+      bid_fare: newRideRequest.bid_fare,
+    };
+
+    const sessId = await getSessionId();
+    const ajaxurl = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
+
+    axios
+      .get(ajaxurl, {
+        params: post_data,
+        timeout: 45000,
+        withCredentials: true,
+      })
+      .then((response) => {
+        const data = response.data;
+
+        try {
+          const data_obj = data;
+
+          if (data_obj.hasOwnProperty("error")) {
+            return;
+          }
+
+          if (data_obj.hasOwnProperty("success")) {
+            console.log("success");
+            // onClose();
+            setDriverArriveModalVisible(true);
+          }
+        } catch (e) {
+          console.error("Error processing server response:", e);
+        }
+      })
+      .catch((error) => {
+        console.error("Error with API call:", error);
+      });
+  };
+
+  const handleDriverArrive = async () => {
     const sessId = getSessionId();
     const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
 
     // Request body data as x-www-form-urlencoded
     const body = new URLSearchParams({
-      action_get: "acceptride",
+      action_get: "driverarrived",
       bookingid: newRideRequest?.booking_id,
-      bid_fare: 0,
     });
-    console.log("body=b", body);
 
     try {
-      // saveDataAcceptRide()
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -158,9 +178,8 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
 
       if (res.ok) {
         console.log("res=", res.ok);
-        // const data = await res.json()
-        // console.log('========acceptRide=======', data)
-        // saveDataAcceptRide()
+        // driverArriveSave()
+        setPickupModalVisible(true);
       } else {
         console.log("Request failed with status: ", res.status);
       }
@@ -168,6 +187,18 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
       console.log("Error: ", err.message);
     }
   };
+
+  // If pickupModalVisible is true, show DriverPickupModal
+  if (driverArriveModalVisible) {
+    console.log("driverArriveModalVisible=", driverArriveModalVisible);
+    return (
+      <DriverArriveModal
+        visible={driverArriveModalVisible}
+        newRideRequest={newRideRequest}
+        // pickupAddress={pickupAddress}
+      />
+    );
+  }
 
   return (
     <Modal
@@ -206,7 +237,7 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
                   <View style={styles.driverDetails}>
                     <Text style={styles.driverName}>
                       {newRideRequest?.city_currency_symbol}{" "}
-                      {newRideRequest?.ride_amount}
+                      {newRideRequest?.fare}
                     </Text>
                     <Text style={styles.driverTrips}>Cash</Text>
                     <View style={styles.driverIdContainer}>
@@ -268,10 +299,7 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest, location }) => {
               <View style={styles.row}>
                 <TouchableOpacity
                   style={styles.acceptButton}
-                  onPress={() => {
-                    acceptRide();
-                    onClose();
-                  }}
+                  onPress={acceptRide}
                 >
                   <Text style={styles.acceptText}>
                     Accept for Rs {newRideRequest?.fare}

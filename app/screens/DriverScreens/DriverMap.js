@@ -28,7 +28,7 @@ import messaging from "@react-native-firebase/messaging";
 import database from "@react-native-firebase/database";
 import RiderBookingModal from "../../modals/RiderBookingModal";
 import { useSelector } from "react-redux";
-import DriverArriveModal from "../../modals/DriverArriveModal";
+// import DriverArriveModal from "../../modals/DriverArriveModal";
 let sound;
 
 const Google_Maps_Apikey = "AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw";
@@ -82,8 +82,8 @@ const DriverMap = ({ navigation }) => {
   const [newRideRequest, setNewRideRequest] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showTripInfo, setShowTripInfo] = useState(true);
-  const [driverArriveModalVisible, setDriverArriveModalVisible] =
-    useState(false);
+  // const [driverArriveModalVisible, setDriverArriveModalVisible] =
+  //   useState(false);
   const [timeOnline, setTimeOnline] = useState("");
   const [matchingRiders, setMatchingRiders] = useState([]);
   const [timestamp, setTimestamp] = useState(null);
@@ -226,9 +226,9 @@ const DriverMap = ({ navigation }) => {
                 case "decline-driver-bid-notify":
                   decline_bid(msg);
                   break;
-                case "accept-driver-bid-notify":
-                  accept_bid(msg);
-                  break;
+                // case "accept-driver-bid-notify":
+                //   accept_bid(msg);
+                //   break;
                 case "chat-message":
                   chat_msg_notify(msg);
                   break;
@@ -642,7 +642,7 @@ const DriverMap = ({ navigation }) => {
 
     setNotificationData(notification);
     // setShowTripInfo(false)
-    setDriverArriveModalVisible(true);
+    // setDriverArriveModalVisible(true);
     // setTimeout(() => {
     //     setDriverArriveModalVisible(false)
     //     setShowTripInfo(true)
@@ -1138,12 +1138,12 @@ const DriverMap = ({ navigation }) => {
         </MapView>
       )}
 
-      {driverArriveModalVisible && (
+      {/* {driverArriveModalVisible && (
         <DriverArriveModal
           visible={driverArriveModalVisible}
           notification={notificationData}
         />
-      )}
+      )} */}
 
       <TouchableOpacity
         onPress={() => navigation.navigate("Trips")}
