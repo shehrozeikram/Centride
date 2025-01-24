@@ -190,7 +190,7 @@ const RiderBookingModal = ({ visible, onClose, newRideRequest }) => {
 
   // If pickupModalVisible is true, show DriverPickupModal
   if (driverArriveModalVisible) {
-    console.log("driverArriveModalVisible=", driverArriveModalVisible);
+    // console.log("driverArriveModalVisible=", driverArriveModalVisible);
     return (
       <DriverArriveModal
         visible={driverArriveModalVisible}

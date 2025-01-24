@@ -94,6 +94,7 @@ const DriverMap = ({ navigation }) => {
   const [sessionIdForParams, setSessionIdForParams] = useState(false);
   const [driverId, setDriverId] = useState(null);
   const user = useSelector((state) => state.user?.user);
+  const isMounted = useRef(true);
 
   const [directionsData, setDirectionsData] = useState(null); // Store directions data (origin and destination)
   const [showDirections, setShowDirections] = useState(false);
@@ -134,24 +135,146 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
+  // useEffect(() => {
+  //   const fetchNotifications = async () => {
+  //     const driverId = user?.driverid;
+  //     //   console.log("=====driverId =====", driverId);
+
+  //     const reference = database()
+  //       .ref(`Drivers/drvr-${driverId}/notf`)
+  //       .on("value", async (snapshot) => {
+  //         const data = snapshot.val();
+  //         console.log("Fetched snapshot data:", data);
+
+  //         // Check if data is null
+  //         if (data == null) {
+  //           console.log("No data found in Firebase");
+  //           return;
+  //         }
+
+  //         // Access the message and timestamp directly
+  //         const msg = data.msg;
+  //         const msg_t = data.msg_t;
+
+  //         if (!msg || !msg_t) {
+  //           console.log("Invalid message structure:", data);
+  //           return;
+  //         }
+
+  //         const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
+  //         console.log(
+  //           "Last message time from AsyncStorage:",
+  //           last_msg_time_id,
+  //           "TYPEOF=====>",
+  //           typeof last_msg_time_id
+  //         );
+
+  //         // Add timestamp tolerance here (e.g., 1 second grace period for identical timestamps)
+  //         const toleranceInSeconds = 5;
+  //         const timestampDifference = Math.abs(
+  //           msg_t - parseInt(last_msg_time_id, 10)
+  //         );
+
+  //         // If the timestamp difference is 0 or within the tolerance, allow the message to be processed
+  //         if (
+  //           !last_msg_time_id ||
+  //           timestampDifference > toleranceInSeconds ||
+  //           timestampDifference === 0
+  //         ) {
+  //           console.log("Processing new message:", data);
+
+  //           // Update AsyncStorage with the new message timestamp
+  //           await AsyncStorage.setItem(
+  //             "fb_last_recvd",
+  //             // JSON.stringify(msg_t),
+  //             msg_t?.toString()
+  //           );
+
+  //           // Prepare formatted notifications
+  //           const formattedNotifications = [msg]; // Directly add msg to the array
+  //           console.log("Formatted Notifications:", formattedNotifications);
+
+  //           if (formattedNotifications.length > 0) {
+  //             setNotifications(formattedNotifications);
+  //           } else {
+  //             console.log("No notifications to display");
+  //           }
+
+  //           // Handle missing booking_id
+  //           if (!msg.booking_id) {
+  //             console.log("Warning: booking_id is missing", msg);
+
+  //             // If no booking_id, return without processing further
+  //             return;
+  //           } else {
+  //             const processed = await AsyncStorage.getItem(
+  //               `processed_${msg.booking_id}_${msg.action}`
+  //             );
+  //             console.log(
+  //               `Processed for booking ${msg.booking_id}:`,
+  //               processed
+  //             );
+  //             if (processed) return;
+
+  //             // Handle notification actions based on action type
+  //             switch (msg.action) {
+  //               case "driver-allocate":
+  //                 booking_allocate_notify(msg);
+  //                 break;
+  //               case "customer-cancelled":
+  //                 customer_cancelled_notify(msg);
+  //                 break;
+  //               case "decline-driver-bid-notify":
+  //                 decline_bid(msg);
+  //                 break;
+  //               // case "accept-driver-bid-notify":
+  //               //   accept_bid(msg);
+  //               //   break;
+  //               case "chat-message":
+  //                 chat_msg_notify(msg);
+  //                 break;
+  //               default:
+  //                 break;
+  //             }
+
+  //             // Mark notification as processed
+  //             await AsyncStorage.setItem(
+  //               `processed_${msg.booking_id}_${msg.action}`,
+  //               "true"
+  //             );
+  //           }
+  //         } else {
+  //           console.log(
+  //             "Skipping processed message due to timestamp tolerance:",
+  //             data
+  //           );
+  //         }
+  //       });
+
+  //     return () => {
+  //       database().ref(`Drivers/drvr-${driverId}/notf`).off("value", reference);
+  //     };
+  //   };
+
+  //   fetchNotifications();
+  // }, [serverClientTimeDiff]);
+
   useEffect(() => {
+    isMounted.current = true; // Set to true when component is mounted
+
     const fetchNotifications = async () => {
       const driverId = user?.driverid;
-      //   console.log("=====driverId =====", driverId);
-
       const reference = database()
         .ref(`Drivers/drvr-${driverId}/notf`)
         .on("value", async (snapshot) => {
           const data = snapshot.val();
           console.log("Fetched snapshot data:", data);
 
-          // Check if data is null
           if (data == null) {
             console.log("No data found in Firebase");
             return;
           }
 
-          // Access the message and timestamp directly
           const msg = data.msg;
           const msg_t = data.msg_t;
 
@@ -161,20 +284,13 @@ const DriverMap = ({ navigation }) => {
           }
 
           const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
-          console.log(
-            "Last message time from AsyncStorage:",
-            last_msg_time_id,
-            "TYPEOF=====>",
-            typeof last_msg_time_id
-          );
+          console.log("Last message time from AsyncStorage:", last_msg_time_id);
 
-          // Add timestamp tolerance here (e.g., 1 second grace period for identical timestamps)
           const toleranceInSeconds = 5;
           const timestampDifference = Math.abs(
             msg_t - parseInt(last_msg_time_id, 10)
           );
 
-          // If the timestamp difference is 0 or within the tolerance, allow the message to be processed
           if (
             !last_msg_time_id ||
             timestampDifference > toleranceInSeconds ||
@@ -182,40 +298,29 @@ const DriverMap = ({ navigation }) => {
           ) {
             console.log("Processing new message:", data);
 
-            // Update AsyncStorage with the new message timestamp
-            await AsyncStorage.setItem(
-              "fb_last_recvd",
-              // JSON.stringify(msg_t),
-              msg_t?.toString()
-            );
+            await AsyncStorage.setItem("fb_last_recvd", msg_t?.toString());
 
-            // Prepare formatted notifications
             const formattedNotifications = [msg]; // Directly add msg to the array
             console.log("Formatted Notifications:", formattedNotifications);
 
             if (formattedNotifications.length > 0) {
-              setNotifications(formattedNotifications);
+              if (isMounted.current) {
+                // Only update state if component is mounted
+                setNotifications(formattedNotifications);
+              }
             } else {
               console.log("No notifications to display");
             }
 
-            // Handle missing booking_id
             if (!msg.booking_id) {
               console.log("Warning: booking_id is missing", msg);
-
-              // If no booking_id, return without processing further
               return;
             } else {
               const processed = await AsyncStorage.getItem(
                 `processed_${msg.booking_id}_${msg.action}`
               );
-              console.log(
-                `Processed for booking ${msg.booking_id}:`,
-                processed
-              );
               if (processed) return;
 
-              // Handle notification actions based on action type
               switch (msg.action) {
                 case "driver-allocate":
                   booking_allocate_notify(msg);
@@ -226,9 +331,6 @@ const DriverMap = ({ navigation }) => {
                 case "decline-driver-bid-notify":
                   decline_bid(msg);
                   break;
-                // case "accept-driver-bid-notify":
-                //   accept_bid(msg);
-                //   break;
                 case "chat-message":
                   chat_msg_notify(msg);
                   break;
@@ -236,7 +338,6 @@ const DriverMap = ({ navigation }) => {
                   break;
               }
 
-              // Mark notification as processed
               await AsyncStorage.setItem(
                 `processed_${msg.booking_id}_${msg.action}`,
                 "true"
@@ -256,7 +357,11 @@ const DriverMap = ({ navigation }) => {
     };
 
     fetchNotifications();
-  }, [serverClientTimeDiff]);
+
+    return () => {
+      isMounted.current = false; // Set to false when component unmounts
+    };
+  }, [user?.driverid]);
 
   //   useEffect(() => {
   //     const fetchNotifications = async () => {

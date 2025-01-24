@@ -23,11 +23,15 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const user = useSelector((state) => state.user?.user);
+  const [response, setResponse] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // console.log("Received newRideRequest in DriverArriveModal:", newRideRequest);
 
   const handleDriverArrive = async () => {
-    const sessId = getSessionId();
+    const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=";
+    // const sessId = getSessionId();
     const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
 
     // Request body data as x-www-form-urlencoded
@@ -58,17 +62,50 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
     }
   };
 
+  const apiUrl = "https://appserver.txy.co/ajaxdriver_2_1_1.php";
+
+  const params = {
+    sess_id: "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=",
+    action_get: "driverarrived",
+    bookingid: newRideRequest.booking_id,
+  };
+
+  const fetchDriverArrival = async () => {
+    setLoading(true);
+    setError(null);
+
+    // Construct the full URL with query params
+    const url = `${apiUrl}?sess_id=${params.sess_id}&action_get=${params.action_get}&bookingid=${params.bookingid}`;
+
+    try {
+      const res = await fetch(url);
+      // const json = await res.json();
+
+      if (res.ok) {
+        console.log("res-=", res);
+        setPickupModalVisible(true);
+      } else {
+        setError("Failed to fetch data");
+      }
+    } catch (err) {
+      setError("An error occurred");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // If pickupModalVisible is true, show DriverPickupModal
-  // if (pickupModalVisible) {
-  //   return (
-  //     <DriverPickupModal
-  //       visible={pickupModalVisible}
-  //       newRideRequest={newRideRequest}
-  //       pickupAddress={pickupAddress}
-  //     />
-  //   );
-  // }
-  console.log("it came here 1===");
+  if (pickupModalVisible) {
+    return (
+      <DriverPickupModal
+        visible={pickupModalVisible}
+        newRideRequest={newRideRequest}
+        // pickupAddress={pickupAddress}
+      />
+    );
+  }
+
   return (
     <View style={styles.modalContainer}>
       <View style={styles.modalContent}>
@@ -124,7 +161,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.arrivedButton}
-              onPress={handleDriverArrive}
+              onPress={fetchDriverArrival}
             >
               <Text style={styles.arrivedText}>I'VE ARRIVED</Text>
             </TouchableOpacity>
