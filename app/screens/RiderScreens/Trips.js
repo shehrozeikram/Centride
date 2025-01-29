@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import Style from "../../utils/Styles";
@@ -10,6 +10,10 @@ import HTMLParser from "react-native-html-parser";
 
 const Trips = () => {
   const navigation = useNavigation();
+
+  const route = useRoute(); // Get access to the route parameters
+  const { currentBookings } = route.params || {};
+
   const [completedBookings, setCompletedBookings] = useState([]);
   const [pendingBookings, setPendingBookings] = useState([]);
   const [canceledBookings, setCanceledBookings] = useState([]);
@@ -31,16 +35,13 @@ const Trips = () => {
         const pendingArray = convertHTMLToJSON2(response.pend_onride);
         const canceledArray = convertHTMLToJSON(response.booking_canc);
 
-        console.log("pendingArr=============>", pendingArray);
+        // console.log("pendingArr=============>", pendingArray);
         setCompletedBookings(completedArray);
         setPendingBookings(pendingArray);
         setCanceledBookings(canceledArray);
       })
       .catch((error) => {
-        console.log(
-          "======error====NjFjNGkydnFqM2xmcDNxdXZ2YzBxaHFzdjU=",
-          error
-        );
+        console.log("error", error);
       });
   };
   const convertHTMLToJSON2 = (htmlString) => {
@@ -150,7 +151,7 @@ const Trips = () => {
   //   console.log("pendingBookings======>", pendingBookings);
   return (
     <View style={Style.container}>
-      <Spacing val={Platform.OS === "ios" && 55} />
+      <Spacing val={Platform.OS === "ios" ? 55 : 35} />
       <View style={[Style.hPaddingSixteen]}>
         <Header LeftIcon={true} onPressLeftIcon={onBackPress} title={"Trips"} />
         <Spacing val={Platform.OS === "android" && 35} />

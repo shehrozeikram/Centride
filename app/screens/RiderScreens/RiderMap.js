@@ -25,6 +25,7 @@ import {
   StatusBar,
   FlatList,
   Linking,
+  Modal,
 } from "react-native";
 import Ring from "../../components/Ring";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
@@ -57,6 +58,7 @@ import DriverAssignedModal from "../../modals/DriverAssignedModal";
 import DriverOnWay from "../../modals/DriverOnWay";
 import RideCompleted from "./RideCompleted";
 import DriverCard from "../../modals/DriverCard";
+import HTMLParser from "react-native-html-parser";
 
 import { useTranslation } from "react-i18next";
 
@@ -103,6 +105,20 @@ const CustomMarker = ({ driver }) => (
 );
 
 const RiderMapScreen = ({ route }) => {
+  const [showViewAlert, setShowViewAlert] = useState(false);
+  const { ongoing_bk } = route?.params || {};
+  // console.log("Received ongoing_bk:", ongoing_bk);
+
+  useEffect(() => {
+    if (ongoing_bk && Object.keys(ongoing_bk).length > 0) {
+      const timer = setTimeout(() => {
+        setShowViewAlert(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [ongoing_bk]);
+
   const { t, i18n } = useTranslation();
   const { hideStroke } = route.params || { hideStroke: false };
   // const mapRef = useRef(null) // Add a reference for the MapView
@@ -148,6 +164,8 @@ const RiderMapScreen = ({ route }) => {
   const [driverRequests, setDriverRequests] = useState([]);
   const [rideRequests, setRideRequests] = useState([]); // Store multiple ride requests
   const [currentRideRequestIndex, setCurrentRideRequestIndex] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState([]);
+
   const user = useSelector((state) => state.user?.user);
   const mapRef = useRef(null); // MapView reference
   const markerRefs = useRef([]);
@@ -155,6 +173,12 @@ const RiderMapScreen = ({ route }) => {
   const prevActionRef = useRef(null);
   const prevMessageRef = useRef(null);
   const isInitialLoadRef = useRef(true);
+
+  const handleCloseAlert = () => {
+    setShowViewAlert(false);
+  };
+
+  // console.log("user-", user);
 
   const handleCloseDriverCard = (driverId) => {
     setClosedDriverIds((prevClosedIds) => [...prevClosedIds, driverId]);
@@ -394,6 +418,7 @@ const RiderMapScreen = ({ route }) => {
     }
 
     setShowDriverOnWay(true);
+    setBookingId(notification.booking_id);
     setNewRideRequest({
       ...notification,
       // titleText: "Driver is on his way",
@@ -820,7 +845,8 @@ const RiderMapScreen = ({ route }) => {
     setNewRideRequest({
       ...notification,
     });
-
+    console.log("bookingId=", notification.msg.booking_id);
+    // setBookingId(notification.msg.booking_id);
     if (mapRef.current) {
       const driverLocationLat = parseFloat(notification?.driver_location_lat);
       const driverLocationLong = parseFloat(notification?.driver_location_long);
@@ -1550,6 +1576,195 @@ const RiderMapScreen = ({ route }) => {
     }
   };
 
+  const convertHTMLToJSON = (htmlString) => {
+    if (!htmlString) return []; // Handle empty HTML string
+
+    const parser = new HTMLParser.DOMParser();
+    const doc = parser.parseFromString(htmlString, "text/html");
+
+    // Extract the list items (each booking item)
+    const listItems = doc.getElementsByTagName("ons-list-item");
+
+    // Convert NodeList to Array
+    const listArray = Array.from(listItems);
+    const bookings = [];
+
+    listArray.forEach((item) => {
+      const booking = {
+        bookingId: item.getAttribute("data-btitle"),
+        time: item
+          .getElementsByClassName("list-item__title")[0]
+          ?.textContent.trim(),
+        rideType: item.getAttribute("data-ridedesc"),
+        driverPhone: item.getAttribute("data-driverphone"),
+        paymentType: item.getAttribute("data-ptype"),
+        pickUpTime: item.getAttribute("data-put"),
+        driverImage: item.getAttribute("data-driverimg"),
+        carImage: item.getAttribute("data-rideimg"),
+        driverName: item.getAttribute("data-drivername"),
+        cost: item.getAttribute("data-cost"),
+        pickUpLocation: item.getAttribute("data-pul"),
+        dropOffLocation: item.getAttribute("data-dol"),
+        status: item.getElementsByTagName("span")[0]?.textContent.trim(),
+        bookingData: JSON.parse(
+          item.getElementsByClassName(
+            `booking-list-item-data-${item.getAttribute("id").split("-").pop()}`
+          )[0]?.textContent || "{}"
+        ),
+      };
+
+      bookings.push(booking);
+    });
+
+    return bookings;
+  };
+
+  const convertHTMLToJSON2 = (htmlString) => {
+    if (!htmlString) return []; // Handle empty HTML string
+
+    const parser = new HTMLParser.DOMParser();
+    const doc = parser.parseFromString(htmlString, "text/html");
+
+    // Extract the list items (each booking item)
+    const listItems = doc.getElementsByTagName("ons-list-item");
+
+    // Convert NodeList to Array
+    const listArray = Array.from(listItems);
+    const bookings = [];
+
+    listArray.forEach((item) => {
+      const booking = {
+        bookingId: item.getAttribute("id")?.split("-")[2], // Extracts the booking ID from the 'id' attribute
+        time: item
+          .getElementsByClassName("list-item__title")[0]
+          ?.textContent.trim(), // Extracts time
+        status: item.getElementsByTagName("span")[0]?.textContent.trim(), // Extracts status (e.g., "Pending trip")
+        pickUpLocation: item
+          .getElementsByClassName("list-item__subtitle")[0]
+          ?.textContent.trim(), // Pickup location (first subtitle)
+        dropOffLocation: item
+          .getElementsByClassName("list-item__subtitle")[1]
+          ?.textContent.trim(), // Dropoff location (second subtitle)
+        driverImage: item.getAttribute("data-driverimg"), // Driver image from the 'data-driverimg' attribute
+        carImage: item.getAttribute("data-rideimg"), // Car image from the 'data-rideimg' attribute
+        cost: item.getAttribute("data-cost"), // Cost from the 'data-cost' attribute
+        bookingData: JSON.parse(
+          item.getElementsByClassName("booking-list-item-data")[0]
+            ?.textContent || "{}"
+        ), // Parse hidden JSON data from the corresponding <span>
+        pickUpTime: formatDateTime(),
+      };
+
+      bookings.push(booking);
+    });
+
+    return bookings;
+  };
+
+  const getBookings = () => {
+    const data = {
+      action: "getbookings",
+    };
+    Post({ data: data })
+      .then((response) => {
+        const completedArray = convertHTMLToJSON(response.booking_comp);
+        const pendingArray = convertHTMLToJSON2(response.pend_onride);
+        const canceledArray = convertHTMLToJSON(response.booking_canc);
+
+        console.log("==>pendingArr=============>", pendingArray);
+
+        // Navigate to the Trips screen and pass the pendingBookings
+        navigation.navigate("Trips", {
+          screen: "Current",
+          params: { currentBookings: pendingArray }, // Sending pendingBookings as currentBookings
+        });
+
+        setPendingBookings(pendingArray); // Optionally set state for local use
+      })
+      .catch((error) => {
+        console.log("Error fetching bookings:", error);
+      });
+  };
+
+  // const getBookings = () => {
+  //   const data = {
+  //     action: "getbookings",
+  //   };
+  //   Post({ data: data })
+  //     .then((response) => {
+  //       const completedArray = convertHTMLToJSON(response.booking_comp);
+  //       const pendingArray = convertHTMLToJSON2(response.pend_onride);
+  //       const canceledArray = convertHTMLToJSON(response.booking_canc);
+
+  //       console.log("==>pendingArr=============>", pendingArray);
+  //       // setCompletedBookings(completedArray);
+  //       setPendingBookings(pendingArray);
+  //       console.log("pendingBookings==", pendingBookings);
+  //     })
+  //     .catch((error) => {
+  //       console.log(
+  //         "======error====NjFjNGkydnFqM2xmcDNxdXZ2YzBxaHFzdjU=",
+  //         error
+  //       );
+  //     });
+  // };
+  function formatDateTime() {
+    const now = new Date();
+
+    const options = {
+      weekday: "long", // Full weekday name (e.g., "Thursday")
+      year: "numeric", // Full year (e.g., "2025")
+      month: "short", // Abbreviated month name (e.g., "Jan")
+      day: "numeric", // Day of the month (e.g., "2")
+    };
+
+    const formattedDate = new Intl.DateTimeFormat("en-US", options).format(now);
+
+    // Ensure there's a space between the day and the year
+    const dateParts = formattedDate.split(",");
+    const dateString = dateParts[0].trim() + " " + dateParts[1].trim();
+
+    return dateString;
+  }
+
+  const resumebooking = async (notification) => {
+    try {
+      const sess_id = await getSessionId();
+
+      const params = {
+        action_get: "resumebooking",
+        sess_id: sess_id,
+        booking_id: ongoing_bk.booking_id,
+      };
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await axios.get(`${RIDER_BASE_URL}?${queryString}`);
+
+      if (response.data?.error) {
+        Alert.alert("Error", response.data?.error);
+      } else {
+        console.log("response of resumebooking==", response.data.ongoing_bk);
+        handleCloseAlert();
+
+        if (
+          response.data.ongoing_bk.action === "driver-assigned" ||
+          response.data.ongoing_bk.action === "driver-arrived" ||
+          response.data.ongoing_bk.action === "customer-onride"
+        ) {
+          setShowDriverOnWay(true);
+          setNewRideRequest(response.data.ongoing_bk);
+          setHideDirections(true);
+          showDriverOnWayModal(
+            "ride_alloc.mp3",
+            response.data.ongoing_bk.action
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error in booking:", error);
+    }
+  };
+
   // useEffect(() => {
   //   // getDatabase()
   //   requestUserPermission();
@@ -1934,6 +2149,23 @@ const RiderMapScreen = ({ route }) => {
         </View>
       )}
 
+      {/* Custom Alert Modal */}
+      <Modal
+        visible={showViewAlert}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseAlert}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertText}>Your ride is in progress</Text>
+            <TouchableOpacity onPress={resumebooking} style={styles.okButton}>
+              <Text style={styles.okButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {showRings && (
         <View
           style={{
@@ -2261,6 +2493,48 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 10,
     borderColor: "tomato",
+  },
+  // alert styles
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+  },
+  alertBox: {
+    width: 280,
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow effect
+  },
+  alertText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  okButton: {
+    position: "absolute", // Position it relative to the alert box
+    bottom: 10, // Distance from the bottom of the alert box
+    right: 10, // Distance from the right side of the alert box
+    backgroundColor: "rgba(0, 0, 0, 0)", // Transparent background
+    borderWidth: 1, // Optional: border around the button
+    borderColor: "#fff",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  okButtonText: {
+    top: 10,
+    fontSize: 14,
+    color: "blue",
+    // fontWeight: "bold",
   },
 });
 

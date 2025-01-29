@@ -1072,7 +1072,8 @@ const DriverMap = ({ navigation }) => {
       return;
     }
 
-    const sessId = await getSessionId();
+    // const sessId = await getSessionId();
+    const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE";
     const lat = origin?.latitude;
     const long = origin?.longitude;
     console.log("===origin in setDriverLocation===", origin);
