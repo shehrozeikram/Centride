@@ -1727,7 +1727,7 @@ const RiderMapScreen = ({ route }) => {
     return dateString;
   }
 
-  const resumebooking = async (notification) => {
+  const resumebooking = async () => {
     try {
       const sess_id = await getSessionId();
 

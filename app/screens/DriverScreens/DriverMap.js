@@ -10,6 +10,7 @@ import {
   Animated,
   Alert,
   Platform,
+  Modal,
 } from "react-native";
 import Sound from "react-native-sound";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
@@ -22,7 +23,11 @@ import { Post } from "../../network/network";
 import { getAppSide, getSessionId, setSessionId } from "../../utils/common";
 import { DRIVER_BASE_URL } from "../../utils/constants";
 import Style from "../../utils/Styles";
-import { useIsFocused, useRoute } from "@react-navigation/native";
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import Geocoder from "react-native-geocoding";
 import messaging from "@react-native-firebase/messaging";
 import database from "@react-native-firebase/database";
@@ -73,8 +78,13 @@ const CustomMarker = ({ driver }) => (
 const ridersRef = database().ref("Drivers/");
 
 const DriverMap = ({ navigation }) => {
-  const mapRef = useRef(null);
   const route = useRoute();
+  const { ongoing_bk } = route?.params || {};
+  const mapRef = useRef(null);
+  console.log("ongoing_bk driver =", ongoing_bk);
+  // const navigation = useNavigation();
+
+  const [showViewAlert, setShowViewAlert] = useState(false);
   const [origin, setOrigin] = useState(null);
   const [destination, setDestination] = useState(null);
   const [driverLocationsList, setDriverLocations] = useState([]);
@@ -100,7 +110,7 @@ const DriverMap = ({ navigation }) => {
   const [showDirections, setShowDirections] = useState(false);
 
   // console.log('=user=', user)
-  // console.log('====origin====', origin)
+  console.log("===ongoing_bk Driver map", ongoing_bk);
 
   const markerRefs = useRef([]);
   const user_id = user?.driverid;
@@ -111,10 +121,14 @@ const DriverMap = ({ navigation }) => {
 
   const message_ref = database().ref(`Drivers/drvr-${user_id}/notf`);
 
-  // useEffect(() => {
+  useEffect(() => {
+    console.log("Checking ongoing_bk in useEffect:", ongoing_bk); // Check the value here
 
-  //     getSession()
-  // }, [])
+    // Ensure ongoing_bk is truthy and equals to 1
+    if (ongoing_bk === 1) {
+      setShowViewAlert(true);
+    }
+  }, [ongoing_bk]);
 
   const syncServer = async () => {
     const body = new URLSearchParams({
@@ -1109,6 +1123,86 @@ const DriverMap = ({ navigation }) => {
     setNewRideRequest(null);
   };
 
+  const getDriverOnride = async () => {
+    const sess_id = await getSessionId();
+    const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
+
+    const body = new URLSearchParams({
+      action: "getDriverOnride",
+    }).toString();
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body,
+      });
+
+      const responseData = await response.json();
+
+      if (response) {
+        console.log("response==", responseData);
+        // setShowDirections(false);
+      } else {
+        Alert.alert("Error", "Failed to process the request");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      Alert.alert("Error", "Something went wrong");
+    }
+  };
+
+  const getDriverOnrides = async () => {
+    try {
+      const sess_id = await getSessionId();
+
+      const params = {
+        action_get: "getDriverOnride",
+        sess_id: sess_id,
+        // booking_id: ongoing_bk.booking_id,
+      };
+      console.log("hello");
+
+      const queryString = new URLSearchParams(params).toString();
+      console.log("queryString=", queryString);
+      const response = await axios.get(`${DRIVER_BASE_URL}?${queryString}`);
+      console.log("response===", response);
+      if (response.data?.error) {
+        Alert.alert("Error", response.data?.error);
+      } else {
+        console.log("response of resumebooking==", response.data.ongoing_bk);
+        handleCloseAlert();
+
+        if (
+          response.data.ongoing_bk.action === "driver-allocate" ||
+          response.data.ongoing_bk.action === "driver-arrived" ||
+          response.data.ongoing_bk.action === "customer-onride"
+        ) {
+          setNewRideRequest(response.data.ongoing_bk);
+          showModal("ride_alloc.mp3");
+        }
+      }
+    } catch (error) {
+      console.error("Error in booking:", error);
+    }
+  };
+  const handleCloseAlert = () => {
+    setShowViewAlert(false);
+  };
+
+  // case "driver-allocate":
+  //                 booking_allocate_notify(msg);
+  //                 break;
+  //               case "customer-cancelled":
+  //                 customer_cancelled_notify(msg);
+  //                 break;
+  //               case "decline-driver-bid-notify":
+  //                 decline_bid(msg);
+  //                 break;
+  //               case "chat-message":
+
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.headerStyle]}>
@@ -1244,12 +1338,37 @@ const DriverMap = ({ navigation }) => {
         </MapView>
       )}
 
-      {/* {driverArriveModalVisible && (
-        <DriverArriveModal
-          visible={driverArriveModalVisible}
-          notification={notificationData}
-        />
-      )} */}
+      {/* <Modal
+        visible={showViewAlert}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseAlert}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertText}>View your Booking</Text>
+            <TouchableOpacity onPress={getDriverOnride} style={styles.okButton}>
+              <Text style={styles.okButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal> */}
+
+      <Modal
+        visible={true} // Temporarily set it to always show
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseAlert}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertText}>View your Booking</Text>
+            <TouchableOpacity onPress={getDriverOnride} style={styles.okButton}>
+              <Text style={styles.okButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <TouchableOpacity
         onPress={() => navigation.navigate("Trips")}
@@ -1342,6 +1461,48 @@ const styles = StyleSheet.create({
   },
   markerText: {
     color: "black",
+  },
+  // alert styles
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+  },
+  alertBox: {
+    width: 280,
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow effect
+  },
+  alertText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  okButton: {
+    position: "absolute", // Position it relative to the alert box
+    bottom: 10, // Distance from the bottom of the alert box
+    right: 10, // Distance from the right side of the alert box
+    backgroundColor: "rgba(0, 0, 0, 0)", // Transparent background
+    borderWidth: 1, // Optional: border around the button
+    borderColor: "#fff",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  okButtonText: {
+    top: 10,
+    fontSize: 14,
+    color: "blue",
+    // fontWeight: "bold",
   },
 });
 

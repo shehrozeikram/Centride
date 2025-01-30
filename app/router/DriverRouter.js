@@ -42,14 +42,20 @@ import Language from "../screens/language/Language";
 
 const Stack = createNativeStackNavigator();
 
-const DriverRoute = () => {
+const DriverRoute = ({ route }) => {
+  const { ongoing_bk } = route.params || {};
+  console.log("ongoing_bk-midle", ongoing_bk);
   return (
     <Stack.Navigator
       initialRouteName="DriverMap"
       screenOptions={{ headerShown: false }}
     >
       {/* <Stack.Screen name='DriverApp' component={DriverNavigator} /> */}
-      <Stack.Screen name="DriverMap" component={DriverMap} />
+      <Stack.Screen
+        name="DriverMap"
+        component={DriverMap}
+        initialParams={{ ongoing_bk }}
+      />
       <Stack.Screen
         name="Trips"
         component={Trips}

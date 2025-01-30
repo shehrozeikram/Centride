@@ -370,14 +370,18 @@ const SplashScreen = () => {
         // console.log('========Response DRIVER======', data)
 
         if (data.profileinfo?.success === 1) {
-          console.log("Login successful", data);
+          console.log("Login successful 1", data);
           await setSessionId(data?.sess_id);
           dispatch(setUser(data.profileinfo));
+          const ongoingBkData = data?.uncompleted_bk ? data.uncompleted_bk : {};
+          // console.log("ongoingBkData==", data);
           // Navigate based on app side
           const routeName = appSide === RIDER ? "RiderRoute" : "DriverRoute";
           navigation.reset({
             index: 0,
-            routes: [{ name: routeName }],
+            routes: [
+              { name: routeName, params: { ongoing_bk: ongoingBkData } },
+            ],
           });
         } else {
           console.error("Error in login:", data);
@@ -431,14 +435,21 @@ const SplashScreen = () => {
         console.log("========Response DRIVER1======", data);
 
         if (data.profileinfo?.success === 1) {
-          console.log("Login successful", data);
+          // console.log("Login successful 2", data);
           await setSessionId(data?.sess_id);
           dispatch(setUser(data.profileinfo));
+          const ongoingBkData = data?.uncompleted_bk
+            ? data?.uncompleted_bk
+            : {};
+          // console.log("ongoingBkData==", data?.uncompleted_bk);
+
           // Navigate based on app side
           const routeName = appSide === RIDER ? "RiderRoute" : "DriverRoute";
           navigation.reset({
             index: 0,
-            routes: [{ name: routeName }],
+            routes: [
+              { name: routeName, params: { ongoing_bk: ongoingBkData } },
+            ],
           });
         } else {
           console.error("Error in login:", data);
