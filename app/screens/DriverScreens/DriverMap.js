@@ -33,6 +33,9 @@ import messaging from "@react-native-firebase/messaging";
 import database from "@react-native-firebase/database";
 import RiderBookingModal from "../../modals/RiderBookingModal";
 import { useSelector } from "react-redux";
+import HTMLParser from "react-native-html-parser";
+import DriverArriveModal from "../../modals/DriverArriveModal";
+import DriverDropoffModal from "../../modals/DriverDropoffModal";
 // import DriverArriveModal from "../../modals/DriverArriveModal";
 let sound;
 
@@ -92,8 +95,8 @@ const DriverMap = ({ navigation }) => {
   const [newRideRequest, setNewRideRequest] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showTripInfo, setShowTripInfo] = useState(true);
-  // const [driverArriveModalVisible, setDriverArriveModalVisible] =
-  //   useState(false);
+  const [driverArriveModalVisible, setDriverArriveModalVisible] =
+    useState(false);
   const [timeOnline, setTimeOnline] = useState("");
   const [matchingRiders, setMatchingRiders] = useState([]);
   const [timestamp, setTimestamp] = useState(null);
@@ -108,9 +111,12 @@ const DriverMap = ({ navigation }) => {
 
   const [directionsData, setDirectionsData] = useState(null); // Store directions data (origin and destination)
   const [showDirections, setShowDirections] = useState(false);
+  const [driverArriveModal, setDriverArriveModal] = useState(false);
+  const [dropoffModal, setDropoffModal] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState(null);
 
-  // console.log('=user=', user)
-  console.log("===ongoing_bk Driver map", ongoing_bk);
+  // console.log("=user=", user);
+  // console.log("===ongoing_bk Driver map", ongoing_bk);
 
   const markerRefs = useRef([]);
   const user_id = user?.driverid;
@@ -124,7 +130,6 @@ const DriverMap = ({ navigation }) => {
   useEffect(() => {
     console.log("Checking ongoing_bk in useEffect:", ongoing_bk); // Check the value here
 
-    // Ensure ongoing_bk is truthy and equals to 1
     if (ongoing_bk === 1) {
       setShowViewAlert(true);
     }
@@ -622,237 +627,11 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
-  // const booking_allocate_notify = (notification) => {
-  //     console.log('Handling booking allocation notification:', notification)
-
-  //     const push_data = notification
-
-  //     // Set the pickup location of the rider
-  //     const riderPickupLocationLat = parseFloat(push_data.p_lat)
-  //     const riderPickupLocationLng = parseFloat(push_data.p_lng)
-
-  //     console.log('push_data.p_lat', push_data.p_lat)
-
-  //     const driverLat = parseFloat(push_data.d_lat)
-  //     const driverLng = parseFloat(push_data.d_lng)
-
-  //     if (driverLat && driverLng) {
-  //         console.log('=====driverLat======', driverLat)
-  //         // Calculate distance using Haversine formula
-  //         const distance = haversine(
-  //             driverLat,
-  //             driverLng,
-  //             riderPickupLocationLat,
-  //             riderPickupLocationLng,
-  //         )
-
-  //         // Convert distance to desired unit (km or miles)
-  //         let distanceInUnit = distance
-  //         // console.log('====distanceInUnit====', distanceInUnit)
-  //         if (push_data.dist_unit === 1) {
-  //             // 1 indicates miles
-  //             distanceInUnit = distance * 0.621371 // Convert to miles
-  //         }
-
-  //         // Calculate time in minutes
-  //         const timeToPickup = calculateTime(distanceInUnit)
-
-  //         // Update the push_data with distance and time
-  //         push_data.distance = distanceInUnit.toFixed(2)
-  //         push_data.time_to_pickup = timeToPickup
-
-  //         // Optionally update the UI with distance and time information
-  //         console.log(
-  //             `Distance to pickup: ${push_data.distance} km, Time to pickup: ${push_data.time_to_pickup} min`,
-  //         )
-
-  //         // Send the data to setNewRideRequest and display modal
-  //         setNewRideRequest(push_data)
-
-  //         showModal('ride_alloc.mp3')
-
-  //         // setIsModalVisible(true)
-
-  //         // ride_allocate.play((success) => {
-  //         //     if (success) {
-  //         //         console.log('Sound played successfully')
-  //         //     } else {
-  //         //         console.log('Failed to play sound')
-  //         //     }
-  //         // })
-
-  //         // Update rider's position on the map (if required)
-  //         // if (riderPickupMarker) {
-  //         //     riderPickupMarker.setPosition({
-  //         //         lat: riderPickupLocationLat,
-  //         //         lng: riderPickupLocationLng,
-  //         //     })
-  //         //     setRiderPickupMarker(
-  //         //         new Marker({
-  //         //             position: {
-  //         //                 lat: riderPickupLocationLat,
-  //         //                 lng: riderPickupLocationLng,
-  //         //             },
-  //         //             icon: 'path/to/pick-up-pin.png',
-  //         //             animation: 'DROP',
-  //         //         }),
-  //         //     )
-  //         // }
-
-  //         // Adjust the map camera to the rider's location
-
-  //         if (mapRef.current) {
-  //             const driverLocationLat = origin?.latitude
-  //             const driverLocationLong = origin?.longitude
-  //             const riderPickupLocationLat = notification?.pickup_lat
-  //             const riderPickupLocationLng = notification?.pickup_long
-
-  //             // Get destination coordinates from the push data
-  //             const destinationLat = parseFloat(notification?.dropoff_lat)
-  //             const destinationLng = parseFloat(notification?.dropoff_long)
-
-  //             if (
-  //                 driverLocationLat &&
-  //                 driverLocationLong &&
-  //                 riderPickupLocationLat &&
-  //                 riderPickupLocationLng
-  //             ) {
-  //                 // Calculate the center of the region (midpoint between driver and pickup)
-  //                 const centerLat =
-  //                     (driverLocationLat + riderPickupLocationLat) / 2
-  //                 const centerLng =
-  //                     (driverLocationLong + riderPickupLocationLng) / 2
-
-  //                 // Calculate the lat/lng difference between driver and pickup
-  //                 const latDiff = Math.abs(
-  //                     driverLocationLat - riderPickupLocationLat,
-  //                 )
-  //                 const lngDiff = Math.abs(
-  //                     driverLocationLong - riderPickupLocationLng,
-  //                 )
-
-  //                 // Set dynamic deltas (latitudeDelta and longitudeDelta)
-  //                 const latitudeDelta = latDiff + 0.05 // Adding some buffer to the region
-  //                 const longitudeDelta = lngDiff + 0.05 // Adding some buffer to the region
-
-  //                 // Zoom in the map to focus on driver and pickup location
-  //                 mapRef.current.animateToRegion({
-  //                     latitude: centerLat,
-  //                     longitude: centerLng,
-  //                     latitudeDelta: latitudeDelta,
-  //                     longitudeDelta: longitudeDelta,
-  //                 })
-  //             }
-  //         }
-
-  //         // if (mapRef.current) {
-  //         //     mapRef.current.animateToRegion({
-  //         //         latitude: riderPickupLocationLat,
-  //         //         longitude: riderPickupLocationLng,
-  //         //         latitudeDelta: 0.01,
-  //         //         longitudeDelta: 0.01,
-  //         //     })
-  //         // }
-  //     }
-  // }
-
   const accept_bid = (notification) => {
     console.log("Handling accept_bid notification:", notification);
 
     setNotificationData(notification);
-    // setShowTripInfo(false)
-    // setDriverArriveModalVisible(true);
-    // setTimeout(() => {
-    //     setDriverArriveModalVisible(false)
-    //     setShowTripInfo(true)
-    // }, 20000)
   };
-
-  // const accept_bid = (notification) => {
-  //     console.log('Handling accept_bid notification:', notification)
-
-  //     // const push_data = notification
-
-  //     // Set the pickup location of the rider
-  //     const riderPickupLocationLat = parseFloat(notification.p_lat)
-  //     const riderPickupLocationLng = parseFloat(notification.p_lng)
-
-  //     console.log('push_data.p_lat', notification.p_lat)
-
-  //     const driverLat = parseFloat(notification.d_lat)
-  //     const driverLng = parseFloat(notification.d_lng)
-
-  //     if (driverLat && driverLng) {
-  //         console.log('=====driverLat======', driverLat)
-  //         // Calculate distance using Haversine formula
-  //         const distance = haversine(
-  //             driverLat,
-  //             driverLng,
-  //             riderPickupLocationLat,
-  //             riderPickupLocationLng,
-  //         )
-
-  //         // Convert distance to desired unit (km or miles)
-  //         let distanceInUnit = distance
-  //         // console.log('====distanceInUnit====', distanceInUnit)
-  //         if (notification.dist_unit === 1) {
-  //             // 1 indicates miles
-  //             distanceInUnit = distance * 0.621371 // Convert to miles
-  //         }
-
-  //         // Calculate time in minutes
-  //         const timeToPickup = calculateTime(distanceInUnit)
-
-  //         // Update the push_data with distance and time
-  //         notification.distance = distanceInUnit.toFixed(2)
-  //         notification.time_to_pickup = timeToPickup
-
-  //         // Optionally update the UI with distance and time information
-  //         console.log(
-  //             `Distance to pickup: ${notification.distance} km, Time to pickup: ${notification.time_to_pickup} min`,
-  //         )
-
-  //         setNotificationData(notification)
-  //         setShowTripInfo(false)
-  //         setDriverArriveModalVisible(true)
-
-  //         // ride_allocate.play((success) => {
-  //         //     if (success) {
-  //         //         console.log('Sound played successfully')
-  //         //     } else {
-  //         //         console.log('Failed to play sound')
-  //         //     }
-  //         // })
-
-  //         // Update rider's position on the map (if required)
-  //         // if (riderPickupMarker) {
-  //         //     riderPickupMarker.setPosition({
-  //         //         lat: riderPickupLocationLat,
-  //         //         lng: riderPickupLocationLng,
-  //         //     })
-  //         //     setRiderPickupMarker(
-  //         //         new Marker({
-  //         //             position: {
-  //         //                 lat: riderPickupLocationLat,
-  //         //                 lng: riderPickupLocationLng,
-  //         //             },
-  //         //             icon: 'path/to/pick-up-pin.png',
-  //         //             animation: 'DROP',
-  //         //         }),
-  //         //     )
-  //         // }
-
-  //         // Adjust the map camera to the rider's location
-  //         if (mapRef.current) {
-  //             mapRef.current.animateToRegion({
-  //                 latitude: riderPickupLocationLat,
-  //                 longitude: riderPickupLocationLng,
-  //                 latitudeDelta: 0.01,
-  //                 longitudeDelta: 0.01,
-  //             })
-  //         }
-  //     }
-  // }
 
   useEffect(() => {
     getLocation();
@@ -897,31 +676,6 @@ const DriverMap = ({ navigation }) => {
       );
     }
   }, [origin]);
-
-  // useEffect(() => {
-  //     const intervalId = setInterval(() => {
-  //         setDriverLocation()
-  //     }, 5000) // Call every 5000 milliseconds (5 seconds)
-
-  //     // Cleanup the interval on component unmount
-  //     return () => clearInterval(intervalId)
-  // }, [])
-
-  // const getLocation = async () => {
-  //     try {
-  //         const location = await GetLocation.getCurrentPosition({
-  //             enableHighAccuracy: true,
-  //             timeout: 15000,
-  //         })
-  //         setOrigin({
-  //             latitude: location.latitude,
-  //             longitude: location.longitude,
-  //         })
-  //         await fetchDriverLocations(location.latitude, location.longitude)
-  //     } catch (error) {
-  //         // console.warn('Location Error:', error.code, error.message)
-  //     }
-  // }
 
   const getLocation = async () => {
     try {
@@ -979,41 +733,6 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
-  // useEffect(() => {
-  // callApis()
-  // setDriverLocation()
-
-  //     const intervalId = setInterval(() => {
-  //         callApis()
-  //         setDriverLocation()
-  //     }, 100000) // 10000 ms = 10 seconds
-
-  //     // Clean up the interval when the component unmounts
-  //     return () => {
-  //         clearInterval(intervalId)
-  //     }
-  // }, [])
-
-  // useEffect(() => {
-  //     // This effect runs only once when the component mounts to set up the interval
-  //     const callApisAndSetLocation = () => {
-  //         callApis()
-  //         setDriverLocation()
-  //     }
-
-  //     // Call immediately on mount
-  //     callApisAndSetLocation()
-
-  //     const intervalId = setInterval(() => {
-  //         callApisAndSetLocation()
-  //     }, 10000) // Run every 10 seconds
-
-  //     // Clean up the interval on unmount
-  //     return () => {
-  //         clearInterval(intervalId)
-  //     }
-  // }, [])
-
   /////////////// Api Set Availability /////////////////
   const setAvailability = async () => {
     // const sessId = 'MGMxNmtldTRtMmNvZmtwcTNxcjN1dDd2ajc='
@@ -1037,49 +756,10 @@ const DriverMap = ({ navigation }) => {
       }
 
       const data = await response.json();
-      console.log("running setAvailability after every 10 secs ", data);
-      // console.log(
-      //     '=====================Success setAvailability  ==============',
-      //     data,
-      // )
     } catch (error) {
       console.error("Error:", error);
     }
   };
-
-  /////////////// Api setDriverLocation /////////////////
-  // const setDriverLocation = async () => {
-  //     console.log('==== location new ====', location)
-  //     const sessId = await getSessionId()
-  //     const lat = location?.latitude
-  //     const long = location?.longitude
-  //     // console.log('===origin helo===', origin)
-  //     const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}&lat=${lat}&long=${long}`
-
-  //     const body = new URLSearchParams()
-  //     body.append('action', 'setDriverLocation')
-
-  //     try {
-  //         const response = await fetch(url, {
-  //             method: 'POST',
-  //             headers: {
-  //                 'Content-Type': 'application/x-www-form-urlencoded',
-  //             },
-  //             body: body.toString(),
-  //         })
-
-  //         if (!response.ok) {
-  //             throw new Error(`Error: ${response.status}`)
-  //         }
-
-  //         const data = await response.json()
-  //         console.log('running setDriverLocation after every 10 secs ')
-  //         setTimeOnline(data.driver_time_online)
-  //     } catch (error) {
-  //         console.error('Error:', error)
-  //     }
-  // }
-
   const setDriverLocation = async () => {
     if (!origin) {
       console.log("Origin is not yet available");
@@ -1122,15 +802,17 @@ const DriverMap = ({ navigation }) => {
     setIsModalVisible(false);
     setNewRideRequest(null);
   };
+  const handleCloseAlert = () => {
+    setShowViewAlert(false);
+  };
 
-  const getDriverOnride = async () => {
+  const getDriverHistory = async () => {
     const sess_id = await getSessionId();
     const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
 
     const body = new URLSearchParams({
-      action: "getDriverOnride",
+      action: "getDriverHistory",
     }).toString();
-
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -1140,74 +822,164 @@ const DriverMap = ({ navigation }) => {
         body: body,
       });
 
-      const responseData = await response.json();
+      const apiResponse = await response.json();
+      // Assuming apiResponse.pend_onride contains the HTML string
+      const htmlContent = apiResponse.pend_onride;
 
-      if (response) {
-        console.log("response==", responseData);
-        // setShowDirections(false);
-      } else {
-        Alert.alert("Error", "Failed to process the request");
+      // Regex to match both time and status
+      const timeAndStatusMatch = htmlContent.match(
+        /<span class='list-item__title'>(.*?)<\/span>\s*<span[^>]*style=['"][^'"]*font-weight:\s*bold[^'"]*['"][^>]*>(.*?)<\/span>/
+      );
+
+      // Extract embedded JSON data (the hidden span containing booking data)
+      const hiddenDataMatch = htmlContent.match(
+        /id='booking-list-item-data-\d+' type='text' style='display:none'>(.*?)<\/span>/
+      );
+      let hiddenData = {};
+      if (hiddenDataMatch && hiddenDataMatch[1]) {
+        try {
+          // Parse the embedded JSON data
+          hiddenData = JSON.parse(hiddenDataMatch[1]);
+        } catch (error) {
+          console.error("Error parsing hidden data:", error);
+        }
       }
+
+      // Extract other data
+      const bookingIdMatch = htmlContent.match(/Booking ID:#(\d+)/);
+      const pickupLocationMatch = htmlContent.match(
+        /<span style='display:inline-block;margin-left:22px;font-weight:bold;'>(.*?)<\/span>/
+      );
+      const dropoffLocationMatch = htmlContent.match(
+        /<span style='display:inline-block;margin-left:22px;font-weight:bold;'>(.*?)<\/span>/
+      );
+
+      // Extracted information from embedded JSON
+      const bookingDetails = {
+        booking_id: bookingIdMatch ? bookingIdMatch[1] : null,
+        time: timeAndStatusMatch ? timeAndStatusMatch[1] : null,
+        status: timeAndStatusMatch ? timeAndStatusMatch[2] : null,
+        pickup_location: pickupLocationMatch ? pickupLocationMatch[1] : null,
+        dropoff_location: dropoffLocationMatch ? dropoffLocationMatch[1] : null,
+        car_type: hiddenData.car_type || null,
+        cost: hiddenData.booking_cost || null,
+        payment_type: hiddenData.payment_type || null,
+      };
+
+      console.log("Extracted Booking Details:", bookingDetails);
+      setBookingDetails(bookingDetails);
+      if (bookingDetails.status === "Booking accepted") {
+        setShowViewAlert(false);
+        setDriverArriveModal(true);
+      } else if (bookingDetails.status === "Servicing booking") {
+        setShowViewAlert(false);
+        setDropoffModal(true);
+      }
+      // handleCloseArriveModal();
+      // console.log("hello");
     } catch (error) {
       console.error("Error:", error);
       Alert.alert("Error", "Something went wrong");
     }
   };
 
-  const getDriverOnrides = async () => {
-    try {
-      const sess_id = await getSessionId();
+  const sanitizeHTML = (html) => {
+    return html
+      .replace(/<ons-button[^>]*>.*?<\/ons-button>/g, "")
+      .replace(/\bonclick\s*=\s*(['"]?)[^'"\s>]*\1/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  };
 
-      const params = {
-        action_get: "getDriverOnride",
-        sess_id: sess_id,
-        // booking_id: ongoing_bk.booking_id,
+  const convertHTMLToJSON = (htmlString) => {
+    if (!htmlString) return []; // Handle empty HTML string
+
+    // Sanitize HTML before parsing
+    const cleanedHtml = sanitizeHTML(htmlString);
+
+    // Initialize the HTML parser
+    const parser = new HTMLParser.DOMParser();
+    const doc = parser.parseFromString(cleanedHtml, "text/html");
+
+    // Extract the list items (each booking item)
+    const listItems = doc.getElementsByTagName("ons-list-item");
+
+    // Convert NodeList to Array
+    const listArray = Array.from(listItems);
+    const bookings = [];
+
+    listArray.forEach((item) => {
+      const fullText = item.textContent.replace(/\s{2,}/g, " ").trim(); // Normalize spacing
+
+      // Use regex to extract values correctly
+      const bookingIdMatch = fullText.match(/Booking ID:\s*(#\d+)/);
+      const fareMatch = fullText.match(/Fare:\s*(₨[\d,]+(?:\.\d{2})?)/);
+      const paymentMethodMatch = fullText.match(/\((Cash|Card|Wallet)\)/);
+
+      // Extract pickup and dropoff locations by splitting at common delimiters
+      const locationMatches =
+        fullText
+          .split("Booking ID:")[1]
+          ?.split("Fare:")[1]
+          ?.split(/\s{2,}/) || [];
+
+      const pickupLocation =
+        locationMatches.length > 0 ? locationMatches[0].trim() : "";
+      const dropoffLocation =
+        locationMatches.length > 1 ? locationMatches[1].trim() : "";
+
+      // Extract time and userName
+      const timeMatch = fullText.match(/^(\d{1,2}:\d{2} (AM|PM))/);
+      const time = timeMatch ? timeMatch[0] : "";
+
+      const userName = fullText
+        .replace(time, "")
+        .split("Booking ID:")[0]
+        .trim();
+
+      // Push the cleaned booking data
+      const booking = {
+        time,
+        userName,
+        bookingId: bookingIdMatch ? bookingIdMatch[1] : "",
+        fare: fareMatch ? fareMatch[1] : "",
+        paymentMethod: paymentMethodMatch ? paymentMethodMatch[1] : "",
+        pickupLocation,
+        dropoffLocation,
       };
-      console.log("hello");
 
-      const queryString = new URLSearchParams(params).toString();
-      console.log("queryString=", queryString);
-      const response = await axios.get(`${DRIVER_BASE_URL}?${queryString}`);
-      console.log("response===", response);
-      if (response.data?.error) {
-        Alert.alert("Error", response.data?.error);
-      } else {
-        console.log("response of resumebooking==", response.data.ongoing_bk);
-        handleCloseAlert();
+      bookings.push(booking);
+    });
 
-        if (
-          response.data.ongoing_bk.action === "driver-allocate" ||
-          response.data.ongoing_bk.action === "driver-arrived" ||
-          response.data.ongoing_bk.action === "customer-onride"
-        ) {
-          setNewRideRequest(response.data.ongoing_bk);
-          showModal("ride_alloc.mp3");
-        }
-      }
-    } catch (error) {
-      console.error("Error in booking:", error);
-    }
-  };
-  const handleCloseAlert = () => {
-    setShowViewAlert(false);
+    return bookings;
   };
 
-  // case "driver-allocate":
-  //                 booking_allocate_notify(msg);
-  //                 break;
-  //               case "customer-cancelled":
-  //                 customer_cancelled_notify(msg);
-  //                 break;
-  //               case "decline-driver-bid-notify":
-  //                 decline_bid(msg);
-  //                 break;
-  //               case "chat-message":
+  // if (driverArriveModal) {
+  //   return (
+  //     <DriverArriveModal
+  //       visible={driverArriveModal}
+  //       // newRideRequest={newRideRequest}
+  //     />
+  //   );
+  // }
+
+  if (dropoffModal) {
+    return (
+      <DriverDropoffModal
+        visible={dropoffModal}
+        // newRideRequest={bookingDetails}
+      />
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.headerStyle]}>
         <Header isMenuIcon={true} isRightView={false} isDriver={true} />
       </View>
+
+      {driverArriveModal && <DriverArriveModal visible={driverArriveModal} />}
+      {dropoffModal && <DriverDropoffModal visible={dropoffModal} />}
 
       {origin && (
         <MapView
@@ -1224,12 +996,6 @@ const DriverMap = ({ navigation }) => {
             latitudeDelta: 0.06,
             longitudeDelta: 0.06,
           }}
-          // initialRegion={{
-          //     latitude: origin.latitude,
-          //     longitude: origin.longitude,
-          //     latitudeDelta: 0.0922,
-          //     longitudeDelta: 0.0421,
-          // }}
           zoomEnabled
         >
           <Marker coordinate={origin}>
@@ -1249,25 +1015,6 @@ const DriverMap = ({ navigation }) => {
               strokeWidth={2.5}
             />
           )}
-
-          {/* {destination && (
-                        <MapViewDirections
-                            origin={origin}
-                            destination={destination}
-                            apikey={Google_Maps_Apikey}
-                            strokeColor='black'
-                            strokeWidth={8}
-                            onReady={(result) => {
-                                console.log('Route ready:', result)
-                            }}
-                            onError={(errorMessage) => {
-                                console.log(
-                                    'MapViewDirections error:',
-                                    errorMessage,
-                                )
-                            }}
-                        />
-                    )} */}
 
           {driverLocationsList.length > 0 &&
             driverLocationsList.map((driver, index) => {
@@ -1318,27 +1065,10 @@ const DriverMap = ({ navigation }) => {
                 </Marker>
               );
             })}
-
-          {/* {driverLocationsList.map((driver) => (
-                        <Marker
-                            key={driver.driver_id}
-                            coordinate={{
-                                latitude: parseFloat(driver.position.lat),
-                                longitude: parseFloat(driver.position.lng),
-                            }}
-                            title={driver.title}>
-                            <CustomMarker driver={driver} />
-                            <Callout>
-                                <Text style={styles.markerText}>
-                                    {driver.title}
-                                </Text>
-                            </Callout>
-                        </Marker>
-                    ))} */}
         </MapView>
       )}
 
-      {/* <Modal
+      <Modal
         visible={showViewAlert}
         transparent={true}
         animationType="fade"
@@ -1347,23 +1077,10 @@ const DriverMap = ({ navigation }) => {
         <View style={styles.overlay}>
           <View style={styles.alertBox}>
             <Text style={styles.alertText}>View your Booking</Text>
-            <TouchableOpacity onPress={getDriverOnride} style={styles.okButton}>
-              <Text style={styles.okButtonText}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal> */}
-
-      <Modal
-        visible={true} // Temporarily set it to always show
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCloseAlert}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.alertBox}>
-            <Text style={styles.alertText}>View your Booking</Text>
-            <TouchableOpacity onPress={getDriverOnride} style={styles.okButton}>
+            <TouchableOpacity
+              onPress={getDriverHistory}
+              style={styles.okButton}
+            >
               <Text style={styles.okButtonText}>OK</Text>
             </TouchableOpacity>
           </View>
@@ -1467,7 +1184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   alertBox: {
     width: 280,
@@ -1480,7 +1197,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 5, // For Android shadow effect
+    elevation: 5,
   },
   alertText: {
     fontSize: 18,
@@ -1488,11 +1205,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   okButton: {
-    position: "absolute", // Position it relative to the alert box
-    bottom: 10, // Distance from the bottom of the alert box
-    right: 10, // Distance from the right side of the alert box
-    backgroundColor: "rgba(0, 0, 0, 0)", // Transparent background
-    borderWidth: 1, // Optional: border around the button
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    backgroundColor: "rgba(0, 0, 0, 0)",
+    borderWidth: 1,
     borderColor: "#fff",
     borderRadius: 20,
     paddingVertical: 8,
@@ -1502,7 +1219,6 @@ const styles = StyleSheet.create({
     top: 10,
     fontSize: 14,
     color: "blue",
-    // fontWeight: "bold",
   },
 });
 

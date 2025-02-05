@@ -3882,6 +3882,7 @@ __metadata:
     firebase: ^10.14.1
     geolib: ^3.3.4
     haversine: ^1.1.1
+    html-parser: ^0.11.0
     i18n-js: ^4.4.3
     i18next: ^24.2.1
     jest: ^29.6.3
@@ -6595,6 +6596,13 @@ __metadata:
   dependencies:
     void-elements: 3.1.0
   checksum: 334fdebd4b5c355dba8e95284cead6f62bf865a2359da2759b039db58c805646350016d2017875718bc3c4b9bf81a0d11be5ee0cf4774a3a5a7b97cde21cfd67
+  languageName: node
+  linkType: hard
+
+"html-parser@npm:^0.11.0":
+  version: 0.11.0
+  resolution: "html-parser@npm:0.11.0"
+  checksum: 2731af5355d5fc401213370369f62ba0ae4ccd9683516cd2bf4cdfb53c0fe49d5b20ed520477c2b73e9c451121eb2a64df54d1a7d38f02f5843d431b2c38d707
   languageName: node
   linkType: hard
 

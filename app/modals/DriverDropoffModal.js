@@ -404,9 +404,9 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
   // Show the modal as soon as the component mounts
   useEffect(() => {
     if (newRideRequest) {
-      setModalVisible(true); // Open modal if newRideRequest is available
+      setModalVisible(true);
     }
-  }, [newRideRequest]); // Run when newRideRequest changes
+  }, [newRideRequest]);
 
   const handleDropOff = async () => {
     navigation.navigate("DriverRideCompleted", { newRideRequest });

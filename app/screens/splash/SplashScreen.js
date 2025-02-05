@@ -441,7 +441,8 @@ const SplashScreen = () => {
           const ongoingBkData = data?.uncompleted_bk
             ? data?.uncompleted_bk
             : {};
-          // console.log("ongoingBkData==", data?.uncompleted_bk);
+          // const params = data?.uncompleted_bk === 1 ? { ongoing_bk: data?.uncompleted_bk } : {};
+          console.log("ongoingBkData==", data?.uncompleted_bk);
 
           // Navigate based on app side
           const routeName = appSide === RIDER ? "RiderRoute" : "DriverRoute";

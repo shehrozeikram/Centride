@@ -9,11 +9,11 @@ import {
   ScrollView,
 } from "react-native";
 import Geocoding from "react-native-geocoding";
-import database from "@react-native-firebase/database";
 import { useSelector } from "react-redux";
 import DriverPickupModal from "./DriverPicupModal";
-import { getSessionId } from "../utils/common";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Dimensions for responsiveness
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 // Initialize Geocoding API with your key
@@ -22,22 +22,63 @@ Geocoding.init("AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw");
 const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
-  const user = useSelector((state) => state.user?.user);
-  const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [rideData, setRideData] = useState(null); // This will store the ride data (either new or from storage)
 
-  // console.log("Received newRideRequest in DriverArriveModal:", newRideRequest);
+  // Check if newRideRequest exists, if not, get data from AsyncStorage
+  useEffect(() => {
+    const fetchRideData = async () => {
+      if (newRideRequest) {
+        // If new ride request is provided, save it to AsyncStorage and use it
+        setRideData(newRideRequest);
+        await saveNewRideRequestToStorage(newRideRequest);
+      } else {
+        // If no new ride request, try fetching from AsyncStorage
+        const savedRideRequest = await getNewRideRequestFromStorage();
+        if (savedRideRequest) {
+          setRideData(savedRideRequest);
+        }
+      }
+    };
 
+    fetchRideData();
+  }, [newRideRequest]); // Run when the component mounts or when newRideRequest changes
+
+  // Save newRideRequest to AsyncStorage
+  const saveNewRideRequestToStorage = async (request) => {
+    try {
+      await AsyncStorage.setItem("newRideRequest", JSON.stringify(request));
+      console.log("New ride request saved in AsyncStorage!");
+    } catch (error) {
+      console.error("Error saving newRideRequest to AsyncStorage", error);
+    }
+  };
+
+  // Get newRideRequest from AsyncStorage
+  const getNewRideRequestFromStorage = async () => {
+    try {
+      const savedRequest = await AsyncStorage.getItem("newRideRequest");
+      if (savedRequest !== null) {
+        console.log(
+          "Retrieved newRideRequest from AsyncStorage:",
+          JSON.parse(savedRequest)
+        );
+        return JSON.parse(savedRequest);
+      }
+    } catch (error) {
+      console.error("Error retrieving newRideRequest from AsyncStorage", error);
+    }
+  };
+
+  // Handle driver arrival
   const handleDriverArrive = async () => {
     const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=";
-    // const sessId = getSessionId();
     const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
 
-    // Request body data as x-www-form-urlencoded
     const body = new URLSearchParams({
       action_get: "driverarrived",
-      bookingid: newRideRequest?.booking_id,
+      bookingid: rideData?.booking_id,
     });
 
     try {
@@ -51,8 +92,6 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
       });
 
       if (res.ok) {
-        console.log("res=", res.ok);
-        // driverArriveSave()
         setPickupModalVisible(true);
       } else {
         console.log("Request failed with status: ", res.status);
@@ -62,46 +101,12 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
     }
   };
 
-  const apiUrl = "https://appserver.txy.co/ajaxdriver_2_1_1.php";
-
-  const params = {
-    sess_id: "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=",
-    action_get: "driverarrived",
-    bookingid: newRideRequest.booking_id,
-  };
-
-  const fetchDriverArrival = async () => {
-    setLoading(true);
-    setError(null);
-
-    // Construct the full URL with query params
-    const url = `${apiUrl}?sess_id=${params.sess_id}&action_get=${params.action_get}&bookingid=${params.bookingid}`;
-
-    try {
-      const res = await fetch(url);
-      // const json = await res.json();
-
-      if (res.ok) {
-        console.log("res-=", res);
-        setPickupModalVisible(true);
-      } else {
-        setError("Failed to fetch data");
-      }
-    } catch (err) {
-      setError("An error occurred");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // If pickupModalVisible is true, show DriverPickupModal
   if (pickupModalVisible) {
     return (
       <DriverPickupModal
         visible={pickupModalVisible}
-        newRideRequest={newRideRequest}
-        // pickupAddress={pickupAddress}
+        newRideRequest={rideData}
       />
     );
   }
@@ -116,22 +121,18 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
               <View style={styles.profileAndRating}>
                 <Image
                   source={
-                    newRideRequest?.rider_image?.uri
-                      ? {
-                          uri: newRideRequest?.rider_image?.uri,
-                        }
+                    rideData?.rider_image?.uri
+                      ? { uri: rideData?.rider_image?.uri }
                       : require("../assets/driver.png")
                   }
                   style={styles.profileImage}
                 />
                 <Text style={styles.driverName}>
-                  {newRideRequest?.rider_name || "Unknown Rider"}
+                  {rideData?.rider_name || "Unknown Rider"}
                 </Text>
               </View>
               <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>
-                  {newRideRequest?.time_to_pickup}
-                </Text>
+                <Text style={styles.timeText}>{rideData?.time_to_pickup}</Text>
                 <Text style={styles.timeText}>Mins</Text>
               </View>
             </View>
@@ -150,7 +151,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
                   style={styles.pickupText}
                   numberOfLines={2} // Allows the address to break into two lines if it's too long
                 >
-                  {newRideRequest?.p_address}
+                  {rideData?.p_address}
                 </Text>
               </View>
             </View>
@@ -161,7 +162,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.arrivedButton}
-              onPress={fetchDriverArrival}
+              onPress={handleDriverArrive}
             >
               <Text style={styles.arrivedText}>I'VE ARRIVED</Text>
             </TouchableOpacity>
@@ -175,7 +176,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    justifyContent: "flex-start", // This is now aligned to the top, as it's no longer a modal
+    justifyContent: "flex-start",
     alignItems: "center",
     backgroundColor: "transparent",
     position: "absolute",
@@ -200,10 +201,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-  },
-  column: {
-    flexDirection: "column",
-    justifyContent: "flex-start",
   },
   profileAndRating: {
     flexDirection: "column",
