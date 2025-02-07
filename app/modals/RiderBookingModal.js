@@ -20,12 +20,18 @@ import DriverArriveModal from "./DriverArriveModal";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
-const RiderBookingModal = ({ visible, onClose, newRideRequest }) => {
+const RiderBookingModal = ({
+  visible,
+  onClose,
+  newRideRequest,
+  driverArriveModalVisible,
+  setDriverArriveModalVisible,
+}) => {
   const [updatedRiderId, setUpdatedRiderId] = useState(null);
   const [ridersData, setRidersData] = useState([]);
   const [newMessage, setNewMessage] = useState(null);
-  const [driverArriveModalVisible, setDriverArriveModalVisible] =
-    useState(false);
+  // const [driverArriveModalVisible, setDriverArriveModalVisible] =
+  //   useState(false);
 
   const [matchingRiders, setMatchingRiders] = useState([]); // To hold the matching rider ids
   const [timestamp, setTimestamp] = useState(null); // Store the current Unix timestamp

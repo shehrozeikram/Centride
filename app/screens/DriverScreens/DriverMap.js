@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import Sound from "react-native-sound";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
@@ -20,7 +21,7 @@ import Color from "../../utils/Color";
 import GetLocation from "react-native-get-location";
 import axios from "axios";
 import { Post } from "../../network/network";
-import { getAppSide, getSessionId, setSessionId } from "../../utils/common";
+import { getSessionId } from "../../utils/common";
 import { DRIVER_BASE_URL } from "../../utils/constants";
 import Style from "../../utils/Styles";
 import {
@@ -36,11 +37,9 @@ import { useSelector } from "react-redux";
 import HTMLParser from "react-native-html-parser";
 import DriverArriveModal from "../../modals/DriverArriveModal";
 import DriverDropoffModal from "../../modals/DriverDropoffModal";
-// import DriverArriveModal from "../../modals/DriverArriveModal";
 let sound;
-
-const Google_Maps_Apikey = "AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw";
-// const dropoffpin = require('../../assets/dropoffpin.png'); // Update the path as necessary
+import { GOOGLE_MAPS_API_KEY } from "../../constants/googleMapKey";
+console.log("GOOGLE_MAPS_API_KEY", GOOGLE_MAPS_API_KEY);
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius of the Earth in km
@@ -97,6 +96,8 @@ const DriverMap = ({ navigation }) => {
   const [showTripInfo, setShowTripInfo] = useState(true);
   const [driverArriveModalVisible, setDriverArriveModalVisible] =
     useState(false);
+  const [pickupModalVisible, setPickupModalVisible] = useState(false);
+  const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
   const [timeOnline, setTimeOnline] = useState("");
   const [matchingRiders, setMatchingRiders] = useState([]);
   const [timestamp, setTimestamp] = useState(null);
@@ -109,14 +110,12 @@ const DriverMap = ({ navigation }) => {
   const user = useSelector((state) => state.user?.user);
   const isMounted = useRef(true);
 
-  const [directionsData, setDirectionsData] = useState(null); // Store directions data (origin and destination)
+  const [directionsData, setDirectionsData] = useState(null);
   const [showDirections, setShowDirections] = useState(false);
   const [driverArriveModal, setDriverArriveModal] = useState(false);
   const [dropoffModal, setDropoffModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
-
-  // console.log("=user=", user);
-  // console.log("===ongoing_bk Driver map", ongoing_bk);
+  const [loading, setLoading] = useState(false);
 
   const markerRefs = useRef([]);
   const user_id = user?.driverid;
@@ -128,7 +127,7 @@ const DriverMap = ({ navigation }) => {
   const message_ref = database().ref(`Drivers/drvr-${user_id}/notf`);
 
   useEffect(() => {
-    console.log("Checking ongoing_bk in useEffect:", ongoing_bk); // Check the value here
+    console.log("Checking ongoing_bk in useEffect:", ongoing_bk);
 
     if (ongoing_bk === 1) {
       setShowViewAlert(true);
@@ -141,145 +140,20 @@ const DriverMap = ({ navigation }) => {
     }).toString();
 
     try {
-      const response = await Post({ data: body }); // Assuming `Post` is your function to make a POST request
+      const response = await Post({ data: body });
       if (response && response.server_time) {
-        const serverTime = response.server_time; // Assuming server returns a field called `server_time`
+        const serverTime = response.server_time;
         const currentLocalTime = Date.now();
-        const timeDiff = serverTime - currentLocalTime; // Difference in milliseconds
+        const timeDiff = serverTime - currentLocalTime;
         setServerClientTimeDiff(timeDiff);
-        // console.log('Server time diff:', timeDiff)
       }
     } catch (error) {
       console.log("Error syncing server time:", error);
     }
   };
 
-  // useEffect(() => {
-  //   const fetchNotifications = async () => {
-  //     const driverId = user?.driverid;
-  //     //   console.log("=====driverId =====", driverId);
-
-  //     const reference = database()
-  //       .ref(`Drivers/drvr-${driverId}/notf`)
-  //       .on("value", async (snapshot) => {
-  //         const data = snapshot.val();
-  //         console.log("Fetched snapshot data:", data);
-
-  //         // Check if data is null
-  //         if (data == null) {
-  //           console.log("No data found in Firebase");
-  //           return;
-  //         }
-
-  //         // Access the message and timestamp directly
-  //         const msg = data.msg;
-  //         const msg_t = data.msg_t;
-
-  //         if (!msg || !msg_t) {
-  //           console.log("Invalid message structure:", data);
-  //           return;
-  //         }
-
-  //         const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
-  //         console.log(
-  //           "Last message time from AsyncStorage:",
-  //           last_msg_time_id,
-  //           "TYPEOF=====>",
-  //           typeof last_msg_time_id
-  //         );
-
-  //         // Add timestamp tolerance here (e.g., 1 second grace period for identical timestamps)
-  //         const toleranceInSeconds = 5;
-  //         const timestampDifference = Math.abs(
-  //           msg_t - parseInt(last_msg_time_id, 10)
-  //         );
-
-  //         // If the timestamp difference is 0 or within the tolerance, allow the message to be processed
-  //         if (
-  //           !last_msg_time_id ||
-  //           timestampDifference > toleranceInSeconds ||
-  //           timestampDifference === 0
-  //         ) {
-  //           console.log("Processing new message:", data);
-
-  //           // Update AsyncStorage with the new message timestamp
-  //           await AsyncStorage.setItem(
-  //             "fb_last_recvd",
-  //             // JSON.stringify(msg_t),
-  //             msg_t?.toString()
-  //           );
-
-  //           // Prepare formatted notifications
-  //           const formattedNotifications = [msg]; // Directly add msg to the array
-  //           console.log("Formatted Notifications:", formattedNotifications);
-
-  //           if (formattedNotifications.length > 0) {
-  //             setNotifications(formattedNotifications);
-  //           } else {
-  //             console.log("No notifications to display");
-  //           }
-
-  //           // Handle missing booking_id
-  //           if (!msg.booking_id) {
-  //             console.log("Warning: booking_id is missing", msg);
-
-  //             // If no booking_id, return without processing further
-  //             return;
-  //           } else {
-  //             const processed = await AsyncStorage.getItem(
-  //               `processed_${msg.booking_id}_${msg.action}`
-  //             );
-  //             console.log(
-  //               `Processed for booking ${msg.booking_id}:`,
-  //               processed
-  //             );
-  //             if (processed) return;
-
-  //             // Handle notification actions based on action type
-  //             switch (msg.action) {
-  //               case "driver-allocate":
-  //                 booking_allocate_notify(msg);
-  //                 break;
-  //               case "customer-cancelled":
-  //                 customer_cancelled_notify(msg);
-  //                 break;
-  //               case "decline-driver-bid-notify":
-  //                 decline_bid(msg);
-  //                 break;
-  //               // case "accept-driver-bid-notify":
-  //               //   accept_bid(msg);
-  //               //   break;
-  //               case "chat-message":
-  //                 chat_msg_notify(msg);
-  //                 break;
-  //               default:
-  //                 break;
-  //             }
-
-  //             // Mark notification as processed
-  //             await AsyncStorage.setItem(
-  //               `processed_${msg.booking_id}_${msg.action}`,
-  //               "true"
-  //             );
-  //           }
-  //         } else {
-  //           console.log(
-  //             "Skipping processed message due to timestamp tolerance:",
-  //             data
-  //           );
-  //         }
-  //       });
-
-  //     return () => {
-  //       database().ref(`Drivers/drvr-${driverId}/notf`).off("value", reference);
-  //     };
-  //   };
-
-  //   fetchNotifications();
-  // }, [serverClientTimeDiff]);
-
   useEffect(() => {
-    isMounted.current = true; // Set to true when component is mounted
+    isMounted.current = true;
 
     const fetchNotifications = async () => {
       const driverId = user?.driverid;
@@ -319,12 +193,11 @@ const DriverMap = ({ navigation }) => {
 
             await AsyncStorage.setItem("fb_last_recvd", msg_t?.toString());
 
-            const formattedNotifications = [msg]; // Directly add msg to the array
+            const formattedNotifications = [msg];
             console.log("Formatted Notifications:", formattedNotifications);
 
             if (formattedNotifications.length > 0) {
               if (isMounted.current) {
-                // Only update state if component is mounted
                 setNotifications(formattedNotifications);
               }
             } else {
@@ -378,7 +251,7 @@ const DriverMap = ({ navigation }) => {
     fetchNotifications();
 
     return () => {
-      isMounted.current = false; // Set to false when component unmounts
+      isMounted.current = false;
     };
   }, [user?.driverid]);
 
@@ -541,20 +414,85 @@ const DriverMap = ({ navigation }) => {
   };
 
   const showModal = (soundFile) => {
-    setIsModalVisible(true); // Show the modal
+    setIsModalVisible(true);
     playSound(soundFile);
-    // After 5 seconds, close the modal
     setTimeout(() => {
-      setIsModalVisible(false); // Hide the modal after 5 seconds
+      setIsModalVisible(false);
     }, 13000);
   };
+
+  // const booking_allocate_notify = (notification) => {
+  //   console.log("Handling booking allocation notification:", notification);
+
+  //   const push_data = notification;
+
+  //   const riderPickupLocationLat = parseFloat(push_data.p_lat);
+  //   const riderPickupLocationLng = parseFloat(push_data.p_lng);
+
+  //   const driverLat = parseFloat(push_data.d_lat);
+  //   const driverLng = parseFloat(push_data.d_lng);
+
+  //   if (driverLat && driverLng) {
+  //     const distance = haversine(
+  //       driverLat,
+  //       driverLng,
+  //       riderPickupLocationLat,
+  //       riderPickupLocationLng
+  //     );
+
+  //     let distanceInUnit = distance;
+  //     if (push_data.dist_unit === 1) {
+  //       distanceInUnit = distance * 0.621371;
+  //     }
+
+  //     const timeToPickup = calculateTime(distanceInUnit);
+  //     push_data.distance = distanceInUnit.toFixed(2);
+  //     push_data.time_to_pickup = timeToPickup;
+
+  //     setNewRideRequest(push_data);
+  //     showModal("ride_alloc.mp3");
+
+  //     setDirectionsData({
+  //       origin: { latitude: driverLat, longitude: driverLng },
+  //       destination: {
+  //         latitude: riderPickupLocationLat,
+  //         longitude: riderPickupLocationLng,
+  //       },
+  //     });
+  //     setShowDirections(true);
+
+  //     if (mapRef.current) {
+  //       if (
+  //         riderPickupLocationLat &&
+  //         riderPickupLocationLng &&
+  //         driverLat &&
+  //         driverLng
+  //       ) {
+  //         const centerLat = (driverLat + riderPickupLocationLat) / 2;
+  //         const centerLng = (driverLng + riderPickupLocationLng) / 2;
+
+  //         const latDiff = Math.abs(driverLat - riderPickupLocationLat);
+  //         const lngDiff = Math.abs(driverLng - riderPickupLocationLng);
+
+  //         const latitudeDelta = latDiff + 0.05;
+  //         const longitudeDelta = lngDiff + 0.05;
+
+  //         mapRef.current.animateToRegion({
+  //           latitude: centerLat,
+  //           longitude: centerLng,
+  //           latitudeDelta: latitudeDelta,
+  //           longitudeDelta: longitudeDelta,
+  //         });
+  //       }
+  //     }
+  //   }
+  // };
 
   const booking_allocate_notify = (notification) => {
     console.log("Handling booking allocation notification:", notification);
 
     const push_data = notification;
 
-    // Set the pickup location of the rider
     const riderPickupLocationLat = parseFloat(push_data.p_lat);
     const riderPickupLocationLng = parseFloat(push_data.p_lng);
 
@@ -562,7 +500,6 @@ const DriverMap = ({ navigation }) => {
     const driverLng = parseFloat(push_data.d_lng);
 
     if (driverLat && driverLng) {
-      // Calculate distance using Haversine formula
       const distance = haversine(
         driverLat,
         driverLng,
@@ -572,21 +509,17 @@ const DriverMap = ({ navigation }) => {
 
       let distanceInUnit = distance;
       if (push_data.dist_unit === 1) {
-        distanceInUnit = distance * 0.621371; // Convert to miles
+        distanceInUnit = distance * 0.621371; // Convert km to miles if needed
       }
 
-      // Calculate time in minutes
       const timeToPickup = calculateTime(distanceInUnit);
-
-      // Update the push_data with distance and time
       push_data.distance = distanceInUnit.toFixed(2);
       push_data.time_to_pickup = timeToPickup;
 
-      // Optionally update the UI with distance and time information
       setNewRideRequest(push_data);
       showModal("ride_alloc.mp3");
 
-      // Trigger the MapViewDirections rendering
+      // Set directions data to show the route from driver to rider's pickup location
       setDirectionsData({
         origin: { latitude: driverLat, longitude: driverLng },
         destination: {
@@ -603,19 +536,16 @@ const DriverMap = ({ navigation }) => {
           driverLat &&
           driverLng
         ) {
-          // Calculate the center of the map as the midpoint between driver and rider
+          // Calculate center of the map to focus the area between driver and rider pickup location
           const centerLat = (driverLat + riderPickupLocationLat) / 2;
           const centerLng = (driverLng + riderPickupLocationLng) / 2;
 
-          // Calculate the distance in degrees between the driver and the rider for zooming
           const latDiff = Math.abs(driverLat - riderPickupLocationLat);
           const lngDiff = Math.abs(driverLng - riderPickupLocationLng);
 
-          // Set a larger delta to zoom out and see the full path
-          const latitudeDelta = latDiff + 0.05; // Increase to zoom out
-          const longitudeDelta = lngDiff + 0.05; // Increase to zoom out
+          const latitudeDelta = latDiff + 0.05;
+          const longitudeDelta = lngDiff + 0.05;
 
-          // Update the map view to center and adjust zoom level
           mapRef.current.animateToRegion({
             latitude: centerLat,
             longitude: centerLng,
@@ -631,6 +561,15 @@ const DriverMap = ({ navigation }) => {
     console.log("Handling accept_bid notification:", notification);
 
     setNotificationData(notification);
+  };
+
+  const customer_cancelled_notify = (notification) => {
+    console.log("notification in customer_cancelled_notify ", notification);
+    setDriverArriveModal(false);
+    setDriverArriveModalVisible(false);
+    setPickupModalVisible(false);
+    setDropoffModalVisible(false);
+    setShowDirections(false);
   };
 
   useEffect(() => {
@@ -653,7 +592,6 @@ const DriverMap = ({ navigation }) => {
   const getToken = async () => {
     const token = await messaging().getToken();
     console.log("FCM Token:", token);
-    // Save this token to your database for the user
   };
 
   useEffect(() => {
@@ -689,13 +627,11 @@ const DriverMap = ({ navigation }) => {
         longitude: location.longitude,
       });
 
-      // Call setDriverLocation only after origin is set
       if (location.latitude && location.longitude) {
         // await setDriverLocation()
         // await callApis()
       }
     } catch (error) {
-      // Handle location error
       console.log("Location Error:", error.code, error.message);
     }
   };
@@ -711,9 +647,7 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
-  // Set up background message handler
   messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    // console.log('Message handled in the background!', remoteMessage)
     Alert.alert(remoteMessage[{ text: "OK" }]);
   });
 
@@ -726,16 +660,13 @@ const DriverMap = ({ navigation }) => {
 
   const callApis = async () => {
     try {
-      // Calling the function twice at the same time
       await Promise.all([setAvailability(), setAvailability()]);
     } catch (error) {
       console.error("Error while calling APIs concurrently:", error);
     }
   };
 
-  /////////////// Api Set Availability /////////////////
   const setAvailability = async () => {
-    // const sessId = 'MGMxNmtldTRtMmNvZmtwcTNxcjN1dDd2ajc='
     const sessId = await getSessionId();
     const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
 
@@ -807,6 +738,8 @@ const DriverMap = ({ navigation }) => {
   };
 
   const getDriverHistory = async () => {
+    setLoading(true);
+
     const sess_id = await getSessionId();
     const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
 
@@ -823,7 +756,6 @@ const DriverMap = ({ navigation }) => {
       });
 
       const apiResponse = await response.json();
-      // Assuming apiResponse.pend_onride contains the HTML string
       const htmlContent = apiResponse.pend_onride;
 
       // Regex to match both time and status
@@ -831,21 +763,18 @@ const DriverMap = ({ navigation }) => {
         /<span class='list-item__title'>(.*?)<\/span>\s*<span[^>]*style=['"][^'"]*font-weight:\s*bold[^'"]*['"][^>]*>(.*?)<\/span>/
       );
 
-      // Extract embedded JSON data (the hidden span containing booking data)
       const hiddenDataMatch = htmlContent.match(
         /id='booking-list-item-data-\d+' type='text' style='display:none'>(.*?)<\/span>/
       );
       let hiddenData = {};
       if (hiddenDataMatch && hiddenDataMatch[1]) {
         try {
-          // Parse the embedded JSON data
           hiddenData = JSON.parse(hiddenDataMatch[1]);
         } catch (error) {
           console.error("Error parsing hidden data:", error);
         }
       }
 
-      // Extract other data
       const bookingIdMatch = htmlContent.match(/Booking ID:#(\d+)/);
       const pickupLocationMatch = htmlContent.match(
         /<span style='display:inline-block;margin-left:22px;font-weight:bold;'>(.*?)<\/span>/
@@ -854,7 +783,6 @@ const DriverMap = ({ navigation }) => {
         /<span style='display:inline-block;margin-left:22px;font-weight:bold;'>(.*?)<\/span>/
       );
 
-      // Extracted information from embedded JSON
       const bookingDetails = {
         booking_id: bookingIdMatch ? bookingIdMatch[1] : null,
         time: timeAndStatusMatch ? timeAndStatusMatch[1] : null,
@@ -872,6 +800,7 @@ const DriverMap = ({ navigation }) => {
         setShowViewAlert(false);
         setDriverArriveModal(true);
       } else if (bookingDetails.status === "Servicing booking") {
+        setLoading(false);
         setShowViewAlert(false);
         setDropoffModal(true);
       }
@@ -954,22 +883,8 @@ const DriverMap = ({ navigation }) => {
     return bookings;
   };
 
-  // if (driverArriveModal) {
-  //   return (
-  //     <DriverArriveModal
-  //       visible={driverArriveModal}
-  //       // newRideRequest={newRideRequest}
-  //     />
-  //   );
-  // }
-
   if (dropoffModal) {
-    return (
-      <DriverDropoffModal
-        visible={dropoffModal}
-        // newRideRequest={bookingDetails}
-      />
-    );
+    return <DriverDropoffModal visible={dropoffModal} />;
   }
 
   return (
@@ -1003,14 +918,13 @@ const DriverMap = ({ navigation }) => {
               source={require("../../assets/city-driver-icon-1.png")}
               style={styles.markerImage}
             />
-            {/* <FontAwesome name='user' size={50} color='blue' /> */}
           </Marker>
 
           {showDirections && directionsData && (
             <MapViewDirections
               origin={directionsData.origin}
               destination={directionsData.destination}
-              apikey={Google_Maps_Apikey}
+              apikey={GOOGLE_MAPS_API_KEY}
               strokeColor={"black"}
               strokeWidth={2.5}
             />
@@ -1080,8 +994,14 @@ const DriverMap = ({ navigation }) => {
             <TouchableOpacity
               onPress={getDriverHistory}
               style={styles.okButton}
+              disabled={loading}
             >
-              <Text style={styles.okButtonText}>OK</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="black" />
+              ) : (
+                <Text style={styles.okButtonText}>OK</Text>
+              )}
+              {/* <Text style={styles.okButtonText}>OK</Text> */}
             </TouchableOpacity>
           </View>
         </View>
@@ -1112,6 +1032,8 @@ const DriverMap = ({ navigation }) => {
         onClose={closeModal}
         newRideRequest={newRideRequest}
         location={origin}
+        driverArriveModalVisible={driverArriveModalVisible}
+        setDriverArriveModalVisible={setDriverArriveModalVisible}
       />
     </View>
   );

@@ -62,11 +62,11 @@ import HTMLParser from "react-native-html-parser";
 
 import { useTranslation } from "react-i18next";
 
-const Google_Maps_Apikey = "AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw"; // Replace with your actual API key
-
+// const Google_Maps_Apikey = "AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw"; // Replace with your actual API key
+import { GOOGLE_MAPS_API_KEY } from "../../constants/googleMapKey";
 // Initialize Geocoder with API key
 
-Geocoder.init(Google_Maps_Apikey);
+Geocoder.init(GOOGLE_MAPS_API_KEY);
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius of the Earth in km
@@ -204,10 +204,7 @@ const RiderMapScreen = ({ route }) => {
         .on("value", async (snapshot) => {
           const data = snapshot.val();
           console.log("data==", data);
-          // console.log(typeof data.msg_t === 'string')
           const stringValue = JSON.stringify(data.msg_t);
-          // console.log('Converted string:', stringValue)
-          // console.log(typeof stringValue === 'string')
           if (data == null) return;
           if (!(data?.msg && data?.msg_t)) return;
 
@@ -228,28 +225,23 @@ const RiderMapScreen = ({ route }) => {
             data?.msg_t?.toString()
           );
 
-          // Adjust current timestamp using the server-client time difference
           let current_local_timestamp = Date.now();
-          current_local_timestamp += serverClientTimeDiff; // Sync with server time
+          current_local_timestamp += serverClientTimeDiff;
           current_local_timestamp = Math.floor(current_local_timestamp / 1000);
 
           if (current_local_timestamp - 5 > data.msg_t) return;
 
           const message = data.msg;
 
-          // Handle message actions
           if (
             message.hasOwnProperty("booking_id") &&
             message.hasOwnProperty("action")
           ) {
-            // Process "driver-bid-notify"
             if (message.action === "driver-bid-notify") {
-              // console.log('message======>', message)
-
               if (message !== null) {
                 setFormattedNotifications((prevNotifications) => [
                   ...prevNotifications,
-                  ...[message], // Each message goes into its own array
+                  ...[message],
                 ]);
               }
             }
@@ -261,7 +253,7 @@ const RiderMapScreen = ({ route }) => {
                 break;
               case "driver-bid-notify":
                 setIsDriverBid(true);
-                // driver_bid_notify(formattedNotifications) // Move to another useEffect to handle updated state
+                // driver_bid_notify(formattedNotifications)
                 break;
               case "accept-driver-bid-notify":
                 accept_driver_bid_notify(message);
@@ -291,7 +283,6 @@ const RiderMapScreen = ({ route }) => {
           }
         });
 
-      // Clean up the listener on component unmount
       return () => {
         database().ref(`Riders/ridr-${userId}/notf`).off("value", reference);
       };
@@ -303,26 +294,20 @@ const RiderMapScreen = ({ route }) => {
   useEffect(() => {
     if (formattedNotifications.length > 0) {
       console.log("check", count++);
-      // This will store the (booking_id, driver_id) pairs that have been processed
       const processedPairs = new Set();
 
-      // Filter out duplicates based on (booking_id, driver_id)
       const uniqueNotifications = formattedNotifications
-        .flat() // Flatten the array of arrays into a single array
+        .flat()
         .filter((value) => {
           const pair = `${value.booking_id}-${value.driver_id}`;
 
-          // Check if this (booking_id, driver_id) combination is already processed
           if (processedPairs.has(pair)) {
-            return false; // Skip this notification
+            return false;
           } else {
-            // Mark this combination as processed
             processedPairs.add(pair);
-            return true; // Proceed with this notification
+            return true;
           }
         });
-
-      // Call the driver_bid_notify with the unique notifications
       driver_bid_notify(uniqueNotifications);
     }
   }, [formattedNotifications]);
@@ -362,34 +347,20 @@ const RiderMapScreen = ({ route }) => {
     setShowDriverOnWay(false);
     setMorningContainer(true);
 
-    // Update newRideRequest state with relevant data
-    // setNewRideRequest({
-    //     ...notification, // Keep the existing notification data
-    //     titleText: 'Your trip has ended', // Set title based on action
-    // })
-
     console.log("Action being passed to showModal:", notification.action);
-
-    // showDriverOnWay(false)
-    // setMorningContainer(true)
-
-    // Show modal with updated data and sound
-    // showDriverOnWayModal('ride_alloc.mp3', notification.action)
   };
   const onReject = (data) => {
-    // when you call api here to reject the request then just just call the bellow lines of code inside that fucntion if response success
-
     apiData = {
       action: "bookingcancel",
       // driver_id: data?.driver_id,
       // driver_id: data?.driver_id,
       bookingid: data?.booking_id,
     };
-    console.log("apiData", apiData);
+    // console.log("apiData", apiData);
 
     Post({ data: apiData })
       .then((result) => {
-        console.log("result", result);
+        // console.log("result", result);
         const updatedDriverList = driverRequests.filter(
           (item) => item?.driver_id !== data?.driver_id
         );
@@ -409,19 +380,16 @@ const RiderMapScreen = ({ route }) => {
   };
 
   const customer_onride_notify = (notification) => {
-    // console.log("noti-driver_assigned_notify", notification);
-
     // Ensure all necessary fields exist and are valid
     if (!notification?.driver_location_lat || !notification?.pickup_lat) {
       console.error("Missing location data in notification:", notification);
-      return; // Early return if data is invalid
+      return;
     }
 
     setShowDriverOnWay(true);
     setBookingId(notification.booking_id);
     setNewRideRequest({
       ...notification,
-      // titleText: "Driver is on his way",
     });
 
     if (mapRef.current) {
@@ -534,18 +502,14 @@ const RiderMapScreen = ({ route }) => {
   // };
 
   const driver_arrived_notify = (notification) => {
-    // console.log("noti-driver_assigned_notify", notification);
-
-    // Ensure all necessary fields exist and are valid
     if (!notification?.driver_location_lat || !notification?.pickup_lat) {
       console.error("Missing location data in notification:", notification);
-      return; // Early return if data is invalid
+      return;
     }
 
     setShowDriverOnWay(true);
     setNewRideRequest({
       ...notification,
-      // titleText: "Driver is on his way",
     });
 
     if (mapRef.current) {
@@ -559,7 +523,6 @@ const RiderMapScreen = ({ route }) => {
         return;
       }
 
-      // Proceed with map region animation
       const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
       const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
       const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
@@ -754,7 +717,6 @@ const RiderMapScreen = ({ route }) => {
     });
   };
 
-  // console.log('driverRequest===', driverRequests)
   const renderItem = ({ item }) => {
     // If this driver card is in the closed list, do not render it
     // if (closedDriverIds.includes(item.driver_id)) {
@@ -835,7 +797,6 @@ const RiderMapScreen = ({ route }) => {
   // };
 
   const driver_assigned_notify = (notification) => {
-    // Ensure all necessary fields exist and are valid
     if (!notification?.driver_location_lat || !notification?.pickup_lat) {
       console.error("Missing location data in notification:", notification);
       return;
@@ -846,7 +807,6 @@ const RiderMapScreen = ({ route }) => {
       ...notification,
     });
     console.log("bookingId=", notification.msg.booking_id);
-    // setBookingId(notification.msg.booking_id);
     if (mapRef.current) {
       const driverLocationLat = parseFloat(notification?.driver_location_lat);
       const driverLocationLong = parseFloat(notification?.driver_location_long);
@@ -893,20 +853,9 @@ const RiderMapScreen = ({ route }) => {
     console.log("notifi=", notification);
     setShowDriverOnWay(true);
     setNewRideRequest({
-      ...notification, // Keep the existing notification data
-      titleText: "Driver is on his way", // Set title based on action
+      ...notification,
+      titleText: "Driver is on his way",
     });
-
-    // if (mapRef.current) {
-    //     mapRef.current.animateToRegion({
-    //         latitude: notification?.driver_location_lat,
-    //         longitude: notification?.driver_location_long,
-    //         // latitudeDelta: 0.01,
-    //         // longitudeDelta: 0.01,
-    //         latitudeDelta: 0.9,
-    //         longitudeDelta: 0.9,
-    //     })
-    // }
     if (mapRef.current) {
       const driverLocationLat = notification?.driver_location_lat;
       const driverLocationLong = notification?.driver_location_long;
@@ -951,10 +900,10 @@ const RiderMapScreen = ({ route }) => {
       [
         {
           text: "OK",
-          onPress: () => setShowDriverAssignedModal(false), // Close alert
+          onPress: () => setShowDriverAssignedModal(false),
         },
       ],
-      { cancelable: false } // Prevents dismissing by tapping outside
+      { cancelable: false }
     );
   };
 
@@ -964,13 +913,12 @@ const RiderMapScreen = ({ route }) => {
     }).toString();
 
     try {
-      const response = await Post({ data: body }); // Assuming `Post` is your function to make a POST request
+      const response = await Post({ data: body });
       if (response && response.server_time) {
-        const serverTime = response.server_time; // Assuming server returns a field called `server_time`
+        const serverTime = response.server_time;
         const currentLocalTime = Date.now();
-        const timeDiff = serverTime - currentLocalTime; // Difference in milliseconds
+        const timeDiff = serverTime - currentLocalTime;
         setServerClientTimeDiff(timeDiff);
-        // console.log('Server time diff:', timeDiff)
       }
     } catch (error) {
       console.log("Error syncing server time:", error);
@@ -1106,15 +1054,12 @@ const RiderMapScreen = ({ route }) => {
     }
   };
 
-  ////// Yahan khatm /////////
-
   useEffect(() => {
     // Set the status bar to be translucent, allowing the map to go under it.
     StatusBar.setTranslucent(true);
     StatusBar.setBackgroundColor("transparent");
   }, []);
 
-  // Show content after 5 seconds
   useEffect(() => {
     handleRoute();
     const timer = setTimeout(() => {
@@ -1126,14 +1071,13 @@ const RiderMapScreen = ({ route }) => {
     };
   }, []);
 
-  // Simulate the shimmer effect for 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsShimmering(false);
-    }, 8000);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setIsShimmering(false);
+  //   }, 8000);
 
-    return () => clearTimeout(timer); // Clean up the timer when the component unmounts
-  }, []);
+  //   return () => clearTimeout(timer); // Clean up the timer when the component unmounts
+  // }, []);
 
   useEffect(() => {
     if (origin && destination) {
@@ -1187,7 +1131,7 @@ const RiderMapScreen = ({ route }) => {
     const interval = setInterval(() => {
       setStrokeColor((prev) => (prev === "black" ? "lightcoral" : "black"));
     }, 1000);
-    return () => clearInterval(interval); // Cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const showAlert = (data) => {
@@ -2027,9 +1971,9 @@ const RiderMapScreen = ({ route }) => {
             top: 0,
             left: 0,
             right: 0,
-            zIndex: 10, // Ensure the FlatList is above the map
+            zIndex: 10,
             padding: 10,
-            backgroundColor: "rgba(255, 255, 255, 0.8)", // Optional background for clarity
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
           }}
         >
           <FlatList
@@ -2088,7 +2032,7 @@ const RiderMapScreen = ({ route }) => {
                     <MapViewDirections
                       origin={origin}
                       destination={destination}
-                      apikey={Google_Maps_Apikey}
+                      apikey={GOOGLE_MAPS_API_KEY}
                       strokeColor={strokeColor}
                       strokeWidth={2.5}
                     />
@@ -2258,85 +2202,6 @@ const RiderMapScreen = ({ route }) => {
         </View>
       )}
 
-      {/* {morningContainer && !showDriverOnWay && (
-                <View style={styles.buttonContainer}>
-                    <View style={styles.morningContainer}>
-                        {isShimmering ? (
-                            <ShimmerPlaceHolder
-                                style={styles.morningPic}
-                                autoRun={true}
-                                colorShimmer={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
-                            />
-                        ) : (
-                            <Image
-                                style={styles.morningPic}
-                                source={require('../../assets/afternoon.png')}
-                            />
-                        )}
-
-                        {isShimmering ? (
-                            <ShimmerPlaceHolder
-                                style={styles.nameText}
-                                autoRun={true}
-                                colorShimmer={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
-                            />
-                        ) : (
-                            <Text style={styles.nameText}>
-                                Good morning, Shehroze
-                            </Text>
-                        )}
-                    </View>
-
-                    {isShimmering ? (
-                        <ShimmerPlaceHolder
-                            style={styles.button}
-                            autoRun={true}
-                            colorShimmer={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
-                        />
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.button}
-                            onPress={() =>
-                                navigation.navigate('DropOffLocation', {
-                                    origin,
-                                    userAddress,
-                                })
-                            }>
-                            <FontAwesome
-                                name='search'
-                                size={15}
-                                color='red'
-                                style={{ marginRight: 10 }}
-                            />
-                            <Text style={styles.buttonText}>
-                                Where do you want to go?
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-
-                    {isShimmering ? (
-                        <ShimmerPlaceHolder
-                            style={styles.button2}
-                            autoRun={true}
-                            colorShimmer={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
-                        />
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.button2}
-                            onPress={handleBlueAreaClick}>
-                            <FontAwesome
-                                name='map-marker'
-                                size={14}
-                                color='red'
-                                style={{ marginRight: 10 }}
-                            />
-                            <Text style={styles.button2Text} numberOfLines={1}>
-                                BlueArea, Islamabad, Pakistan
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-            )} */}
       {/* Conditionally render DriverOnWay instead of morningContainer */}
       {showDriverOnWay && (
         <DriverOnWay
