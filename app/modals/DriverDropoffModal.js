@@ -960,115 +960,117 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
   };
 
   return (
-    <Modal
-      transparent={true}
-      visible={modalVisible}
-      onRequestClose={onClose}
-      animationType="slide"
-    >
-      <View
-        style={[
-          styles.modalContainer,
-          modalVisible && styles.transparentBackground,
-        ]}
-      >
-        <View style={styles.modalContent}>
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <View style={styles.section}>
-              <View style={styles.row}>
-                <View style={styles.profileAndRating}>
-                  <Image
-                    source={
-                      newRideRequest?.rider_image?.uri
-                        ? { uri: newRideRequest?.rider_image }
-                        : require("../assets/driver.png")
-                    }
-                    style={styles.profileImage}
-                  />
-                  <Text style={styles.driverName}>
-                    {newRideRequest?.rider_name}
-                  </Text>
-                </View>
-                <View style={styles.timeContainer}>
-                  <Text style={styles.timeText}>0</Text>
-                  <Text style={styles.timeText}>Mins</Text>
-                </View>
+    <View style={[styles.modalContainer, styles.transparentBackground]}>
+      <View style={styles.modalContent}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.profileAndRating}>
+                <Image
+                  source={
+                    newRideRequest?.rider_image?.uri
+                      ? { uri: newRideRequest?.rider_image }
+                      : require("../assets/driver.png")
+                  }
+                  style={styles.profileImage}
+                />
+                <Text style={styles.driverName}>
+                  {newRideRequest?.rider_name}
+                </Text>
               </View>
-              <View style={styles.divider} />
-            </View>
-
-            <View style={styles.section}>
-              <View style={styles.column}>
-                <View style={styles.pickupInfo}>
-                  <Image
-                    source={require("../assets/pick-up2.png")}
-                    style={styles.pickupImage}
-                  />
-                  <Text style={styles.pickupAddressText} numberOfLines={2}>
-                    {newRideRequest?.d_address}
-                  </Text>
-                </View>
+              <View style={styles.timeContainer}>
+                <Text style={styles.timeText}>
+                  {newRideRequest?.time_to_pickup}
+                </Text>
+                <Text style={styles.timeText}>Mins</Text>
               </View>
-              <View style={styles.divider} />
             </View>
+            <View style={styles.divider} />
+          </View>
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.pickupButton}
-                onPress={driverCompleted}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.pickupText}>Drop Off</Text>
-                )}
-              </TouchableOpacity>
+          <View style={styles.section}>
+            <View style={styles.column}>
+              <View style={styles.pickupInfo}>
+                <Image
+                  source={require("../assets/pick-up2.png")}
+                  style={styles.pickupImage}
+                />
+                <Text style={styles.pickupAddressText} numberOfLines={2}>
+                  {newRideRequest?.d_address}
+                </Text>
+              </View>
             </View>
-          </ScrollView>
-        </View>
+            <View style={styles.divider} />
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.dropoffButton}
+              onPress={driverCompleted}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.dropoffText}>Drop Off</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
+    justifyContent: "flex-start",
     alignItems: "center",
-    backgroundColor: "red",
+    backgroundColor: "transparent",
     position: "absolute",
     zIndex: 99999,
-    bottom: 10,
-  },
-  transparentBackground: {
-    backgroundColor: "transparent",
+    bottom: 4,
   },
   modalContent: {
     width: screenWidth,
     maxHeight: screenHeight * 0.55,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
     overflow: "hidden",
   },
   scrollContainer: {
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   section: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  profileAndRating: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  driverName: {
+    marginLeft: 10,
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#000",
+  },
   timeContainer: {
     backgroundColor: "#000",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1080,21 +1082,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#ddd",
     marginVertical: 6,
-  },
-  profileAndRating: {
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-  },
-  driverName: {
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#000",
   },
   pickupInfo: {
     flexDirection: "row",
@@ -1112,19 +1099,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     flexWrap: "wrap",
   },
-  pickupAddressText: {
-    fontSize: 12,
-    flex: 1,
-    overflow: "hidden",
-    flexWrap: "wrap",
-    color: "black",
-  },
   buttonContainer: {
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 15,
+    marginTop: 4,
   },
-  pickupButton: {
+  dropoffButton: {
     backgroundColor: "orange",
     borderRadius: 30,
     paddingVertical: 10,
@@ -1133,7 +1113,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: screenWidth * 0.85,
   },
-  pickupText: {
+  dropoffText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "400",

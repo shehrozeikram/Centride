@@ -77,6 +77,7 @@ const DropOffLocation = ({ navigation }) => {
   const [stopBetweenRide, setStopBetweenRide] = useState();
   const [routeValue, setRouteValues] = useState("");
   const [userAddress, setUserAddress] = useState("");
+  const [loading, setLoading] = useState(false);
 
   let hideOtherSearchFields = false;
   const [predictions, setPredictions] = useState([]); // State to store API predictions
@@ -222,6 +223,7 @@ const DropOffLocation = ({ navigation }) => {
     }
   };
   const handleContinue = () => {
+    setLoading(true);
     // Check if any required fields are missing
     if (
       // !picuploactionLatLng ||
@@ -235,6 +237,7 @@ const DropOffLocation = ({ navigation }) => {
         "Please make sure all fields are filled out before continuing.",
         [{ text: "OK" }]
       );
+      setLoading(false);
       return; // Exit the function if validation fails
     }
     const data = {
@@ -269,6 +272,7 @@ const DropOffLocation = ({ navigation }) => {
       secondLocation: location,
       showModal: true,
     });
+    setLoading(false);
   };
 
   const renderItem = ({ item }) => (
@@ -479,12 +483,17 @@ const DropOffLocation = ({ navigation }) => {
         </>
       ) : null}
       <View style={styles.buttonView}>
-        <AppButton name={"Continue"} onPress={handleContinue} />
+        <AppButton
+          name={"Continue"}
+          onPress={handleContinue}
+          loading={loading}
+        />
       </View>
       <Spacing val={30} />
       <CustomModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
+        loading={loading}
       />
     </View>
   );

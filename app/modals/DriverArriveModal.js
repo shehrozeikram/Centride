@@ -274,7 +274,7 @@
 
 // export default DriverArriveModal;
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -296,12 +296,14 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 Geocoding.init(GOOGLE_MAPS_API_KEY);
 
-const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
+const DriverArriveModal = ({ newRideRequest }) => {
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [rideData, setRideData] = useState(null);
+
+  const mapRef = useRef(null);
 
   useEffect(() => {
     const fetchRideData = async () => {
@@ -318,7 +320,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
 
     fetchRideData();
   }, [newRideRequest]);
-  console.log("newRideRequest==", newRideRequest);
+  // console.log("newRideRequest==", newRideRequest);
 
   const saveNewRideRequestToStorage = async (request) => {
     try {
@@ -367,6 +369,49 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
 
   //     if (res.ok) {
   //       setPickupModalVisible(true);
+
+  //       // Map update logic: Adjusting the camera and directions
+  //       if (
+  //         newRideRequest?.p_lat &&
+  //         newRideRequest?.p_lng &&
+  //         newRideRequest?.d_lat &&
+  //         newRideRequest?.d_lng
+  //       ) {
+  //         // 1. Calculate the midpoint between the driver and rider pickup location
+  //         const centerLat = (newRideRequest?.d_lat + newRideRequest?.p_lat) / 2;
+  //         const centerLng = (newRideRequest?.p_lng + newRideRequest?.d_lng) / 2;
+
+  //         const latDiff = Math.abs(
+  //           newRideRequest?.p_lat - newRideRequest?.d_lat
+  //         );
+  //         const lngDiff = Math.abs(
+  //           newRideRequest?.p_lng - newRideRequest?.d_lng
+  //         );
+
+  //         const latitudeDelta = latDiff + 0.05;
+  //         const longitudeDelta = lngDiff + 0.05;
+
+  //         // 2. Animate the map to the new region (focusing on both driver and rider's location)
+  //         mapRef.current.animateToRegion({
+  //           latitude: centerLat,
+  //           longitude: centerLng,
+  //           latitudeDelta: latitudeDelta,
+  //           longitudeDelta: longitudeDelta,
+  //         });
+
+  //         // 3. Set directions data to show the route from driver to rider's pickup location
+  //         setDirectionsData({
+  //           origin: {
+  //             latitude: newRideRequest?.p_lat,
+  //             longitude: newRideRequest?.p_lng,
+  //           },
+  //           destination: {
+  //             latitude: newRideRequest?.d_lat,
+  //             longitude: newRideRequest?.d_lng,
+  //           },
+  //         });
+  //         setShowDirections(true); // This will trigger the map to render directions
+  //       }
   //     } else {
   //       console.log("Request failed with status: ", res.status);
   //     }
@@ -401,7 +446,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
       if (res.ok) {
         setPickupModalVisible(true);
 
-        // Map update logic: Adjusting the camera and directions
+        // Only proceed with map update if locations are valid
         if (
           newRideRequest?.p_lat &&
           newRideRequest?.p_lng &&
@@ -412,6 +457,7 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
           const centerLat = (newRideRequest?.d_lat + newRideRequest?.p_lat) / 2;
           const centerLng = (newRideRequest?.p_lng + newRideRequest?.d_lng) / 2;
 
+          // 2. Calculate the lat and lng differences
           const latDiff = Math.abs(
             newRideRequest?.p_lat - newRideRequest?.d_lat
           );
@@ -419,10 +465,11 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
             newRideRequest?.p_lng - newRideRequest?.d_lng
           );
 
-          const latitudeDelta = latDiff + 0.05;
-          const longitudeDelta = lngDiff + 0.05;
+          // 3. Set delta values to ensure both locations are visible on the map
+          const latitudeDelta = latDiff + 0.06;
+          const longitudeDelta = lngDiff + 0.06;
 
-          // 2. Animate the map to the new region (focusing on both driver and rider's location)
+          // 4. Animate the map to the new region (focusing on both driver and rider's location)
           mapRef.current.animateToRegion({
             latitude: centerLat,
             longitude: centerLng,
@@ -430,18 +477,18 @@ const DriverArriveModal = ({ visible, onClose, newRideRequest }) => {
             longitudeDelta: longitudeDelta,
           });
 
-          // 3. Set directions data to show the route from driver to rider's pickup location
+          // 5. Set directions data to show the route from driver to rider's pickup location
           setDirectionsData({
             origin: {
-              latitude: newRideRequest?.p_lat,
-              longitude: newRideRequest?.p_lng,
-            },
-            destination: {
               latitude: newRideRequest?.d_lat,
               longitude: newRideRequest?.d_lng,
             },
+            destination: {
+              latitude: newRideRequest?.p_lat,
+              longitude: newRideRequest?.p_lng,
+            },
           });
-          setShowDirections(true); // This will trigger the map to render directions
+          setShowDirections(true);
         }
       } else {
         console.log("Request failed with status: ", res.status);
@@ -533,7 +580,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     position: "absolute",
     zIndex: 99999,
-    bottom: 10,
+    bottom: 4,
   },
   modalContent: {
     width: screenWidth,
@@ -543,11 +590,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   scrollContainer: {
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   section: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   row: {
     flexDirection: "row",
@@ -559,21 +606,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   driverName: {
     marginLeft: 10,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#000",
   },
   timeContainer: {
     backgroundColor: "#000",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -605,7 +652,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 15,
+    marginTop: 4,
   },
   arrivedButton: {
     backgroundColor: "#2196F3",

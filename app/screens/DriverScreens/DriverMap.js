@@ -12,6 +12,7 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import Sound from "react-native-sound";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
@@ -107,6 +108,10 @@ const DriverMap = ({ navigation }) => {
   const [serverClientTimeDiff, setServerClientTimeDiff] = useState(0);
   const [sessionIdForParams, setSessionIdForParams] = useState(false);
   const [driverId, setDriverId] = useState(null);
+  const [hideDirections, setHideDirections] = useState(false);
+  const [mapDimensions, setMapDimensions] = useState({ width: 0, height: 0 });
+  const [strokeColor, setStrokeColor] = useState("black");
+
   const user = useSelector((state) => state.user?.user);
   const isMounted = useRef(true);
 
@@ -133,6 +138,11 @@ const DriverMap = ({ navigation }) => {
       setShowViewAlert(true);
     }
   }, [ongoing_bk]);
+
+  const onLayout = (event) => {
+    const { width, height } = event.nativeEvent.layout;
+    setMapDimensions({ width, height });
+  };
 
   const syncServer = async () => {
     const body = new URLSearchParams({
@@ -543,8 +553,8 @@ const DriverMap = ({ navigation }) => {
           const latDiff = Math.abs(driverLat - riderPickupLocationLat);
           const lngDiff = Math.abs(driverLng - riderPickupLocationLng);
 
-          const latitudeDelta = latDiff + 0.05;
-          const longitudeDelta = lngDiff + 0.05;
+          const latitudeDelta = latDiff + 0.06;
+          const longitudeDelta = lngDiff + 0.06;
 
           mapRef.current.animateToRegion({
             latitude: centerLat,
@@ -883,6 +893,42 @@ const DriverMap = ({ navigation }) => {
     return bookings;
   };
 
+  const openNavigator = () => {
+    if (origin && destination) {
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}`;
+      Linking.openURL(url).catch((err) =>
+        console.error("Error opening Google Maps", err)
+      );
+    } else {
+      console.warn("Origin or destination not set");
+    }
+  };
+
+  const animateToRegion = () => {
+    if (mapRef.current) {
+      mapRef.current.animateCamera(
+        {
+          center: {
+            latitude: origin?.latitude || 33.6844, // Use origin as center
+            longitude: origin?.longitude || 73.0479,
+          },
+          pitch: 0,
+          heading: 0,
+          altitude: 1000,
+          zoom: 18,
+        },
+        { duration: 2000 }
+      );
+    }
+  };
+
+  const onMapReady = () => {
+    // Add a delay of 1 second before calling animateToRegion
+    setTimeout(() => {
+      animateToRegion();
+    }, 1000); // Delay in milliseconds
+  };
+
   if (dropoffModal) {
     return <DriverDropoffModal visible={dropoffModal} />;
   }
@@ -897,89 +943,59 @@ const DriverMap = ({ navigation }) => {
       {dropoffModal && <DriverDropoffModal visible={dropoffModal} />}
 
       {origin && (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={
-            Platform.OS === "android"
-              ? MapView.PROVIDER_GOOGLE
-              : MapView.PROVIDER_DEFAULT
-          }
-          initialRegion={{
-            latitude: origin?.latitude || 33.6844,
-            longitude: origin?.longitude || 73.0479,
-            latitudeDelta: 0.06,
-            longitudeDelta: 0.06,
-          }}
-          zoomEnabled
-        >
-          <Marker coordinate={origin}>
-            <Image
-              source={require("../../assets/city-driver-icon-1.png")}
-              style={styles.markerImage}
-            />
-          </Marker>
+        <View style={{ flex: 1 }}>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            provider={
+              Platform.OS === "android"
+                ? MapView.PROVIDER_GOOGLE
+                : MapView.PROVIDER_DEFAULT
+            }
+            initialRegion={{
+              latitude: origin?.latitude || 33.6844,
+              longitude: origin?.longitude || 73.0479,
+              latitudeDelta: 0.06,
+              longitudeDelta: 0.06,
+            }}
+            zoomEnabled
+          >
+            <Marker coordinate={origin}>
+              <Image
+                source={require("../../assets/city-driver-icon-1.png")}
+                style={styles.markerImage}
+              />
+            </Marker>
 
-          {showDirections && directionsData && (
-            <MapViewDirections
-              origin={directionsData.origin}
-              destination={directionsData.destination}
-              apikey={GOOGLE_MAPS_API_KEY}
-              strokeColor={"black"}
-              strokeWidth={2.5}
-            />
-          )}
+            {directionsData?.origin && (
+              <Marker coordinate={directionsData.destination}>
+                <Image
+                  source={require("../../assets/pick-up-loc-icon.png")}
+                  style={styles.markerImage}
+                />
+              </Marker>
+            )}
 
-          {driverLocationsList.length > 0 &&
-            driverLocationsList.map((driver, index) => {
-              const latitude = parseFloat(driver?.position?.lat);
-              const longitude = parseFloat(driver?.position?.lng);
+            {directionsData?.destination && (
+              <Marker coordinate={directionsData.origin}>
+                <Image
+                  source={require("../../assets/drop-off-pin.png")}
+                  style={styles.markerImage}
+                />
+              </Marker>
+            )}
 
-              if (isNaN(latitude) || isNaN(longitude)) {
-                console.log(`Invalid coordinates for driver ${index + 1}`);
-                return null;
-              }
-
-              return (
-                <Marker
-                  key={index}
-                  ref={(ref) => (markerRefs.current[index] = ref)}
-                  coordinate={{
-                    latitude: latitude,
-                    longitude: longitude,
-                  }}
-                  title={driver?.title}
-                  rotation={driver?.b_angle}
-                  description={`Driver's location`}
-                >
-                  {driver.title === "Ride Mini" && (
-                    <Image
-                      source={require("../../assets/city-driver-icon-4.png")}
-                      style={styles.markerImage}
-                    />
-                  )}
-                  {driver.title === "Ride" && (
-                    <Image
-                      source={require("../../assets/city-driver-icon-5.png")}
-                      style={styles.markerImage}
-                    />
-                  )}
-                  {driver.title === "Ride A/C" && (
-                    <Image
-                      source={require("../../assets/city-driver-icon-1.png")}
-                      style={styles.markerImage}
-                    />
-                  )}
-                  {driver.title === "Moto" && (
-                    <Image
-                      source={require("../../assets/city-driver-icon-6.png")}
-                      style={styles.markerImage}
-                    />
-                  )}
-                </Marker>
-              );
-            })}
-        </MapView>
+            {showDirections && directionsData && (
+              <MapViewDirections
+                origin={directionsData.origin}
+                destination={directionsData.destination}
+                apikey={GOOGLE_MAPS_API_KEY}
+                strokeColor={"black"}
+                strokeWidth={2.5}
+              />
+            )}
+          </MapView>
+        </View>
       )}
 
       <Modal
@@ -1006,6 +1022,16 @@ const DriverMap = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <TouchableOpacity
+        style={[
+          styles.mapToggleButton,
+          { position: "absolute", right: 10, top: 150 },
+        ]} // Positioned on the right side of the map
+        onPress={openNavigator}
+      >
+        <Text style={styles.mapToggleText}>Navigator</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => navigation.navigate("Trips")}
@@ -1042,7 +1068,7 @@ const DriverMap = ({ navigation }) => {
 const styles = StyleSheet.create({
   map: {
     width: "100%",
-    height: "85%",
+    height: "100%",
   },
   earningsContainer: {
     flexDirection: "column",
@@ -1050,7 +1076,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     backgroundColor: "#FFFFFF",
-    height: "30%",
+    height: "14%",
     width: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -1141,6 +1167,27 @@ const styles = StyleSheet.create({
     top: 10,
     fontSize: 14,
     color: "blue",
+  },
+  mapToggleButton: {
+    position: "absolute",
+    top: "60%",
+    marginLeft: 5,
+    backgroundColor: "#FBC02D",
+    padding: 10,
+    borderRadius: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 5,
+  },
+  mapToggleText: {
+    color: "#000",
+    fontWeight: "bold",
+  },
+  markerImage: {
+    height: 30,
+    width: 30,
   },
 });
 

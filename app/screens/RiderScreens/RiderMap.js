@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import MapView, {
-  Callout,
+  // Callout,
   Marker,
-  PROVIDER_GOOGLE,
-  Polyline,
+  // PROVIDER_GOOGLE,
+  // Polyline,
 } from "react-native-maps";
-import Animated, {
-  Easing,
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  withDelay,
-  withRepeat,
-} from "react-native-reanimated";
+// import Animated, {
+//   Easing,
+//   useSharedValue,
+//   useAnimatedStyle,
+//   withTiming,
+//   interpolate,
+//   withDelay,
+//   withRepeat,
+// } from "react-native-reanimated";
 import {
   StyleSheet,
   View,
@@ -32,31 +32,27 @@ import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MapViewDirections from "react-native-maps-directions";
 import CustomModal from "../../modals/CustomModal";
 import {
-  useRoute,
+  // useRoute,
   useNavigation,
   useIsFocused,
 } from "@react-navigation/native";
 import Geocoder from "react-native-geocoding"; // Import geocoding library
 import Header from "../../components/Header";
-import Spacing from "../../components/Spacing";
+// import Spacing from "../../components/Spacing";
 import Color from "../../utils/Color";
-import { Post, PostData } from "../../network/network";
+import { Post } from "../../network/network";
 import axios from "axios";
 import GetLocation from "react-native-get-location";
-import ShimmerPlaceHolder from "react-native-shimmer-placeholder";
-import { DRIVER_BASE_URL, RIDER_BASE_URL } from "../../utils/constants";
+
+import { RIDER_BASE_URL } from "../../utils/constants";
 import { getSessionId } from "../../utils/common";
-import Style from "../../utils/Styles";
 import CryptoJS from "crypto-js"; // Import crypto-js for MD5 hashing
 import messaging from "@react-native-firebase/messaging";
 import database from "@react-native-firebase/database";
-import RiderBid from "../../modals/RiderBid";
 import { useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Sound from "react-native-sound";
-import DriverAssignedModal from "../../modals/DriverAssignedModal";
 import DriverOnWay from "../../modals/DriverOnWay";
-import RideCompleted from "./RideCompleted";
 import DriverCard from "../../modals/DriverCard";
 import HTMLParser from "react-native-html-parser";
 
@@ -165,6 +161,7 @@ const RiderMapScreen = ({ route }) => {
   const [rideRequests, setRideRequests] = useState([]); // Store multiple ride requests
   const [currentRideRequestIndex, setCurrentRideRequestIndex] = useState(0);
   const [pendingBookings, setPendingBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const user = useSelector((state) => state.user?.user);
   const mapRef = useRef(null); // MapView reference
@@ -1427,7 +1424,8 @@ const RiderMapScreen = ({ route }) => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
-  const onBook = async () => {
+  const onBook = async (setLoading) => {
+    setLoading(true);
     try {
       const scheduled = 0;
       const dateTimeOneHourAhead = getCurrentDateTimePlusOneHour();
@@ -1485,10 +1483,11 @@ const RiderMapScreen = ({ route }) => {
 
       if (response.data?.error) {
         Alert.alert("Error", response.data?.error);
+        setLoading(false);
       } else {
         const bookingid = response.data?.new_booking_id;
         setBookingId(bookingid);
-
+        // setLoading(false);
         // saveData(bookingid)
         if (origin) {
           // Set the ring position to the center of the map
@@ -1502,7 +1501,7 @@ const RiderMapScreen = ({ route }) => {
           setTimeout(() => {
             setShowRings(false);
           }, 15000);
-
+          setLoading(false);
           // Close the modal
           setModalVisible(false);
 
@@ -1517,6 +1516,7 @@ const RiderMapScreen = ({ route }) => {
       }
     } catch (error) {
       console.error("Error in booking:", error);
+      setLoading(false);
     }
   };
 

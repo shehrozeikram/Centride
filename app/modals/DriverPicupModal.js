@@ -414,6 +414,7 @@ import {
 import Geocoding from "react-native-geocoding";
 import DriverDropoffModal from "./DriverDropoffModal";
 import { GOOGLE_MAPS_API_KEY } from "../constants/googleMapKey";
+import { getSessionId } from "../utils/common";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 Geocoding.init(GOOGLE_MAPS_API_KEY);
@@ -423,27 +424,105 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
   const [loading, setLoading] = useState(false);
 
   const apiUrl = "https://appserver.txy.co/ajaxdriver_2_1_1.php";
-
+  const sessId = getSessionId();
   const params = {
-    sess_id: "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=",
+    sess_id: sessId,
     action_get: "startride",
     bookingid: newRideRequest.booking_id,
   };
 
+  // const handlePickUp = async () => {
+  //   setLoading(true); // Set loading to true to show the loader
+  //   const url = `${apiUrl}?sess_id=${params.sess_id}&action_get=${params.action_get}&bookingid=${params.bookingid}`;
+
+  //   try {
+  //     const res = await fetch(url);
+
+  //     if (res.ok) {
+  //       // console.log("res-=", res);
+  //       setDropoffModalVisible(true);
+  //     } else {
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handlePickUp = async () => {
-    setLoading(true); // Set loading to true to show the loader
-    const url = `${apiUrl}?sess_id=${params.sess_id}&action_get=${params.action_get}&bookingid=${params.bookingid}`;
+    setLoading(true);
+
+    const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=";
+    const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
+
+    const body = new URLSearchParams({
+      action_get: "startride",
+      bookingid: newRideRequest.booking_id,
+    });
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Connection: "keep-alive",
+        },
+        body: body.toString(),
+      });
 
       if (res.ok) {
-        // console.log("res-=", res);
         setDropoffModalVisible(true);
+
+        // Only proceed with map update if locations are valid
+        if (
+          newRideRequest?.p_lat &&
+          newRideRequest?.p_lng &&
+          newRideRequest?.d_lat &&
+          newRideRequest?.d_lng
+        ) {
+          // 1. Calculate the midpoint between the driver and rider pickup location
+          const centerLat = (newRideRequest?.d_lat + newRideRequest?.p_lat) / 2;
+          const centerLng = (newRideRequest?.p_lng + newRideRequest?.d_lng) / 2;
+
+          // 2. Calculate the lat and lng differences
+          const latDiff = Math.abs(
+            newRideRequest?.p_lat - newRideRequest?.d_lat
+          );
+          const lngDiff = Math.abs(
+            newRideRequest?.p_lng - newRideRequest?.d_lng
+          );
+
+          // 3. Set delta values to ensure both locations are visible on the map
+          const latitudeDelta = latDiff + 0.06;
+          const longitudeDelta = lngDiff + 0.06;
+
+          // 4. Animate the map to the new region (focusing on both driver and rider's location)
+          mapRef.current.animateToRegion({
+            latitude: centerLat,
+            longitude: centerLng,
+            latitudeDelta: latitudeDelta,
+            longitudeDelta: longitudeDelta,
+          });
+
+          // 5. Set directions data to show the route from driver to rider's pickup location
+          setDirectionsData({
+            origin: {
+              latitude: newRideRequest?.d_lat,
+              longitude: newRideRequest?.d_lng,
+            },
+            destination: {
+              latitude: newRideRequest?.p_lat,
+              longitude: newRideRequest?.p_lng,
+            },
+          });
+          setShowDirections(true);
+        }
       } else {
+        console.log("Request failed with status: ", res.status);
       }
     } catch (err) {
-      console.error(err);
+      console.log("Error: ", err.message);
     } finally {
       setLoading(false);
     }
@@ -460,137 +539,252 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
   }
 
   return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-      animationType="slide"
-    >
-      <View
-        style={[styles.modalContainer, visible && styles.transparentBackground]}
-      >
-        <View style={styles.modalContent}>
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <View style={styles.section}>
-              <View style={styles.row}>
-                <View style={styles.profileAndRating}>
-                  <Image
-                    source={
-                      newRideRequest?.rider_image
-                        ? { uri: newRideRequest?.rider_image }
-                        : require("../assets/driver.png")
-                    }
-                    style={styles.profileImage}
-                  />
-                  <Text style={styles.driverName}>
-                    {newRideRequest?.rider_name || "Unknown Rider"}
-                  </Text>
-                </View>
-                <View style={styles.timeContainer}>
-                  <Text style={styles.timeText}>0</Text>
-                  <Text style={styles.timeText}>Mins</Text>
-                </View>
+    <View style={[styles.modalContainer, styles.transparentBackground]}>
+      <View style={styles.modalContent}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.section}>
+            <View style={styles.row}>
+              <View style={styles.profileAndRating}>
+                <Image
+                  source={
+                    newRideRequest?.rider_image
+                      ? { uri: newRideRequest?.rider_image }
+                      : require("../assets/driver.png")
+                  }
+                  style={styles.profileImage}
+                />
+                <Text style={styles.driverName}>
+                  {newRideRequest?.rider_name || "Unknown Rider"}
+                </Text>
               </View>
-              <View style={styles.divider} />
-            </View>
-
-            {/* Section 2 - Pickup Info */}
-            <View style={styles.section}>
-              <View style={styles.column}>
-                <View style={styles.pickupInfo}>
-                  <Image
-                    source={require("../assets/pick-up2.png")}
-                    style={styles.pickupImage}
-                  />
-                  <Text style={styles.pickupAddressText} numberOfLines={2}>
-                    {newRideRequest?.p_address}
-                  </Text>
-                </View>
+              <View style={styles.timeContainer}>
+                <Text style={styles.timeText}>Waiting for the driver</Text>
               </View>
-              <View style={styles.divider} />
             </View>
+            <View style={styles.divider} />
+          </View>
 
-            {/* Section 3 - Dropoff Info */}
-            <View style={styles.section}>
-              <View style={styles.column}>
-                <View style={styles.pickupInfo}>
-                  <Image
-                    source={require("../assets/drop-off.png")}
-                    style={styles.pickupImage}
-                  />
-                  <Text style={styles.pickupAddressText} numberOfLines={2}>
-                    {newRideRequest?.d_address}
-                  </Text>
-                </View>
+          {/* Section 2 - Pickup Info */}
+          <View style={styles.section}>
+            <View style={styles.column}>
+              <View style={styles.pickupInfo}>
+                <Image
+                  source={require("../assets/pick-up2.png")}
+                  style={styles.pickupImage}
+                />
+                <Text style={styles.pickupAddressText} numberOfLines={2}>
+                  {newRideRequest?.p_address}
+                </Text>
               </View>
-              <View style={styles.divider} />
             </View>
+            <View style={styles.divider} />
+          </View>
 
-            {/* Button Section - "Pick Up" Button */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.pickupButton}
-                onPress={handlePickUp}
-                disabled={loading} // Disable the button if loading is true
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" /> // Show loader
-                ) : (
-                  <Text style={styles.pickupText}>Pick Up</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </View>
+          {/* Button Section - "Pick Up" Button */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.pickupButton}
+              onPress={handlePickUp}
+              disabled={loading} // Disable the button if loading is true
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" /> // Show loader
+              ) : (
+                <Text style={styles.pickupText}>Pick Up</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </Modal>
+    </View>
+    // </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  // modalContainer: {
+  //   // flex: 1,
+  //   justifyContent: "flex-end",
+  //   alignItems: "center",
+  //   backgroundColor: "rgba(0, 0, 0, 0.5)",
+  // },
+  // transparentBackground: {
+  //   backgroundColor: "transparent",
+  // },
+  // modalContent: {
+  //   width: screenWidth,
+  //   maxHeight: screenHeight * 0.55,
+  //   backgroundColor: "#fff",
+  //   borderTopLeftRadius: 20,
+  //   borderTopRightRadius: 20,
+  //   overflow: "hidden",
+  // },
+  // scrollContainer: {
+  //   paddingVertical: 10,
+  // },
+  // section: {
+  //   paddingHorizontal: 12,
+  //   paddingVertical: 6,
+  // },
+  // row: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   justifyContent: "space-between",
+  // },
+  // column: {
+  //   flexDirection: "column",
+  //   justifyContent: "flex-start",
+  // },
+  // titleText: {
+  //   fontSize: 18,
+  //   fontWeight: "bold",
+  //   color: "#000",
+  // },
+  // timeContainer: {
+  //   backgroundColor: "#000",
+  //   borderRadius: 10,
+  //   paddingHorizontal: 12,
+  //   paddingVertical: 6,
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  // },
+  // timeText: {
+  //   color: "#fff",
+  //   fontSize: 14,
+  // },
+  // divider: {
+  //   height: 1,
+  //   backgroundColor: "#ddd",
+  //   marginVertical: 6,
+  // },
+  // profileAndRating: {
+  //   flexDirection: "column",
+  //   alignItems: "center",
+  // },
+  // profileImage: {
+  //   width: 70,
+  //   height: 70,
+  //   borderRadius: 35,
+  // },
+  // ratingContainer: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   marginTop: 5,
+  // },
+  // ratingText: {
+  //   fontSize: 14,
+  //   color: "#000",
+  //   marginRight: 5,
+  // },
+  // driverInfo: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   justifyContent: "flex-start",
+  //   marginLeft: 10,
+  // },
+  // driverDetailsContainer: {
+  //   flex: 1,
+  //   justifyContent: "center",
+  // },
+  // driverDetails: {
+  //   alignItems: "center",
+  // },
+  // driverName: {
+  //   marginLeft: 10,
+  //   fontSize: 16,
+  //   fontWeight: "bold",
+  //   color: "#000",
+  // },
+  // pickupInfo: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   marginBottom: 12,
+  // },
+  // pickupImage: {
+  //   width: 25,
+  //   height: 25,
+  //   marginRight: 6,
+  // },
+  // pickupText: {
+  //   fontSize: 12,
+  //   flex: 1,
+  //   overflow: "hidden",
+  //   flexWrap: "wrap",
+  // },
+  // pickupAddressText: {
+  //   fontSize: 12,
+  //   flex: 1,
+  //   overflow: "hidden",
+  //   flexWrap: "wrap",
+  //   color: "black",
+  // },
+  // buttonContainer: {
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  //   marginTop: 15,
+  // },
+  // pickupButton: {
+  //   backgroundColor: "green",
+  //   borderRadius: 30,
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 40,
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   width: screenWidth * 0.85,
+  // },
+  // pickupText: {
+  //   color: "#fff",
+  //   fontSize: 14,
+  //   fontWeight: "400",
+  // },
   modalContainer: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  transparentBackground: {
     backgroundColor: "transparent",
+    position: "absolute",
+    zIndex: 99999,
+    bottom: 4,
   },
   modalContent: {
     width: screenWidth,
     maxHeight: screenHeight * 0.55,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
     overflow: "hidden",
   },
   scrollContainer: {
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   section: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 2,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  column: {
+  profileAndRating: {
     flexDirection: "column",
-    justifyContent: "flex-start",
+    alignItems: "center",
   },
-  titleText: {
-    fontSize: 18,
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  driverName: {
+    marginLeft: 10,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#000",
   },
   timeContainer: {
     backgroundColor: "#000",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -602,44 +796,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#ddd",
     marginVertical: 6,
-  },
-  profileAndRating: {
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: "#000",
-    marginRight: 5,
-  },
-  driverInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    marginLeft: 10,
-  },
-  driverDetailsContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  driverDetails: {
-    alignItems: "center",
-  },
-  driverName: {
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#000",
   },
   pickupInfo: {
     flexDirection: "row",
@@ -657,17 +813,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     flexWrap: "wrap",
   },
-  pickupAddressText: {
-    fontSize: 12,
-    flex: 1,
-    overflow: "hidden",
-    flexWrap: "wrap",
-    color: "black",
-  },
   buttonContainer: {
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 15,
+    marginTop: 4,
   },
   pickupButton: {
     backgroundColor: "green",
