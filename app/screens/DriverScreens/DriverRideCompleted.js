@@ -32,46 +32,54 @@ const DriverRideCompleted = ({ navigation, route }) => {
   const [pickupAddress, setPickupAddress] = useState("");
   const rewards = [0, 100, 200, 500];
 
-  const { msgData } = route.params || {};
-  console.log("message=_=", msgData);
+  // const { msgData } = route.params || {};
+  const { newRideRequest } = route.params || {};
+  console.log("Received newRideRequest:", newRideRequest);
+  // console.log("message=_=", msgData);
 
   // Convert dropoff coordinates to an address
   useEffect(() => {
-    if (msgData?.dropoff_lat && msgData?.dropoff_long) {
-      fetchDropoffAddress(msgData?.dropoff_lat, msgData?.dropoff_long);
+    if (newRideRequest?.dropoff_lat && newRideRequest?.dropoff_long) {
+      fetchDropoffAddress(
+        newRideRequest?.dropoff_lat,
+        newRideRequest?.dropoff_long
+      );
     }
-    if (msgData?.pickup_lat && msgData?.pickup_long) {
-      fetchPickupAddress(msgData?.pickup_lat, msgData?.pickup_long);
+    if (newRideRequest?.pickup_lat && newRideRequest?.pickup_long) {
+      fetchPickupAddress(
+        newRideRequest?.pickup_lat,
+        newRideRequest?.pickup_long
+      );
     }
-  }, [msgData]);
+  }, [newRideRequest]);
 
-  const fetchDropoffAddress = async (latitude, longitude) => {
-    try {
-      const json = await Geocoding.from(latitude, longitude);
-      if (json.results.length > 0) {
-        setDropoffAddress(json.results[0].formatted_address);
-      } else {
-        setDropoffAddress("Address not found");
-      }
-    } catch (error) {
-      console.error("Error fetching drop-off address:", error);
-      setDropoffAddress("Error fetching address");
-    }
-  };
+  // const fetchDropoffAddress = async (latitude, longitude) => {
+  //   try {
+  //     const json = await Geocoding.from(latitude, longitude);
+  //     if (json.results.length > 0) {
+  //       setDropoffAddress(json.results[0].formatted_address);
+  //     } else {
+  //       setDropoffAddress("Address not found");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching drop-off address:", error);
+  //     setDropoffAddress("Error fetching address");
+  //   }
+  // };
 
-  const fetchPickupAddress = async (latitude, longitude) => {
-    try {
-      const json = await Geocoding.from(latitude, longitude);
-      if (json.results.length > 0) {
-        setPickupAddress(json.results[0].formatted_address);
-      } else {
-        setPickupAddress("Address not found");
-      }
-    } catch (error) {
-      console.error("Error fetching pickup address:", error);
-      setPickupAddress("Error fetching address");
-    }
-  };
+  // const fetchPickupAddress = async (latitude, longitude) => {
+  //   try {
+  //     const json = await Geocoding.from(latitude, longitude);
+  //     if (json.results.length > 0) {
+  //       setPickupAddress(json.results[0].formatted_address);
+  //     } else {
+  //       setPickupAddress("Address not found");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching pickup address:", error);
+  //     setPickupAddress("Error fetching address");
+  //   }
+  // };
 
   const handleSubmit = () => {
     console.log("User rating:", rating);
@@ -86,42 +94,38 @@ const DriverRideCompleted = ({ navigation, route }) => {
   return (
     <View style={[Style.container]}>
       <Spacing val={Platform.OS === "ios" && 35} />
+      <Spacing val={Platform.OS === "ios" ? 35 : 20} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
       >
         <View style={styles.imageContainer}>
           <Image
-            source={
-              msgData?.rider_image?.uri
-                ? {
-                    uri: msgData?.rider_image?.uri,
-                  } // Use the provided URI if it exists
-                : require("../../assets/driver.png")
-            }
+            source={{
+              uri: newRideRequest?.rider_image,
+            }}
             style={styles.image}
           />
-          {/* <Spacing val={20} /> */}
-          <Text style={styles.title}>{msgData?.rider_name}</Text>
-        </View>
 
+          {/* <Spacing val={20} /> */}
+          <Text style={styles.title}>{newRideRequest?.rider_name}</Text>
+        </View>
         <Rating
           type="star"
           ratingCount={5}
           imageSize={30}
-          // showRating
-          onFinishRating={setRating}
+          startingValue={newRideRequest?.rider_rating || 0}
+          readonly
           style={styles.rating}
         />
         <Spacing val={10} />
         <View style={styles.horizontalLine} />
-        {/* <AppDivider /> */}
 
         <View style={styles.distanceContainer}>
           <Spacing val={10} />
           <LocationDetail
             iconSource={require("../../assets/pick-up2.png")}
-            label={pickupAddress || "Pickup Address not available"}
+            label={newRideRequest?.p_address || "Pickup Address not available"}
           />
 
           <View style={styles.verticalLine} />
@@ -129,7 +133,7 @@ const DriverRideCompleted = ({ navigation, route }) => {
           {/* <Spacing val={10} /> */}
           <LocationDetail
             iconSource={require("../../assets/waypoint.png")}
-            label={dropoffAddress || "Dropoff Address not available"}
+            label={newRideRequest?.d_address || "Dropoff Address not available"}
           />
           <Spacing val={10} />
         </View>
@@ -142,11 +146,11 @@ const DriverRideCompleted = ({ navigation, route }) => {
         </Text>
         <Spacing val={10} />
         <Text style={[Style.fontBold, Style.heading32, Style.colorBlack]}>
-          Rs {msgData?.bid_fare}
+          Rs {newRideRequest?.fare}
         </Text>
         <Spacing val={10} />
         <View style={styles.horizontalLine} />
-        <RideInfo />
+        <RideInfo newRideRequest={newRideRequest} />
         <Spacing val={10} />
 
         {/* <AppDivider />
@@ -204,22 +208,22 @@ const LocationDetail = ({ iconSource, label }) => (
   </View>
 );
 
-const RideInfo = () => (
+const RideInfo = ({ newRideRequest }) => (
   <View style={styles.infoContainer}>
     <InfoItem
       icon={<FontAwesome name="arrows-h" size={20} color="#49B5C1" />}
       label="Distance"
-      value="3.89KM"
+      value={`${newRideRequest?.distance} km`}
     />
     <InfoItem
       icon={<Ionicons name="time" size={20} color="#F7BC07" />}
       label="Time"
-      value="8Min 48Sec"
+      value={`${newRideRequest?.time_to_pickup} mins`}
     />
     <InfoItem
       icon={<MaterialIcons name="discount" size={20} color="#8AC951" />}
       label="Discount"
-      value="0%"
+      value={`${newRideRequest?.coupon_discount_value} %`}
     />
   </View>
 );

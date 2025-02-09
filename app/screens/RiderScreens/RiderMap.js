@@ -1861,8 +1861,8 @@ const RiderMapScreen = ({ route }) => {
     // Define the request body as x-www-form-urlencoded format
     const body = new URLSearchParams({
       action: "declinebid",
-      driver_id: "1", // Make sure driver_id is a string
-      bookingid: bookingid, // Make sure bookingid is a string
+      driver_id: "1",
+      bookingid: bookingid,
     }).toString();
 
     // Perform the POST request using fetch

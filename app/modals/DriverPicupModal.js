@@ -415,6 +415,7 @@ import Geocoding from "react-native-geocoding";
 import DriverDropoffModal from "./DriverDropoffModal";
 import { GOOGLE_MAPS_API_KEY } from "../constants/googleMapKey";
 import { getSessionId } from "../utils/common";
+import { DRIVER_BASE_URL } from "../utils/constants";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 Geocoding.init(GOOGLE_MAPS_API_KEY);
@@ -423,28 +424,87 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
   const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const apiUrl = "https://appserver.txy.co/ajaxdriver_2_1_1.php";
-  const sessId = getSessionId();
-  const params = {
-    sess_id: sessId,
-    action_get: "startride",
-    bookingid: newRideRequest.booking_id,
-  };
+  // const apiUrl = "https://appserver.txy.co/ajaxdriver_2_1_1.php";
+  // const sessId = getSessionId();
+  // const params = {
+  //   sess_id: sessId,
+  //   action_get: "startride",
+  //   bookingid: newRideRequest.booking_id,
+  // };
 
   // const handlePickUp = async () => {
-  //   setLoading(true); // Set loading to true to show the loader
-  //   const url = `${apiUrl}?sess_id=${params.sess_id}&action_get=${params.action_get}&bookingid=${params.bookingid}`;
+  //   setLoading(true);
+
+  //   const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=";
+  //   const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
+
+  //   const body = new URLSearchParams({
+  //     action_get: "startride",
+  //     bookingid: newRideRequest.booking_id,
+  //   });
 
   //   try {
-  //     const res = await fetch(url);
+  //     const res = await fetch(url, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/x-www-form-urlencoded",
+  //         Connection: "keep-alive",
+  //       },
+  //       body: body.toString(),
+  //     });
 
   //     if (res.ok) {
-  //       // console.log("res-=", res);
   //       setDropoffModalVisible(true);
+
+  //       // Only proceed with map update if locations are valid
+  //       if (
+  //         newRideRequest?.p_lat &&
+  //         newRideRequest?.p_lng &&
+  //         newRideRequest?.d_lat &&
+  //         newRideRequest?.d_lng
+  //       ) {
+  //         // 1. Calculate the midpoint between the driver and rider pickup location
+  //         const centerLat = (newRideRequest?.d_lat + newRideRequest?.p_lat) / 2;
+  //         const centerLng = (newRideRequest?.p_lng + newRideRequest?.d_lng) / 2;
+
+  //         // 2. Calculate the lat and lng differences
+  //         const latDiff = Math.abs(
+  //           newRideRequest?.p_lat - newRideRequest?.d_lat
+  //         );
+  //         const lngDiff = Math.abs(
+  //           newRideRequest?.p_lng - newRideRequest?.d_lng
+  //         );
+
+  //         // 3. Set delta values to ensure both locations are visible on the map
+  //         const latitudeDelta = latDiff + 0.06;
+  //         const longitudeDelta = lngDiff + 0.06;
+
+  //         // 4. Animate the map to the new region (focusing on both driver and rider's location)
+  //         mapRef.current.animateToRegion({
+  //           latitude: centerLat,
+  //           longitude: centerLng,
+  //           latitudeDelta: latitudeDelta,
+  //           longitudeDelta: longitudeDelta,
+  //         });
+
+  //         // 5. Set directions data to show the route from driver to rider's pickup location
+  //         setDirectionsData({
+  //           origin: {
+  //             latitude: newRideRequest?.d_lat,
+  //             longitude: newRideRequest?.d_lng,
+  //           },
+  //           destination: {
+  //             latitude: newRideRequest?.p_lat,
+  //             longitude: newRideRequest?.p_lng,
+  //           },
+  //         });
+  //         setShowDirections(true);
+  //       }
   //     } else {
+  //       console.log("Request failed with status: ", res.status);
   //     }
   //   } catch (err) {
-  //     console.error(err);
+  //     console.log("Error: ", err.message);
   //   } finally {
   //     setLoading(false);
   //   }
@@ -452,79 +512,33 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
 
   const handlePickUp = async () => {
     setLoading(true);
-
-    const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=";
-    const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
-
-    const body = new URLSearchParams({
+    const url = `${DRIVER_BASE_URL}`;
+    const sess_id = await getSessionId();
+    const params = {
+      sess_id: sess_id,
       action_get: "startride",
-      bookingid: newRideRequest.booking_id,
-    });
+      bookingid: newRideRequest?.booking_id || rideData?.booking_id,
+    };
+
+    const queryString = new URLSearchParams(params).toString();
+    const requestUrl = `${url}?${queryString}`;
 
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Connection: "keep-alive",
-        },
-        body: body.toString(),
+      const response = await fetch(requestUrl, {
+        method: "GET",
       });
 
-      if (res.ok) {
-        setDropoffModalVisible(true);
-
-        // Only proceed with map update if locations are valid
-        if (
-          newRideRequest?.p_lat &&
-          newRideRequest?.p_lng &&
-          newRideRequest?.d_lat &&
-          newRideRequest?.d_lng
-        ) {
-          // 1. Calculate the midpoint between the driver and rider pickup location
-          const centerLat = (newRideRequest?.d_lat + newRideRequest?.p_lat) / 2;
-          const centerLng = (newRideRequest?.p_lng + newRideRequest?.d_lng) / 2;
-
-          // 2. Calculate the lat and lng differences
-          const latDiff = Math.abs(
-            newRideRequest?.p_lat - newRideRequest?.d_lat
-          );
-          const lngDiff = Math.abs(
-            newRideRequest?.p_lng - newRideRequest?.d_lng
-          );
-
-          // 3. Set delta values to ensure both locations are visible on the map
-          const latitudeDelta = latDiff + 0.06;
-          const longitudeDelta = lngDiff + 0.06;
-
-          // 4. Animate the map to the new region (focusing on both driver and rider's location)
-          mapRef.current.animateToRegion({
-            latitude: centerLat,
-            longitude: centerLng,
-            latitudeDelta: latitudeDelta,
-            longitudeDelta: longitudeDelta,
-          });
-
-          // 5. Set directions data to show the route from driver to rider's pickup location
-          setDirectionsData({
-            origin: {
-              latitude: newRideRequest?.d_lat,
-              longitude: newRideRequest?.d_lng,
-            },
-            destination: {
-              latitude: newRideRequest?.p_lat,
-              longitude: newRideRequest?.p_lng,
-            },
-          });
-          setShowDirections(true);
-        }
-      } else {
-        console.log("Request failed with status: ", res.status);
+      if (!response.ok) {
+        setLoading(false);
+        throw new Error("Network response was not ok");
       }
-    } catch (err) {
-      console.log("Error: ", err.message);
-    } finally {
+
+      const data = await response.json();
       setLoading(false);
+      setDropoffModalVisible(true);
+    } catch (error) {
+      setLoading(false);
+      console.error("Error:", error);
     }
   };
 
@@ -546,11 +560,9 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
             <View style={styles.row}>
               <View style={styles.profileAndRating}>
                 <Image
-                  source={
-                    newRideRequest?.rider_image
-                      ? { uri: newRideRequest?.rider_image }
-                      : require("../assets/driver.png")
-                  }
+                  source={{
+                    uri: newRideRequest?.rider_image,
+                  }}
                   style={styles.profileImage}
                 />
                 <Text style={styles.driverName}>

@@ -84,7 +84,7 @@ const DriverMap = ({ navigation }) => {
   const route = useRoute();
   const { ongoing_bk } = route?.params || {};
   const mapRef = useRef(null);
-  console.log("ongoing_bk driver =", ongoing_bk);
+  // console.log("ongoing_bk driver =", ongoing_bk);
   // const navigation = useNavigation();
 
   const [showViewAlert, setShowViewAlert] = useState(false);
