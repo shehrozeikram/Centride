@@ -1,5 +1,10 @@
 import React from "react";
-import { Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import Color from "../utils/Color";
 import Style from "../utils/Styles";
 

@@ -153,16 +153,16 @@ const DrawerModal = ({ isVisible, onClose }) => {
       onPress: handleClose,
       screen: "Promotions",
     },
-    {
-      title: t("drawer.notifications"),
-      Icon: () => <Ionicons name="notifications" size={size} color="#9F6DB5" />,
-      SelectedIcon: () => (
-        <Ionicons name="notifications" size={size} color="#9F6DB5" />
-      ),
-      index: 2,
-      onPress: handleClose,
-      screen: "Notifications",
-    },
+    // {
+    //   title: t("drawer.notifications"),
+    //   Icon: () => <Ionicons name="notifications" size={size} color="#9F6DB5" />,
+    //   SelectedIcon: () => (
+    //     <Ionicons name="notifications" size={size} color="#9F6DB5" />
+    //   ),
+    //   index: 2,
+    //   onPress: handleClose,
+    //   screen: "Notifications",
+    // },
     {
       title: t("drawer.call_for_help"),
       Icon: () => <Ionicons name="call" size={size} color="#73E175" />,

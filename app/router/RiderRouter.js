@@ -49,7 +49,7 @@ const RiderRoute = ({ route }) => {
       <Stack.Screen
         name="RiderMap"
         component={RiderMapScreen}
-        initialParams={{ ongoing_bk }} // Pass params to RiderMapScreen
+        initialParams={{ ongoing_bk }}
       />
       <Stack.Screen
         name="Profile"
@@ -61,7 +61,6 @@ const RiderRoute = ({ route }) => {
         component={RideCompleted}
         options={{ headerShown: true }}
       />
-      {/* <Stack.Screen name='DropOffLocation' component={DropOffLocation} /> */}
       <Stack.Screen
         name="DropOffLocation"
         component={DropOffLocation}

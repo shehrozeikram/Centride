@@ -185,7 +185,7 @@ export default function LoginWithPassword({ navigation }) {
         <View>
           <Spacing val={Platform.OS === "ios" && 36} />
           {/* <Spacing val={Platform.OS === 'ios' ? 80 : 100} /> */}
-          <Text style={[Style.fontBold, Style.heading, Style.colorBlack]}>
+          <Text style={[Style.fontSemiBold, Style.fontLight, Style.colorBlack]}>
             Enter Your Password
           </Text>
           <Spacing val={15} />

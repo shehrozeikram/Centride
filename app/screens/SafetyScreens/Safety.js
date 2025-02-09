@@ -58,35 +58,33 @@ export default function Safety({ navigation }) {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => navigation.navigate("DriverVerification")}
           style={styles.protectedBox}
         >
           <Text style={styles.protectedBoxText}>
             {t("driver_verification")}
-            {/* Driver Verification */}
           </Text>
           <Image
-            source={require("../../assets/idv.png")} // Path to your image
+            source={require("../../assets/idv.png")} 
             style={styles.infoImage}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
-      <View style={styles.row}>
+      {/* <View style={styles.row}>
         <TouchableOpacity
           onPress={() => navigation.navigate("SafetyProtocols")}
           style={styles.protectedBox}
         >
           <Text style={styles.protectedBoxText}>
             {t("safety_protocols")}
-            {/* Safety Protocols */}
           </Text>
           <Image
             source={require("../../assets/shield.png")}
             style={styles.infoImage}
           />
         </TouchableOpacity>
-      </View>
+      </View> */}
     </View>
   );
 }

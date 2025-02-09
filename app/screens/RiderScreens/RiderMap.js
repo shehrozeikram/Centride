@@ -2184,7 +2184,7 @@ const RiderMapScreen = ({ route }) => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.button2}
             onPress={handleBlueAreaClick}
           >
@@ -2196,9 +2196,8 @@ const RiderMapScreen = ({ route }) => {
             />
             <Text style={styles.button2Text} numberOfLines={1}>
               {t("recent_search")}
-              {/* BlueArea, Islamabad, Pakistan */}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       )}
 

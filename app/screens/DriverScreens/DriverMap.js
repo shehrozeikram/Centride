@@ -162,243 +162,188 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
-  useEffect(() => {
-    isMounted.current = true;
+  // useEffect(() => {
+  //   isMounted.current = true;
 
-    const fetchNotifications = async () => {
-      const driverId = user?.driverid;
-      const reference = database()
-        .ref(`Drivers/drvr-${driverId}/notf`)
-        .on("value", async (snapshot) => {
-          const data = snapshot.val();
-          console.log("Fetched snapshot data:", data);
+  //   const fetchNotifications = async () => {
+  //     const driverId = user?.driverid;
+  //     const reference = database()
+  //       .ref(`Drivers/drvr-${driverId}/notf`)
+  //       .on("value", async (snapshot) => {
+  //         const data = snapshot.val();
+  //         console.log("Fetched snapshot data:", data);
 
-          if (data == null) {
-            console.log("No data found in Firebase");
-            return;
-          }
+  //         if (data == null) {
+  //           console.log("No data found in Firebase");
+  //           return;
+  //         }
 
-          const msg = data.msg;
-          const msg_t = data.msg_t;
+  //         const msg = data.msg;
+  //         const msg_t = data.msg_t;
 
-          if (!msg || !msg_t) {
-            console.log("Invalid message structure:", data);
-            return;
-          }
+  //         if (!msg || !msg_t) {
+  //           console.log("Invalid message structure:", data);
+  //           return;
+  //         }
 
-          const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
-          console.log("Last message time from AsyncStorage:", last_msg_time_id);
+  //         const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
+  //         console.log("Last message time from AsyncStorage:", last_msg_time_id);
 
-          const toleranceInSeconds = 5;
-          const timestampDifference = Math.abs(
-            msg_t - parseInt(last_msg_time_id, 10)
-          );
+  //         const toleranceInSeconds = 5;
+  //         const timestampDifference = Math.abs(
+  //           msg_t - parseInt(last_msg_time_id, 10)
+  //         );
 
-          if (
-            !last_msg_time_id ||
-            timestampDifference > toleranceInSeconds ||
-            timestampDifference === 0
-          ) {
-            console.log("Processing new message:", data);
+  //         if (
+  //           !last_msg_time_id ||
+  //           timestampDifference > toleranceInSeconds ||
+  //           timestampDifference === 0
+  //         ) {
+  //           console.log("Processing new message:", data);
 
-            await AsyncStorage.setItem("fb_last_recvd", msg_t?.toString());
+  //           await AsyncStorage.setItem("fb_last_recvd", msg_t?.toString());
 
-            const formattedNotifications = [msg];
-            console.log("Formatted Notifications:", formattedNotifications);
+  //           const formattedNotifications = [msg];
+  //           console.log("Formatted Notifications:", formattedNotifications);
 
-            if (formattedNotifications.length > 0) {
-              if (isMounted.current) {
-                setNotifications(formattedNotifications);
-              }
-            } else {
-              console.log("No notifications to display");
-            }
-
-            if (!msg.booking_id) {
-              console.log("Warning: booking_id is missing", msg);
-              return;
-            } else {
-              const processed = await AsyncStorage.getItem(
-                `processed_${msg.booking_id}_${msg.action}`
-              );
-              if (processed) return;
-
-              switch (msg.action) {
-                case "driver-allocate":
-                  booking_allocate_notify(msg);
-                  break;
-                case "customer-cancelled":
-                  customer_cancelled_notify(msg);
-                  break;
-                case "decline-driver-bid-notify":
-                  decline_bid(msg);
-                  break;
-                case "chat-message":
-                  chat_msg_notify(msg);
-                  break;
-                default:
-                  break;
-              }
-
-              await AsyncStorage.setItem(
-                `processed_${msg.booking_id}_${msg.action}`,
-                "true"
-              );
-            }
-          } else {
-            console.log(
-              "Skipping processed message due to timestamp tolerance:",
-              data
-            );
-          }
-        });
-
-      return () => {
-        database().ref(`Drivers/drvr-${driverId}/notf`).off("value", reference);
-      };
-    };
-
-    fetchNotifications();
-
-    return () => {
-      isMounted.current = false;
-    };
-  }, [user?.driverid]);
-
-  //   useEffect(() => {
-  //     const fetchNotifications = async () => {
-  //       const driverId = user?.driverid;
-  //       //   console.log("=====driverId =====", driverId);
-
-  //       const reference = database()
-  //         .ref(`Drivers/drvr-${driverId}/notf`) // Path to listen for notifications
-  //         .on("value", async (snapshot) => {
-  //           const data = await snapshot.val();
-  //           console.log("data is here=====", data);
-  //           if (data == null) return;
-  //           if (!(data?.msg && data?.msg_t)) return;
-
-  //           // Get last message timestamp from AsyncStorage
-  //           const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
-  //           if (data.msg_t === last_msg_time_id) return;
-  //           const lastMsgTimeIdString = last_msg_time_id
-  //             ? last_msg_time_id.toString()
-  //             : null;
-  //           if (data.msg_t.toString() === lastMsgTimeIdString) return;
-
-  //           // Update last message timestamp in AsyncStorage
-  //           await AsyncStorage.setItem(
-  //             "fb_last_recvd",
-  //             JSON.stringify(data.msg_t)
-  //           );
-  //           // console.log(
-  //           //     '=========Last message time updated 11========',
-  //           //     JSON.stringify(data.msg_t),
-  //           // )
-
-  //           // Adjust current timestamp using the server-client time difference
-  //           let current_local_timestamp = Date.now();
-  //           current_local_timestamp += serverClientTimeDiff; // Sync with server time
-  //           current_local_timestamp = Math.floor(current_local_timestamp / 1000); // Get seconds part
-
-  //           // console.log(
-  //           //     'current_local_timestamp',
-  //           //     current_local_timestamp,
-  //           // )
-  //           // console.log('serverClientTimeDiff 11', serverClientTimeDiff)
-
-  //           if (current_local_timestamp - 15 > data.msg_t) return;
-
-  //           // console.log('========Processing message  1=========', data)
-  //           const message = data;
-  //           // console.log('========message  11=========', message)
-  //           // Handle message actions
-  //           if (message?.booking_id && message?.action) {
-  //             if (!(message?.repeatable && !message?.processed)) {
-  //               if (data[message.booking_id]) {
-  //                 const found = data[message.booking_id].find(
-  //                   (el) => el === message.action
-  //                 );
-  //                 if (found) {
-  //                   console.log("=======found======");
-  //                   return;
-  //                 } else {
-  //                   data[message.booking_id].push(message.action); // Add new action
-  //                 }
-  //               } else {
-  //                 data[message.booking_id] = [message.action]; // First action for this booking_id
-  //               }
-  //             }
-  //           }
-
-  //           // Check if data exists and update the notifications state
-  //           if (data) {
-  //             console.log("====data is down 1====", data);
-  //             const formattedNotifications = Object.values(data); // Convert to array if it's an object
-  //             setNotifications(formattedNotifications);
-
-  //             console.log("========notifications 12====", notifications);
-
-  //             // Loop through notifications and show alerts
-  //             for (const notification of formattedNotifications) {
-  //               // Check if notification has already been processed (via AsyncStorage)
-  //               const processed = await AsyncStorage.getItem(
-  //                 `processed_${notification.booking_id}_${notification.action}`
-  //               );
-  //               console.log("========notifications 1====", notifications);
-  //               console.log("======processed======001", processed);
-  //               if (processed) {
-  //                 continue;
-  //               }
-
-  //               // console.log(
-  //               //     '=======notification in driver 11========',
-  //               //     processed,
-  //               // )
-
-  //               // Show alert
-
-  //               // showAlert(notification)
-
-  //               switch (notification.action) {
-  //                 case "driver-allocate":
-  //                   booking_allocate_notify(notification);
-  //                   break;
-  //                 case "customer-cancelled":
-  //                   customer_cancelled_notify(notification);
-  //                   break;
-  //                 case "decline-driver-bid-notify":
-  //                   decline_bid(notification);
-  //                   break;
-  //                 case "accept-driver-bid-notify":
-  //                   accept_bid(notification);
-  //                   break;
-  //                 case "chat-message":
-  //                   chat_msg_notify(notification);
-  //                   break;
-  //                 default:
-  //                   break;
-  //               }
-
-  //               // Mark notification as processed by storing it in AsyncStorage
-  //               await AsyncStorage.setItem(
-  //                 `processed_${notification.booking_id}_${notification.action}`,
-  //                 "true"
-  //               );
+  //           if (formattedNotifications.length > 0) {
+  //             if (isMounted.current) {
+  //               setNotifications(formattedNotifications);
   //             }
   //           } else {
-  //             setNotifications([]);
+  //             console.log("No notifications to display");
   //           }
-  //         });
 
-  //       // Clean up the listener on component unmount
-  //       return () => {
-  //         database().ref(`Drivers/drvr-${driverId}/notf`).off("value", reference);
-  //       };
+  //           if (!msg.booking_id) {
+  //             console.log("Warning: booking_id is missing", msg);
+  //             return;
+  //           } else {
+  //             const processed = await AsyncStorage.getItem(
+  //               `processed_${msg.booking_id}_${msg.action}`
+  //             );
+  //             if (processed) return;
+
+  //             switch (msg.action) {
+  //               case "driver-allocate":
+  //                 booking_allocate_notify(msg);
+  //                 break;
+  //               case "customer-cancelled":
+  //                 customer_cancelled_notify(msg);
+  //                 break;
+  //               case "decline-driver-bid-notify":
+  //                 decline_bid(msg);
+  //                 break;
+  //               case "chat-message":
+  //                 chat_msg_notify(msg);
+  //                 break;
+  //               default:
+  //                 break;
+  //             }
+
+  //             await AsyncStorage.setItem(
+  //               `processed_${msg.booking_id}_${msg.action}`,
+  //               "true"
+  //             );
+  //           }
+  //         } else {
+  //           console.log(
+  //             "Skipping processed message due to timestamp tolerance:",
+  //             data
+  //           );
+  //         }
+  //       });
+
+  //     return () => {
+  //       database().ref(`Drivers/drvr-${driverId}/notf`).off("value", reference);
   //     };
+  //   };
 
-  //     fetchNotifications();
-  //   }, [serverClientTimeDiff]);
+  //   fetchNotifications();
+
+  //   return () => {
+  //     isMounted.current = false;
+  //   };
+  // }, [user?.driverid]);
+
+  let processed_notifications = {};
+
+  useEffect(() => {
+    const message_ref = database().ref(`Drivers/drvr-${user_id}/notf`);
+
+    const reference = message_ref.on("value", async (snapshot) => {
+      const data = snapshot.val();
+      if (data == null) return;
+      if (!(data.hasOwnProperty("msg") && data.hasOwnProperty("msg_t"))) return;
+
+      let last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
+
+      if (data.msg_t === last_msg_time_id) return;
+
+      await AsyncStorage.setItem("fb_last_recvd", data.msg_t.toString());
+
+      let current_local_timestamp = Date.now();
+      current_local_timestamp += server_client_time_diff;
+      current_local_timestamp = Math.floor(current_local_timestamp / 1000);
+
+      if (current_local_timestamp - 5 > data.msg_t) return;
+
+      var message = data.msg;
+
+      if (
+        message.hasOwnProperty("booking_id") &&
+        message.hasOwnProperty("action")
+      ) {
+        if (
+          !message.hasOwnProperty("repeatable") &&
+          message.action !== "chat-message"
+        ) {
+          // Check if this message has already been processed for the given booking ID
+          if (processed_notifications.hasOwnProperty(message.booking_id)) {
+            const found = processed_notifications[message.booking_id].find(
+              function (el) {
+                return el === message.action;
+              }
+            );
+            if (found) {
+              // If the action was already processed, skip it
+              return;
+            } else {
+              processed_notifications[message.booking_id].push(message.action); // Add the action to the list of processed actions
+            }
+          } else {
+            processed_notifications[message.booking_id] = [message.action]; // Create a new entry for this booking ID
+          }
+        }
+
+        // Handle different action types
+        switch (message.action) {
+          case "driver-allocate":
+            booking_allocate_notify(message);
+            break;
+          case "customer-cancelled":
+            customer_cancelled_notify(message);
+            break;
+          case "decline-driver-bid-notify":
+            decline_bid(message);
+            break;
+          case "accept-driver-bid-notify":
+            accept_bid(message);
+            break;
+          case "chat-message":
+            chat_msg_notify(message);
+            break;
+          default:
+            console.log("Unknown action:", message.action);
+            break;
+        }
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      message_ref.off("value", reference);
+    };
+  }, [user?.driverid]);
 
   const sound = new Sound("ride-alloc.mp3", Sound.MAIN_BUNDLE, (error) => {
     if (error) {
@@ -431,77 +376,87 @@ const DriverMap = ({ navigation }) => {
     }, 13000);
   };
 
-  // const booking_allocate_notify = (notification) => {
-  //   console.log("Handling booking allocation notification:", notification);
+  // const booking_allocate_notify = (pushData) => {
+  //   const driverAcceptDuration = pushData.driver_accept_duration;
+  //   const notifSentTime = pushData.sent_time;
 
-  //   const push_data = notification;
+  //   let currentTimestamp = Date.now();
+  //   currentTimestamp += server_client_time_diff;
+  //   currentTimestamp = Math.floor(currentTimestamp / 1000);
 
-  //   const riderPickupLocationLat = parseFloat(push_data.p_lat);
-  //   const riderPickupLocationLng = parseFloat(push_data.p_lng);
+  //   let driverAcceptTime =
+  //     driverAcceptDuration - (currentTimestamp - notifSentTime);
 
-  //   const driverLat = parseFloat(push_data.d_lat);
-  //   const driverLng = parseFloat(push_data.d_lng);
+  //   if (driverAcceptTime <= 0) return;
 
-  //   if (driverLat && driverLng) {
-  //     const distance = haversine(
-  //       driverLat,
-  //       driverLng,
-  //       riderPickupLocationLat,
-  //       riderPickupLocationLng
-  //     );
-
-  //     let distanceInUnit = distance;
-  //     if (push_data.dist_unit === 1) {
-  //       distanceInUnit = distance * 0.621371;
-  //     }
-
-  //     const timeToPickup = calculateTime(distanceInUnit);
-  //     push_data.distance = distanceInUnit.toFixed(2);
-  //     push_data.time_to_pickup = timeToPickup;
-
-  //     setNewRideRequest(push_data);
+  //   const driverAcceptTimerStep = 100 / driverAcceptTime;
+  //   let driverAcceptTimerIndicator = 0;
+  //   const handleRideRequest = () => {
+  //     console.log("New Booking Request Received");
   //     showModal("ride_alloc.mp3");
+  //   };
 
-  //     setDirectionsData({
-  //       origin: { latitude: driverLat, longitude: driverLng },
-  //       destination: {
-  //         latitude: riderPickupLocationLat,
-  //         longitude: riderPickupLocationLng,
-  //       },
-  //     });
-  //     setShowDirections(true);
-
-  //     if (mapRef.current) {
-  //       if (
-  //         riderPickupLocationLat &&
-  //         riderPickupLocationLng &&
-  //         driverLat &&
-  //         driverLng
-  //       ) {
-  //         const centerLat = (driverLat + riderPickupLocationLat) / 2;
-  //         const centerLng = (driverLng + riderPickupLocationLng) / 2;
-
-  //         const latDiff = Math.abs(driverLat - riderPickupLocationLat);
-  //         const lngDiff = Math.abs(driverLng - riderPickupLocationLng);
-
-  //         const latitudeDelta = latDiff + 0.05;
-  //         const longitudeDelta = lngDiff + 0.05;
-
-  //         mapRef.current.animateToRegion({
-  //           latitude: centerLat,
-  //           longitude: centerLng,
-  //           latitudeDelta: latitudeDelta,
-  //           longitudeDelta: longitudeDelta,
-  //         });
-  //       }
+  //   // Function to update map with pickup location (if needed)
+  //   const updateMapWithPickupLocation = (lat, lng) => {
+  //     // Update logic for handling map's marker or any other task related to pickup location
+  //     if (riderPickupMarker) {
+  //       riderPickupMarker.setPosition({
+  //         latitude: lat,
+  //         longitude: lng,
+  //       });
+  //     } else {
+  //       riderPickupMarker = {
+  //         latitude: lat,
+  //         longitude: lng,
+  //       };
   //     }
-  //   }
+  //   };
+
+  //   // Handle sound and timer related logic
+  //   const processTimerAndSound = () => {
+  //     let playRate = 0;
+  //     const interval = setInterval(() => {
+  //       playRate++;
+  //       if (playRate > 2) {
+  //         playRate = 0;
+  //         rideAllocSound.play(); // Play the allocation sound
+  //       }
+  //       driverAcceptTimerIndicator += driverAcceptTimerStep;
+  //       if (driverAcceptTimerIndicator >= 100) {
+  //         clearInterval(interval); // Stop the timer once completed
+  //       }
+  //     }, 1000); // Update every second
+  //   };
+
+  //   // Show ride allocation notification (just simulate or internal handling)
+  //   handleRideRequest();
+
+  //   // Update the map with pickup location
+  //   updateMapWithPickupLocation(pushData.p_lat, pushData.p_lng);
+
+  //   // Process the timer and sound
+  //   processTimerAndSound();
   // };
 
   const booking_allocate_notify = (notification) => {
     console.log("Handling booking allocation notification:", notification);
 
     const push_data = notification;
+
+    const driverAcceptDuration = push_data.driver_accept_duration;
+    const notifSentTime = push_data.sent_time;
+
+    let currentTimestamp = Date.now();
+    currentTimestamp += server_client_time_diff;
+    currentTimestamp = Math.floor(currentTimestamp / 1000);
+
+    let driverAcceptTime =
+      driverAcceptDuration - (currentTimestamp - notifSentTime);
+
+    if (driverAcceptTime <= 0) return;
+
+    const driverAcceptTimerStep = 100 / driverAcceptTime;
+    let driverAcceptTimerIndicator = 0;
 
     const riderPickupLocationLat = parseFloat(push_data.p_lat);
     const riderPickupLocationLng = parseFloat(push_data.p_lng);
@@ -580,6 +535,7 @@ const DriverMap = ({ navigation }) => {
     setPickupModalVisible(false);
     setDropoffModalVisible(false);
     setShowDirections(false);
+    setShowViewAlert(false);
   };
 
   useEffect(() => {
@@ -894,8 +850,8 @@ const DriverMap = ({ navigation }) => {
   };
 
   const openNavigator = () => {
-    if (origin && destination) {
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}`;
+    if (origin && newRideRequest) {
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin?.latitude},${origin?.longitude}&destination=${newRideRequest?.d_lat},${newRideRequest?.d_lng}`;
       Linking.openURL(url).catch((err) =>
         console.error("Error opening Google Maps", err)
       );

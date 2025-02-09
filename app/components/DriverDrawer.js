@@ -197,19 +197,19 @@ const DriverDrawer = ({ isVisible, onClose }) => {
       onPress: handleClose,
       screen: "MyReferrals",
     },
-    {
-      title: "Notifications",
-      Icon: () => (
-        <FontAwesome name="info-circle" size={size} color="#42A3F2" />
-      ),
-      SelectedIcon: () => (
-        <FontAwesome name="info-circle" size={size} color="#42A3F2" />
-      ),
-      index: 5,
-      isBottom: false,
-      onPress: handleClose,
-      screen: "Notifications",
-    },
+    // {
+    //   title: "Notifications",
+    //   Icon: () => (
+    //     <FontAwesome name="info-circle" size={size} color="#42A3F2" />
+    //   ),
+    //   SelectedIcon: () => (
+    //     <FontAwesome name="info-circle" size={size} color="#42A3F2" />
+    //   ),
+    //   index: 5,
+    //   isBottom: false,
+    //   onPress: handleClose,
+    //   screen: "Notifications",
+    // },
 
     {
       title: "Call For Help",

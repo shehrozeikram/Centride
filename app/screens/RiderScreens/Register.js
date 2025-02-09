@@ -7,7 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert, // For displaying alerts
+  Alert,
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppDivider from "../../components/AppDivider";
@@ -38,6 +38,7 @@ export default function Register({ navigation }) {
   const [country, setCountry] = useState(countries[1]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [sessionIdForParams, setSessionIdForParams] = useState(false);
+  const [loading, setLoading] = useState(false);
   const validatePhoneNumber = (phone) => {
     // Remove non-digit characters
     const cleanedPhone = phone.replace(/\D/g, "");
@@ -89,6 +90,7 @@ export default function Register({ navigation }) {
       Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
       return;
     }
+    setLoading(true);
     const pass = await getPassword();
     const secondData = {
       action: "userPhoneNumberValidate",
@@ -100,9 +102,11 @@ export default function Register({ navigation }) {
 
     Post({ data: secondData })
       .then((secondResponse) => {
+        setLoading(false);
         if (secondResponse) {
           navigation.navigate("Otp", { secondResponse });
         } else {
+          setLoading(false);
           Alert("Error", "Your Otp service is incorrect!");
         }
       })
@@ -155,7 +159,11 @@ export default function Register({ navigation }) {
           </View>
           <Spacing val={20} />
           <View style={[styles.buttonView]}>
-            <AppButton onPress={onPress} name={t("continue")} />
+            <AppButton
+              onPress={onPress}
+              name={t("continue")}
+              loading={loading}
+            />
           </View>
           <Spacing val={30} />
           <View style={styles.divider}>

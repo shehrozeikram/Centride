@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -30,6 +31,7 @@ const RiderBookingModal = ({
   const [updatedRiderId, setUpdatedRiderId] = useState(null);
   const [ridersData, setRidersData] = useState([]);
   const [newMessage, setNewMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   // const [driverArriveModalVisible, setDriverArriveModalVisible] =
   //   useState(false);
 
@@ -123,6 +125,7 @@ const RiderBookingModal = ({
   };
 
   const acceptRide = async () => {
+    setIsLoading(true);
     const post_data = {
       action_get: "acceptride",
       bookingid: newRideRequest.booking_id,
@@ -145,19 +148,22 @@ const RiderBookingModal = ({
           const data_obj = data;
 
           if (data_obj.hasOwnProperty("error")) {
+            setIsLoading(false);
             return;
           }
 
           if (data_obj.hasOwnProperty("success")) {
             console.log("success");
-            // onClose();
+            setIsLoading(false);
             setDriverArriveModalVisible(true);
           }
         } catch (e) {
+          setIsLoading(false);
           console.error("Error processing server response:", e);
         }
       })
       .catch((error) => {
+        setIsLoading(false);
         console.error("Error with API call:", error);
       });
   };
@@ -306,20 +312,24 @@ const RiderBookingModal = ({
                   style={styles.acceptButton}
                   onPress={acceptRide}
                 >
-                  <Text style={styles.acceptText}>
-                    Accept for Rs {newRideRequest?.fare}
-                  </Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.acceptText}>
+                      Accept for Rs {newRideRequest?.fare}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
-              <View style={styles.row}>
-                {/* Column 2: Offer Your Fare */}
-                <View style={styles.offerColumn}>
+              {/* <View style={styles.row}> */}
+              {/* Column 2: Offer Your Fare */}
+              {/* <View style={styles.offerColumn}>
                   <Text style={styles.offerText}>Offer Your Fare</Text>
-                </View>
-              </View>
-              <View style={styles.row}>
-                {/* Column 3: 3 Buttons */}
-                <View style={styles.actionsContainer}>
+                </View> */}
+              {/* </View> */}
+              {/* <View style={styles.row}> */}
+              {/* Column 3: 3 Buttons */}
+              {/* <View style={styles.actionsContainer}>
                   <TouchableOpacity style={styles.actionButton}>
                     <Text style={styles.actionText}>Rs {min_bid_fare}</Text>
                   </TouchableOpacity>
@@ -330,7 +340,7 @@ const RiderBookingModal = ({
                     <Text style={styles.actionText}>Rs {max_bid_fare}</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </View> */}
             </View>
           </ScrollView>
         </View>

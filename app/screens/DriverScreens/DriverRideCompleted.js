@@ -93,7 +93,6 @@ const DriverRideCompleted = ({ navigation, route }) => {
 
   return (
     <View style={[Style.container]}>
-      <Spacing val={Platform.OS === "ios" && 35} />
       <Spacing val={Platform.OS === "ios" ? 35 : 20} />
       <ScrollView
         showsVerticalScrollIndicator={false}
