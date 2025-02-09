@@ -16,6 +16,7 @@ import Geocoding from "react-native-geocoding";
 import { GOOGLE_MAPS_API_KEY } from "../constants/googleMapKey";
 import { DRIVER_BASE_URL } from "../utils/constants";
 import { getSessionId } from "../utils/common";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -23,6 +24,7 @@ Geocoding.init(GOOGLE_MAPS_API_KEY);
 
 const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
@@ -31,6 +33,46 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
       setModalVisible(true);
     }
   }, [newRideRequest]);
+
+  useEffect(() => {
+    const fetchRideData = async () => {
+      if (newRideRequest) {
+        setRideData(newRideRequest);
+        await saveNewRideRequestToStorage(newRideRequest);
+      } else {
+        const savedRideRequest = await getNewRideRequestFromStorage();
+        if (savedRideRequest) {
+          setRideData(savedRideRequest);
+        }
+      }
+    };
+
+    fetchRideData();
+  }, [newRideRequest]);
+
+  const saveNewRideRequestToStorage = async (request) => {
+    try {
+      await AsyncStorage.setItem("newRideRequest", JSON.stringify(request));
+      console.log("New ride request saved in AsyncStorage!");
+    } catch (error) {
+      console.error("Error saving newRideRequest to AsyncStorage", error);
+    }
+  };
+
+  const getNewRideRequestFromStorage = async () => {
+    try {
+      const savedRequest = await AsyncStorage.getItem("newRideRequest");
+      if (savedRequest !== null) {
+        console.log(
+          "Retrieved newRideRequest from AsyncStorage:",
+          JSON.parse(savedRequest)
+        );
+        return JSON.parse(savedRequest);
+      }
+    } catch (error) {
+      console.error("Error retrieving newRideRequest from AsyncStorage", error);
+    }
+  };
 
   const handleDropOff = async () => {
     const url = `${DRIVER_BASE_URL}`;
@@ -94,7 +136,8 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
                   style={styles.profileImage}
                 />
                 <Text style={styles.driverName}>
-                  {newRideRequest?.rider_name}
+                  {/* {newRideRequest?.rider_name} */}
+                  {rideData?.rider_name}
                 </Text>
               </View>
               <View style={styles.timeContainer}>
@@ -115,7 +158,8 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
                   style={styles.pickupImage}
                 />
                 <Text style={styles.pickupAddressText} numberOfLines={2}>
-                  {newRideRequest?.d_address}
+                  {/* {newRideRequest?.d_address} */}
+                  {rideData?.d_address}
                 </Text>
               </View>
             </View>
@@ -147,6 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     backgroundColor: "transparent",
+
     position: "absolute",
     zIndex: 99999,
     bottom: 4,

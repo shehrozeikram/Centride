@@ -133,14 +133,14 @@ const Profile = ({}) => {
       icon: <Entypo name="key" size={18} color="#FF8900" />,
       screen: "Password",
     },
-    {
-      id: 4,
-      title: t("documents"),
-      icon: (
-        <MaterialIcons name="insert-drive-file" size={18} color="#808080" />
-      ),
-      screen: "Documents",
-    },
+    // {
+    //   id: 4,
+    //   title: t("documents"),
+    //   icon: (
+    //     <MaterialIcons name="insert-drive-file" size={18} color="#808080" />
+    //   ),
+    //   screen: "Documents",
+    // },
     {
       id: 5,
       title: t("language"),

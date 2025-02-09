@@ -536,6 +536,17 @@ const DriverMap = ({ navigation }) => {
     setDropoffModalVisible(false);
     setShowDirections(false);
     setShowViewAlert(false);
+    Alert.alert(
+      "Booking Cancelled",
+      "Your booking has been cancelled",
+      [
+        {
+          text: "OK", // This is the button text
+          onPress: () => {},
+        },
+      ],
+      { cancelable: false }
+    );
   };
 
   useEffect(() => {
@@ -885,9 +896,9 @@ const DriverMap = ({ navigation }) => {
     }, 1000); // Delay in milliseconds
   };
 
-  if (dropoffModal) {
-    return <DriverDropoffModal visible={dropoffModal} />;
-  }
+  // if (dropoffModal) {
+  //   return <DriverDropoffModal visible={dropoffModal} />;
+  // }
 
   return (
     <View style={{ flex: 1 }}>

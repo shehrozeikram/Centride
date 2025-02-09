@@ -30,31 +30,31 @@ const AboutTxyCo = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Image source={{ uri: imageUri }} style={styles.image} />
-      <Text style={styles.title}>{t("about_txyco_title")}</Text>
-      <Text style={styles.description}>{t("about_txyco_description")}</Text>
-      <Text style={styles.sectionTitle}>{t("about_txyco_our_mission")}</Text>
+      <Text style={styles.title}>{t("about_centride_title")}</Text>
+      <Text style={styles.description}>{t("about_centride_description")}</Text>
+      <Text style={styles.sectionTitle}>{t("about_centride_our_mission")}</Text>
       <Text style={styles.sectionContent}>
-        {t("about_txyco_our_mission_description")}
+        {t("about_centride_our_mission_description")}
       </Text>
-      <Text style={styles.sectionTitle}>{t("about_txyco_our_values")}</Text>
+      <Text style={styles.sectionTitle}>{t("about_centride_our_values")}</Text>
       <Text style={styles.sectionContent}>
-        {t("about_txyco_value_innovation")}
+        {t("about_centride_value_innovation")}
         {"\n"}
-        {t("about_txyco_value_integrity")}
+        {t("about_centride_value_integrity")}
         {"\n"}
-        {t("about_txyco_value_collaboration")}
+        {t("about_centride_value_collaboration")}
         {"\n"}
-        {/* {t("about_txyco_value_excellence")} */}
+        {/* {t("about_centride_value_excellence")} */}
       </Text>
-      <TouchableOpacity style={styles.button} onPress={handleContactPress}>
-        <Text style={styles.buttonText}>{t("about_txyco_contact_us")}</Text>
-      </TouchableOpacity>
+      {/* <TouchableOpacity style={styles.button} onPress={handleContactPress}>
+        <Text style={styles.buttonText}>{t("about_centride_contact_us")}</Text>
+      </TouchableOpacity> */}
 
       {/* Social Media Icons Section */}
-      <View style={styles.socialMediaContainer}>
+      {/* <View style={styles.socialMediaContainer}>
         <TouchableOpacity
           onPress={() =>
-            handleSocialPress("https://www.youtube.com/@TxycoOfficial")
+            handleSocialPress("https://www.youtube.com/@CentrideOfficial")
           }
         >
           <Icon
@@ -81,7 +81,7 @@ const AboutTxyCo = () => {
         <TouchableOpacity
           onPress={() =>
             handleSocialPress(
-              "https://www.tiktok.com/@txyco_official?_t=ZS-8tGyQikoRxE&_r=1"
+              "https://www.tiktok.com/@centride_official?_t=ZS-8tGyQikoRxE&_r=1"
             )
           }
         >
@@ -95,7 +95,7 @@ const AboutTxyCo = () => {
         <TouchableOpacity
           onPress={() =>
             handleSocialPress(
-              "https://www.instagram.com/txyco.official?igsh=eG5qZGI3bWc5d3V2"
+              "https://www.instagram.com/centride.official?igsh=eG5qZGI3bWc5d3V2"
             )
           }
         >
@@ -116,7 +116,7 @@ const AboutTxyCo = () => {
             style={styles.socialIcon}
           />
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ScrollView>
   );
 };

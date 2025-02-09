@@ -34,7 +34,7 @@ export default function Safety({ navigation }) {
             source={require("../../assets/chat.png")} // Path to your image
             style={styles.icon}
           />
-          <Text style={styles.mainBoxText}>{t("txyco_support")}</Text>
+          <Text style={styles.mainBoxText}>{t("centride_support")}</Text>
         </TouchableOpacity>
       </View>
 

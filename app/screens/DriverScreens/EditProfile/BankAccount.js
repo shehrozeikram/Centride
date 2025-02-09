@@ -54,7 +54,7 @@ const BankAccount = () => {
           bank_code: selectedBank?.bankCode,
         };
         dispatch(setUser(userData));
-        console.log("=======CAR UPDATE=======", response);
+        // console.log("=======CAR UPDATE=======", response);
         Alert.alert("Success", "Bank account information saved!");
 
         navigation.goBack();

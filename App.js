@@ -112,54 +112,56 @@
 
 // export default App
 
-import React, { useEffect } from 'react'
-import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import RiderRoute from './app/router/RiderRouter'
-import DriverRoute from './app/router/DriverRouter'
-import SplashScreen from './app/screens/splash/SplashScreen'
-import RiderStackNavigator from './app/navigators/RiderStackNavigator'
-import Language from './app/screens/language/Language'
-import OnboardingRouter from './app/router/OnboardingRouter'
-import VerifyOtp from './app/screens/RiderScreens/VerifyOtp'
-import { Provider } from 'react-redux'
-import store from './app/redux/store'
-import SelectRoleScreen from './app/screens/selectRoleScreen'
-import Test from './app/screens/Test'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import React, { useEffect } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import RiderRoute from "./app/router/RiderRouter";
+import DriverRoute from "./app/router/DriverRouter";
+import SplashScreen from "./app/screens/splash/SplashScreen";
+import RiderStackNavigator from "./app/navigators/RiderStackNavigator";
+import Language from "./app/screens/language/Language";
+import OnboardingRouter from "./app/router/OnboardingRouter";
+import VerifyOtp from "./app/screens/RiderScreens/VerifyOtp";
+import { Provider } from "react-redux";
+import store from "./app/redux/store";
+import SelectRoleScreen from "./app/screens/selectRoleScreen";
+import Test from "./app/screens/Test";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Import i18n (make sure i18next is initialized)
-import '././app/localization' // Make sure this imports your i18n.js initialization
-import { LogBox } from 'react-native'
+import "././app/localization"; // Make sure this imports your i18n.js initialization
+import { LogBox } from "react-native";
 
 // Setup Navigation Stack
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator();
 
 const App = () => {
-    LogBox.ignoreAllLogs()
-    return (
-        <Provider store={store}>
-            <NavigationContainer>
-                <Stack.Navigator
-                    initialRouteName='Splash'
-                    screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name='Splash' component={SplashScreen} />
-                    <Stack.Screen name='RiderRoute' component={RiderRoute} />
-                    <Stack.Screen name='DriverRoute' component={DriverRoute} />
-                    <Stack.Screen
-                        name='RiderStackNavigator'
-                        component={RiderStackNavigator}
-                    />
-                    <Stack.Screen name='Language' component={Language} />
-                    <Stack.Screen
-                        name='OnboardingRouter'
-                        component={OnboardingRouter}
-                    />
-                    <Stack.Screen name='VerifyOtp' component={VerifyOtp} />
-                </Stack.Navigator>
-            </NavigationContainer>
-        </Provider>
-    )
-}
+  LogBox.ignoreAllLogs();
+  return (
+    <Provider store={store}>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="RiderRoute" component={RiderRoute} />
+          <Stack.Screen name="DriverRoute" component={DriverRoute} />
+          <Stack.Screen
+            name="RiderStackNavigator"
+            component={RiderStackNavigator}
+          />
+          <Stack.Screen
+            name="Language"
+            component={Language}
+            options={{ headerShown: true }}
+          />
+          <Stack.Screen name="OnboardingRouter" component={OnboardingRouter} />
+          <Stack.Screen name="VerifyOtp" component={VerifyOtp} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
+  );
+};
 
-export default App
+export default App;
