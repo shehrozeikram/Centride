@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { requestTrackingPermission } from "react-native-tracking-transparency";
 import {
   StyleSheet,
   View,
@@ -130,6 +131,17 @@ const DriverMap = ({ navigation }) => {
   const isInitialLoadRef = useRef(true);
 
   const message_ref = database().ref(`Drivers/drvr-${user_id}/notf`);
+
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      const requestPermission = async () => {
+        const permissionStatus = await requestTrackingPermission();
+        console.log(permissionStatus);
+      };
+
+      requestPermission();
+    }
+  }, []);
 
   useEffect(() => {
     console.log("Checking ongoing_bk in useEffect:", ongoing_bk);

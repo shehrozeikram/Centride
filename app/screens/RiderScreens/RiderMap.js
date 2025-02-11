@@ -51,6 +51,7 @@ import messaging from "@react-native-firebase/messaging";
 import database from "@react-native-firebase/database";
 import { useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { requestTrackingPermission } from "react-native-tracking-transparency";
 import Sound from "react-native-sound";
 import DriverOnWay from "../../modals/DriverOnWay";
 import DriverCard from "../../modals/DriverCard";
@@ -170,6 +171,17 @@ const RiderMapScreen = ({ route }) => {
   const prevActionRef = useRef(null);
   const prevMessageRef = useRef(null);
   const isInitialLoadRef = useRef(true);
+
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      const requestPermission = async () => {
+        const permissionStatus = await requestTrackingPermission();
+        console.log(permissionStatus);
+      };
+
+      requestPermission();
+    }
+  }, []);
 
   const handleCloseAlert = () => {
     setShowViewAlert(false);
