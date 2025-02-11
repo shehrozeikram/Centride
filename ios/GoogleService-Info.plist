@@ -34,6 +34,9 @@
 	<string>1:1007840790593:ios:2e3a97c84f2c1120ac9ec0</string>
 	<key>DATABASE_URL</key>
 	<string>https://txyco-ebd49-default-rtdb.firebaseio.com</string>
+	<key>NSUserTrackingUsageDescription</key>
+<string>We use your location data to provide real-time ride tracking and accurate estimated arrival times. This allows riders to track their driver’s location and arrival. We are committed to safeguarding your privacy and handling your data securely and responsibly.</string>
+
 
 <key>LSApplicationQueriesSchemes</key>
   <array>
