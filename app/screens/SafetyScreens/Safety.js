@@ -20,7 +20,7 @@ export default function Safety({ navigation }) {
       {/* First section: Only one box with increased width */}
       <View style={styles.row}>
         <TouchableOpacity
-          onPress={() => navigation.navigate("TxycoSupport")}
+          onPress={() => navigation.navigate("CentrideSupport")}
           style={styles.box}
         >
           {/* Add Support Icon and Support Text */}
@@ -39,9 +39,9 @@ export default function Safety({ navigation }) {
       </View>
 
       {/* Custom 'Call Emergency' Button using TouchableOpacity */}
-      <TouchableOpacity style={styles.button} onPress={() => {}}>
+      {/* <TouchableOpacity style={styles.button} onPress={() => {}}>
         <Text style={styles.buttonText}>{t("call_emergency")}</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Second section: Heading 'How you're protected' */}
       <Text style={styles.heading}>{t("protected_text")}</Text>

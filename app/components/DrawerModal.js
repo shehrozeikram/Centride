@@ -163,18 +163,18 @@ const DrawerModal = ({ isVisible, onClose }) => {
     //   onPress: handleClose,
     //   screen: "Notifications",
     // },
-    {
-      title: t("drawer.call_for_help"),
-      Icon: () => <Ionicons name="call" size={size} color="#73E175" />,
-      SelectedIcon: () => <Ionicons name="call" size={size} color="#73E175" />,
-      index: 3,
-      onPress: () => {
-        handleDial();
-        handleClose();
-      },
-      isBottom: false,
-      screen: "CallForHelp",
-    },
+    // {
+    //   title: t("drawer.call_for_help"),
+    //   Icon: () => <Ionicons name="call" size={size} color="#73E175" />,
+    //   SelectedIcon: () => <Ionicons name="call" size={size} color="#73E175" />,
+    //   index: 3,
+    //   onPress: () => {
+    //     handleDial();
+    //     handleClose();
+    //   },
+    //   isBottom: false,
+    //   screen: "CallForHelp",
+    // },
     {
       title: t("drawer.support"),
       Icon: () => (

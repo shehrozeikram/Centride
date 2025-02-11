@@ -165,16 +165,16 @@ const DriverDrawer = ({ isVisible, onClose }) => {
       onPress: handleClose,
       screen: "Wallet",
     },
-    {
-      title: "Earnings",
-      Icon: () => <FontAwesome name="gift" size={size} color="#EE5C5D" />,
-      SelectedIcon: () => (
-        <FontAwesome name="gift" size={size} color="#EE5C5D" />
-      ),
-      index: 2,
-      onPress: handleClose,
-      screen: "Earnings",
-    },
+    // {
+    //   title: "Earnings",
+    //   Icon: () => <FontAwesome name="gift" size={size} color="#EE5C5D" />,
+    //   SelectedIcon: () => (
+    //     <FontAwesome name="gift" size={size} color="#EE5C5D" />
+    //   ),
+    //   index: 2,
+    //   onPress: handleClose,
+    //   screen: "Earnings",
+    // },
     {
       title: "Promotions",
       Icon: () => <FontAwesome name="money" size={size} color="#5BA954" />,
@@ -211,18 +211,18 @@ const DriverDrawer = ({ isVisible, onClose }) => {
     //   screen: "Notifications",
     // },
 
-    {
-      title: "Call For Help",
-      Icon: () => <Ionicons name="call" size={size} color="#73E175" />,
-      SelectedIcon: () => <Ionicons name="call" size={size} color="#73E175" />,
-      index: 6,
-      onPress: () => {
-        handleDial();
-        handleClose();
-      },
-      isBottom: false,
-      screen: "CallForHelp",
-    },
+    // {
+    //   title: "Call For Help",
+    //   Icon: () => <Ionicons name="call" size={size} color="#73E175" />,
+    //   SelectedIcon: () => <Ionicons name="call" size={size} color="#73E175" />,
+    //   index: 6,
+    //   onPress: () => {
+    //     handleDial();
+    //     handleClose();
+    //   },
+    //   isBottom: false,
+    //   screen: "CallForHelp",
+    // },
 
     // {
     //   title: "Support",

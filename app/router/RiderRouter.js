@@ -25,11 +25,12 @@ import Password from "../screens/RiderScreens/EditProfileScreens/Password";
 import Notifications from "../screens/RiderScreens/Notifications";
 import TripsDetailScreen from "../screens/TripsScreens/TripsDetailScreen";
 import Safety from "../screens/SafetyScreens/Safety";
-import TxycoSupport from "../screens/SafetyScreens/TxycoSupport";
+import TxycoSupport from "../screens/SafetyScreens/CentrideSupport";
 import PreRide from "../screens/SafetyScreens/PreRide";
 import DriverVerification from "../screens/SafetyScreens/DriverVerification";
 import SafetyProtocols from "../screens/SafetyScreens/SafetyProtocols";
 import Current from "../screens/TripsScreens/Current";
+import CentrideSupport from "../screens/SafetyScreens/CentrideSupport";
 
 const Stack = createNativeStackNavigator();
 
@@ -146,9 +147,14 @@ const RiderRoute = ({ route }) => {
         component={Safety}
         options={{ headerShown: true }}
       />
-      <Stack.Screen
+      {/* <Stack.Screen
         name="TxycoSupport"
         component={TxycoSupport}
+        options={{ headerShown: true }}
+      /> */}
+      <Stack.Screen
+        name="CentrideSupport"
+        component={CentrideSupport}
         options={{ headerShown: true }}
       />
       <Stack.Screen

@@ -29,8 +29,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>CFBundleIconName</key>
-    <string>AppIcon</string>
-
+	<string>AppIcon</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -39,17 +38,17 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>$(PRODUCT_NAME) need access to your camera to allow you to take a photo and update profile.</string>
+	<string>We need access to your camera to allow you to take a photo and update profile.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>$(PRODUCT_NAME) would like to access your current location to show it on the map.</string>
+	<string>We need your current location to help driver find you and provide ride services.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>$(PRODUCT_NAME) would like to access your current location to show it on the map.</string>
+	<string>We need your location to help drivers find you for pickup and drop-off.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>$(PRODUCT_NAME) would like to access your current to show it on the map</string>
+	<string>We need your location to help drivers find you and provide ride services.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>$(PRODUCT_NAME) need access to your microphone to allow you to record videos.</string>
+	<string>We need access to your microphone to allow you to record videos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>$(PRODUCT_NAME) would like to access to your photo library to allow you to select a profile picture.</string>
+	<string>We would like to access to your photo library to allow you to select a profile picture.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Zocial.ttf</string>

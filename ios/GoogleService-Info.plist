@@ -34,5 +34,11 @@
 	<string>1:1007840790593:ios:2e3a97c84f2c1120ac9ec0</string>
 	<key>DATABASE_URL</key>
 	<string>https://txyco-ebd49-default-rtdb.firebaseio.com</string>
+
+<key>LSApplicationQueriesSchemes</key>
+  <array>
+    <string>tel</string>
+  </array>
+
 </dict>
 </plist>
