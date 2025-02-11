@@ -37,6 +37,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>We use your location data to provide real-time ride tracking and accurate estimated arrival times. This allows riders to track their driver’s location and arrival. We are committed to safeguarding your privacy and handling your data securely and responsibly.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera to allow you to take a photo and update profile.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
