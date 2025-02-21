@@ -30,183 +30,73 @@ const CustomModal = ({
   navigation,
   onBook,
   onSelectItem,
-  //   loading = false,
+  distance,
+  time,
 }) => {
   const [expanded, setExpanded] = useState(true);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [showOfferModal, setShowOfferModal] = useState(false);
   const [updatedPrice, setUpdatedPrice] = useState(null);
   const [carsArray, setCarsArray] = useState([]);
-  const [showCashContainer, setShowCashContainer] = useState(true);
-  const [previousSelectedOption, setPreviousSelectedOption] = useState(null);
+  const [fare, setFare] = useState({});
   const [loading, setLoading] = useState(false);
-
-  const animatedHeight = useRef(new Animated.Value(screenHeight * 0.7)).current;
-  const scales = useRef({
-    selected: new Animated.Value(1),
-    unselected: new Animated.Value(1),
-  }).current;
-
-  useEffect(() => {
-    Animated.timing(scales.unselected, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    if (selectedOption) {
-      Animated.sequence([
-        // Zoom out: return to normal size
-        Animated.timing(scales.selected, {
-          toValue: 1, // Back to normal size
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        // Second bounce: zoom in again
-        Animated.timing(scales.selected, {
-          toValue: 1.2,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        // Zoom out again: back to normal size
-        Animated.timing(scales.selected, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        // Third bounce: zoom in significantly
-        Animated.timing(scales.selected, {
-          toValue: 1.3,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [selectedOption]);
-
-  const handleExpand = () => {
-    setExpanded(true);
-    Animated.spring(animatedHeight, {
-      toValue: screenHeight * 0.8,
-      friction: 7,
-      tension: 70,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const handleCollapse = () => {
-    setExpanded(false);
-    Animated.spring(animatedHeight, {
-      toValue: screenHeight * 0.7,
-      friction: 7,
-      tension: 70,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  // const handleOptionSelect = (option) => {
-  //     onSelectItem(option)
-  //     setSelectedOption(option)
-  //     setUpdatedPrice(null)
-
-  //     // Automatically expand the modal when an option is selected
-  //     setExpanded(true)
-
-  //     // Move selected option to the top
-  //     const updatedCarsArray = carsArray.filter(
-  //         (item) => item.id !== option.id,
-  //     )
-  //     setCarsArray([option, ...updatedCarsArray])
-  // }
-
-  const handleOptionSelect = (option) => {
-    onSelectItem(option);
-
-    setPreviousSelectedOption(selectedOption);
-
-    setSelectedOption(option);
-    setUpdatedPrice(null);
-
-    setExpanded(true);
-
-    const updatedCarsArray = carsArray.filter((item) => item.id !== option.id);
-    setCarsArray([option, ...updatedCarsArray]);
-  };
-
-  const handleOfferModalClose = (newPrice) => {
-    setShowOfferModal(false);
-    if (newPrice) {
-      setUpdatedPrice(newPrice);
-    }
-  };
-
-  const renderOption = ({ item, index }) => {
-    // console.log("item", item);
-    const isSelected = selectedOption && selectedOption.id === item.id;
-    const animatedStyle = {
-      transform: [{ scale: isSelected ? scales.selected : scales.unselected }],
-    };
-    const image = item?.ride_img.replace("..", "https://appserver.txy.co");
-
-    const priceStyle = isSelected
-      ? styles.selectedPriceText
-      : styles.defaultPriceText;
-    const priceContainerStyle = isSelected ? styles.selectedPriceContainer : {};
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.optionContainer,
-          isSelected && styles.selectedOption,
-          index === carsArray.length - 1 && { borderBottomWidth: 0 },
-        ]}
-        onPress={() => handleOptionSelect(item)}
-      >
-        <Animated.Image
-          resizeMode={"contain"}
-          source={{ uri: item?.image ?? image }}
-          style={[styles.optionImage, animatedStyle]}
-        />
-        <View style={styles.optionTextContainer}>
-          <Text style={styles.optionTitle}>{item?.ride_type}</Text>
-          <Spacing />
-          <View style={styles.row}>
-            <FontAwesome name="users" size={14} color="black" />
-            <Text style={styles.optionSeats}>{item.num_seats}</Text>
-          </View>
-        </View>
-        <View style={priceContainerStyle}>
-          <Text style={priceStyle}>{item?.npickup_cost}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        // limit swipe within bounds
-        if (gestureState.dy < -20 && gestureState.dy > -screenHeight * 0.3) {
-          animatedHeight.setValue(screenHeight * 0.7 + gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy < -50) {
-          handleExpand();
-        } else if (gestureState.dy > 50) {
-          handleCollapse();
-        }
-      },
-    })
-  ).current;
+  const [distanceInKm, setDistanceInKm] = useState(null);
+  const [timeInMinutes, setTimeInMinutes] = useState(null);
 
   const user = useSelector((state) => state?.user?.user);
-  const [result, setResult] = useState([]);
+  const animatedHeight = useRef(new Animated.Value(screenHeight * 0.7)).current;
+
+  useEffect(() => {
+    if (distance) {
+      console.log("distance", distance);
+      setDistanceInKm(parseFloat(distance.replace(/[^0-9.-]+/g, "")) || 0);
+      console.log("distanceInKm", distanceInKm);
+    } else {
+      setDistanceInKm(0);
+    }
+
+    if (time) {
+      setTimeInMinutes(parseFloat(time) || 0);
+    } else {
+      setTimeInMinutes(0);
+    }
+  }, [distance, time]);
 
   useEffect(() => {
     getSession();
   }, []);
+
+  useEffect(() => {
+    if (distanceInKm && timeInMinutes && carsArray.length > 0) {
+      calculateFaresForAllOptions(carsArray);
+    }
+  }, [distanceInKm, timeInMinutes]);
+
+  const calculateFaresForAllOptions = (carsData) => {
+    if (distanceInKm && timeInMinutes && carsData?.length > 0) {
+      const updatedCarsArray = carsData.map((car) => {
+        const baseFare = parseFloat(car?.pickup_cost) || 0;
+        const costPerKm = parseFloat(car?.cost_per_km) || 0;
+        const costPerMinute = parseFloat(car?.cost_per_minute) || 0;
+        const initialDistance = parseFloat(car?.init_distance) || 0;
+
+        let totalFare = baseFare;
+        if (distanceInKm > initialDistance) {
+          totalFare += (distanceInKm - initialDistance) * costPerKm;
+        }
+
+        totalFare += timeInMinutes * costPerMinute;
+
+        totalFare = Math.round(totalFare);
+
+        return {
+          ...car,
+          totalFare: totalFare.toFixed(2),
+        };
+      });
+
+      setCarsArray(updatedCarsArray);
+    }
+  };
 
   const getSession = async () => {
     const firstData = {
@@ -221,13 +111,53 @@ const CustomModal = ({
         const carData =
           firstResponse?.tariff_data?.result[user?.route_id]?.cars;
         setCarsArray(carData);
-        setResult(firstResponse?.tariff_data?.result);
         setSessionId(firstResponse?.sess_id);
+        calculateFaresForAllOptions(carData);
       })
       .catch((error) => {
         console.error("Error:", error);
-        Alert.alert("Error", "An error occurred. Please try again.");
       });
+  };
+  const handleOptionSelect = (option) => {
+    console.log("Option selected:", option);
+
+    onSelectItem(option);
+    setSelectedOption(option);
+    setUpdatedPrice(null);
+  };
+
+  const renderOption = ({ item }) => {
+    const isSelected = selectedOption && selectedOption.id === item.id;
+    const image = item?.ride_img.replace("..", "https://appserver.txy.co");
+
+    return (
+      <TouchableOpacity
+        style={[styles.optionContainer, isSelected && styles.selectedOption]}
+        onPress={() => handleOptionSelect(item)}
+      >
+        <Image
+          resizeMode={"contain"}
+          source={{ uri: item?.image ?? image }}
+          style={styles.optionImage}
+        />
+        <View style={styles.optionTextContainer}>
+          <Text style={styles.optionTitle}>{item?.ride_type}</Text>
+          <Spacing />
+          <View style={styles.row}>
+            <FontAwesome name="users" size={14} color="black" />
+            <Text style={styles.optionSeats}>{item.num_seats}</Text>
+          </View>
+        </View>
+        <View>
+          <Text style={styles.priceText}>
+            <Text style={styles.currencySymbol}>{item?.symbol}</Text>
+            {item?.totalFare != null
+              ? ` ${parseFloat(item?.totalFare)}`
+              : "Fare not calculated yet"}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -240,50 +170,15 @@ const CustomModal = ({
       <Pressable onPress={onClose} style={styles.modalContainer}>
         <Animated.View
           style={[styles.modalContent, { height: animatedHeight }]}
-          {...panResponder.panHandlers}
         >
-          <View style={styles.swipeHandle} />
-
-          <Text style={styles.swipeText}>Swipe to view options</Text>
           <FlatList
-            data={expanded ? carsArray : carsArray.slice(0, 4)}
+            data={carsArray}
             renderItem={renderOption}
             keyExtractor={(item) => item.id}
-            extraData={selectedOption}
           />
-          {/* {showCashContainer && selectedOption && (
-                        <View style={styles.cashContainer}>
-                            <Image
-                                source={require('../assets/cash.png')}
-                                style={styles.cashImage}
-                            />
-                            <View style={styles.cashDetails}>
-                                <Text style={styles.cashTitle}>Cash </Text>
-                                <Text style={styles.selectedPrice}>
-                                    {updatedPrice || selectedOption.price}
-                                </Text>
-                                <TouchableOpacity
-                                    style={styles.offerContainer}
-                                    onPress={() => setShowOfferModal(true)}>
-                                    <Text style={styles.offerText}>
-                                        Offer Your Fare
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                            <FontAwesome
-                                name='chevron-right'
-                                size={20}
-                                color='#000'
-                            />
-                        </View>
-                    )} */}
           <TouchableOpacity
             style={[styles.bookButton, loading && { opacity: 0.7 }]}
-            onPress={() => {
-              if (!loading) {
-                onBook(setLoading);
-              }
-            }}
+            onPress={() => !loading && onBook(setLoading)}
             disabled={loading}
           >
             {loading ? (
@@ -296,11 +191,6 @@ const CustomModal = ({
           </TouchableOpacity>
         </Animated.View>
       </Pressable>
-      <OfferModal
-        visible={showOfferModal}
-        onClose={handleOfferModalClose}
-        selectedPrice={updatedPrice || selectedOption?.price || "Rs 0"}
-      />
     </Modal>
   );
 };
@@ -335,7 +225,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 4,
-    paddingHorizontal: 6, // Reduced horizontal padding for compactness
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
     backgroundColor: "#fff",
@@ -434,7 +324,6 @@ const styles = StyleSheet.create({
   },
   selectedOption: {
     backgroundColor: Color.primary,
-    // borderRadius: 10,
     borderLeftColor: "#ff8c00",
     borderLeftWidth: 10,
     paddingLeft: 10,
@@ -446,6 +335,16 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   defaultPriceText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  currencySymbol: {
+    fontSize: 10,
+    fontWeight: "400",
+    color: "green",
+  },
+  priceText: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#000",

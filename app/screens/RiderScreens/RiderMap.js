@@ -1,19 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import MapView, {
-  // Callout,
-  Marker,
-  // PROVIDER_GOOGLE,
-  // Polyline,
-} from "react-native-maps";
-// import Animated, {
-//   Easing,
-//   useSharedValue,
-//   useAnimatedStyle,
-//   withTiming,
-//   interpolate,
-//   withDelay,
-//   withRepeat,
-// } from "react-native-reanimated";
+import MapView, { Marker } from "react-native-maps";
+
 import {
   StyleSheet,
   View,
@@ -56,11 +43,13 @@ import Sound from "react-native-sound";
 import DriverOnWay from "../../modals/DriverOnWay";
 import DriverCard from "../../modals/DriverCard";
 import HTMLParser from "react-native-html-parser";
+import moment from "moment-timezone";
 
 import { useTranslation } from "react-i18next";
 
 // const Google_Maps_Apikey = "AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw"; // Replace with your actual API key
 import { GOOGLE_MAPS_API_KEY } from "../../constants/googleMapKey";
+import Geolocation from "@react-native-community/geolocation";
 // Initialize Geocoder with API key
 
 Geocoder.init(GOOGLE_MAPS_API_KEY);
@@ -163,6 +152,9 @@ const RiderMapScreen = ({ route }) => {
   const [currentRideRequestIndex, setCurrentRideRequestIndex] = useState(0);
   const [pendingBookings, setPendingBookings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [greetingMessage, setGreetingMessage] = useState("");
+  const [greetingImage, setGreetingImage] = useState(null);
+  const [time, setTime] = useState(null);
 
   const user = useSelector((state) => state.user?.user);
   const mapRef = useRef(null); // MapView reference
@@ -181,6 +173,10 @@ const RiderMapScreen = ({ route }) => {
 
       requestPermission();
     }
+  }, []);
+
+  useEffect(() => {
+    userGreeting();
   }, []);
 
   const handleCloseAlert = () => {
@@ -1457,8 +1453,7 @@ const RiderMapScreen = ({ route }) => {
         },
       };
 
-      // Encrypt the booking price using MD5
-      const bookingPrice = selectedVehicle?.npickup_cost;
+      const bookingPrice = selectedVehicle?.totalFare;
       const encryptedPrice = CryptoJS.MD5(
         "projectgics" + bookingPrice?.toString()
       ).toString();
@@ -1642,28 +1637,6 @@ const RiderMapScreen = ({ route }) => {
       });
   };
 
-  // const getBookings = () => {
-  //   const data = {
-  //     action: "getbookings",
-  //   };
-  //   Post({ data: data })
-  //     .then((response) => {
-  //       const completedArray = convertHTMLToJSON(response.booking_comp);
-  //       const pendingArray = convertHTMLToJSON2(response.pend_onride);
-  //       const canceledArray = convertHTMLToJSON(response.booking_canc);
-
-  //       console.log("==>pendingArr=============>", pendingArray);
-  //       // setCompletedBookings(completedArray);
-  //       setPendingBookings(pendingArray);
-  //       console.log("pendingBookings==", pendingBookings);
-  //     })
-  //     .catch((error) => {
-  //       console.log(
-  //         "======error====NjFjNGkydnFqM2xmcDNxdXZ2YzBxaHFzdjU=",
-  //         error
-  //       );
-  //     });
-  // };
   function formatDateTime() {
     const now = new Date();
 
@@ -1721,152 +1694,9 @@ const RiderMapScreen = ({ route }) => {
     }
   };
 
-  // useEffect(() => {
-  //   // getDatabase()
-  //   requestUserPermission();
-  //   getToken();
-  //   const unsubscribe = messaging().onMessage(async (remoteMessage) => {
-  //     setMessageData(remoteMessage.notification.body);
-  //   });
-
-  //   return unsubscribe;
-  // }, []);
-
-  // Set up background message handler
-  // messaging().setBackgroundMessageHandler(async (remoteMessage) => {});
-
-  // const requestUserPermission = async () => {
-  //   const authStatus = await messaging().requestPermission();
-  //   const enabled =
-  //     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-  //     authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-  //   if (enabled) {
-  //     console.log("Authorization status:", authStatus);
-  //   }
-  // };
-
-  // const getToken = async () => {
-  //   const token = await messaging().getToken();
-  // };
-
   const getCurrentUnixTimestamp = () => {
     return Math.floor(Date.now() / 1000); // Current timestamp in seconds
   };
-
-  // const saveData = async (bookingid) => {
-  //     if (!bookingid) {
-  //         console.error('No booking ID available, cannot save data.')
-  //         return
-  //     }
-
-  //     const currentTimestamp = getCurrentUnixTimestamp()
-  //     const bookingPrice = selectedVehicle?.npickup_cost
-  //     const encryptedPrice = CryptoJS.MD5(
-  //         'projectgics' + bookingPrice?.toString(),
-  //     ).toString()
-
-  //     const msgData = {
-  //         action: 'driver-allocate',
-  //         booking_id: bookingid, // Now bookingId should be set
-  //         completion_code: '',
-  //         coupon_code: '',
-  //         coupon_discount_type: '0',
-  //         coupon_discount_value: '0.00',
-  //         coupon_max_discount: '0.00',
-  //         coupon_min_fare: '0.00',
-  //         d_address: route?.params.dropOffAddress,
-  //         d_lat: route?.params.dropOffLoactionLatLng.latitude,
-  //         d_lng: route?.params.dropOffLoactionLatLng.longitude,
-  //         driver_accept_duration: '180',
-  //         fare: '179.00',
-  //         p_address: route?.params.pickUpAddreess,
-  //         p_lat: route?.params.picuploactionLatLng.latitude,
-  //         p_lng: route?.params.picuploactionLatLng.longitude,
-  //         payment_type: '1',
-  //         referral_discount_value: '0.00',
-  //         referral_used: newRideRequest?.referral_used,
-  //         ride_bid_max_val: '20.0',
-  //         ride_bid_min_val: '10.0',
-  //         ride_bid_fare: '179.0',
-  //         rider_image: user
-  //             ? { uri: user?.photo }
-  //             : require('../../assets/driver.png'),
-  //         rider_name: user?.firstname,
-  //         rider_phone: user?.phone,
-  //         rider_id: user?.userid,
-  //         rider_rating: user?.user_rating,
-  //         sent_time: currentTimestamp,
-  //         waypoint1_address: '',
-  //         waypoint1_lat: '',
-  //         waypoint1_long: '',
-  //         waypoint2_address: '',
-  //         waypoint2_lat: '',
-  //         waypoint2_long: '',
-  //     }
-
-  //     try {
-  //         console.log('====driverLocations====1', driverLocations.length)
-  //         if (driverLocations.length > 0) {
-  //             // Filter the driverLocations based on the selectedVehicle.ride_type without regex
-  //             const filteredDrivers = driverLocations.filter((driver) => {
-  //                 const driverTitle = driver.title.toLowerCase() // Normalize driver title to lowercase
-  //                 if (selectedVehicle.ride_type === 'Ride A/C') {
-  //                     return (
-  //                         driverTitle === 'ride a/c' ||
-  //                         driverTitle === 'ride' ||
-  //                         driverTitle === 'ride mini'
-  //                     )
-  //                 } else if (selectedVehicle.ride_type === 'Ride') {
-  //                     return (
-  //                         driverTitle === 'ride' ||
-  //                         driverTitle === 'ride mini'
-  //                     )
-  //                 } else if (selectedVehicle.ride_type === 'Ride Mini') {
-  //                     return driverTitle === 'ride mini'
-  //                 } else if (selectedVehicle.ride_type === 'Moto') {
-  //                     return driverTitle === 'moto'
-  //                 } else if (
-  //                     selectedVehicle.ride_type === 'Prado Deluxe 12hr'
-  //                 ) {
-  //                     return driverTitle === 'prado deluxe 12hr'
-  //                 }
-
-  //                 return false // Default case if no condition matches
-  //             })
-  //             // Now loop over the filtered drivers and process them
-  //             filteredDrivers.map(async (driver) => {
-  //                 const driverId = driver.driver_id
-  //                 // Ensure driverId exists before proceeding
-  //                 if (!driverId) {
-  //                     console.error('Driver ID not found for driver:', driver)
-  //                     return
-  //                 }
-
-  //                 // Saving data to the database for each driver
-  //                 try {
-  //                     await database()
-  //                         .ref(`/Drivers/drvr-${driverId}/notf/msg`)
-  //                         .set(msgData)
-  //                     await database()
-  //                         .ref(`/Drivers/drvr-${driverId}/notf/msg_t`)
-  //                         .set(currentTimestamp)
-  //                 } catch (error) {
-  //                     console.error(
-  //                         'Error saving data for driverId:',
-  //                         driverId,
-  //                         error,
-  //                     )
-  //                 }
-  //             })
-  //         } else {
-  //             console.log('No drivers to process.')
-  //         }
-  //     } catch (error) {
-  //         console.error('Error saving data: ', error)
-  //     }
-  // }
-
   const handleDeclineBid = async (bookingid) => {
     const sess_id = await getSessionId();
     const url = `${RIDER_BASE_URL}?sess_id=${sess_id}`;
@@ -1950,6 +1780,83 @@ const RiderMapScreen = ({ route }) => {
       console.warn("Origin or destination not set");
     }
   };
+  const userGreeting = () => {
+    const cur_date = moment().tz("Asia/Karachi");
+    const hour_now = cur_date.hours();
+    const firstname = user?.firstname || "User";
+
+    if (hour_now >= 0 && hour_now < 12) {
+      // Morning
+      setGreetingImage(require("../../assets/morning.png"));
+      setGreetingMessage(t("Good morning, {{name}}", { name: firstname }));
+    } else if (hour_now >= 12 && hour_now < 17) {
+      // Afternoon
+      setGreetingImage(require("../../assets/afternoon.png"));
+      setGreetingMessage(t("Good afternoon, {{name}}", { name: firstname }));
+    } else {
+      // Evening
+      setGreetingImage(require("../../assets/evening.jpeg"));
+      setGreetingMessage(t("Good evening, {{name}}", { name: firstname }));
+    }
+  };
+
+  const getDistanceAndTime = async (origin, destination) => {
+    try {
+      // Get current position (origin) if not provided as a prop
+      const originCoordinates =
+        origin ||
+        (await new Promise((resolve, reject) => {
+          Geolocation.getCurrentPosition(
+            (position) => resolve(position.coords),
+            (error) => reject(error),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+          );
+        }));
+
+      const originStr = `${originCoordinates.latitude},${originCoordinates.longitude}`;
+      const destinationStr = `${destination.latitude},${destination.longitude}`;
+
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${originStr}&destinations=${destinationStr}&key=${GOOGLE_MAPS_API_KEY}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === "OK") {
+        const element = data.rows[0].elements[0];
+        if (element.status === "OK") {
+          const distanceInMeters = element.distance.value;
+          const durationText = element.duration.text;
+
+          // Convert distance to kilometers
+          const distanceInKilometers = distanceInMeters / 1000;
+
+          // Calculate estimated time based on speed (60 km/h)
+          const speed = 60;
+          let timeInHours = distanceInKilometers / speed;
+          let timeInMinutes = timeInHours * 60;
+
+          if (timeInMinutes < 1) {
+            timeInMinutes = 1; // Minimum 1 minute
+          }
+
+          timeInMinutes = Math.round(timeInMinutes);
+
+          // Set the calculated time and distance in the state
+          setDistance(`${distanceInKilometers.toFixed(2)} km`);
+          setTime(timeInMinutes);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching distance and time:", error);
+    }
+  };
+
+  // Trigger the distance/time calculation when origin or destination changes
+  useEffect(() => {
+    if (origin && destination) {
+      getDistanceAndTime(origin, destination);
+    }
+  }, [origin, destination]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -2163,7 +2070,7 @@ const RiderMapScreen = ({ route }) => {
       {/* Handle modals */}
       {morningContainer && !showDriverOnWay && (
         <View style={styles.buttonContainer}>
-          <View style={styles.morningContainer}>
+          {/* <View style={styles.morningContainer}>
             <Image
               style={styles.morningPic}
               source={require("../../assets/afternoon.png")}
@@ -2171,8 +2078,11 @@ const RiderMapScreen = ({ route }) => {
 
             <Text style={styles.nameText}>
               {t("morning_text")}
-              {/* Good morning, Shehroze */}
             </Text>
+          </View> */}
+          <View style={styles.morningContainer}>
+            <Image style={styles.morningPic} source={greetingImage} />
+            <Text style={styles.nameText}>{greetingMessage}</Text>
           </View>
 
           <TouchableOpacity
@@ -2230,6 +2140,10 @@ const RiderMapScreen = ({ route }) => {
         onBook={onBook}
         onSelectItem={(option) => setSelectedVehicle(option)}
         onClose={() => setModalVisible(false)}
+        origin={origin}
+        time={time}
+        distance={distance}
+        destination={destination}
         navigation={navigation}
         style={{ pointerEvents: "auto" }} // Allow interactions with the map
       />
