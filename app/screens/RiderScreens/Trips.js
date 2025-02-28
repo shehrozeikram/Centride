@@ -44,6 +44,49 @@ const Trips = () => {
         console.log("error", error);
       });
   };
+  // const convertHTMLToJSON2 = (htmlString) => {
+  //   if (!htmlString) return []; // Handle empty HTML string
+
+  //   const parser = new HTMLParser.DOMParser();
+  //   const doc = parser.parseFromString(htmlString, "text/html");
+
+  //   // Extract the list items (each booking item)
+  //   const listItems = doc.getElementsByTagName("ons-list-item");
+
+  //   // Convert NodeList to Array
+  //   const listArray = Array.from(listItems);
+  //   const bookings = [];
+
+  //   listArray.forEach((item) => {
+  //     const booking = {
+  //       bookingId: item.getAttribute("id")?.split("-")[2], // Extracts the booking ID from the 'id' attribute
+  //       time: item
+  //         .getElementsByClassName("list-item__title")[0]
+  //         ?.textContent.trim(), // Extracts time
+  //       status: item.getElementsByTagName("span")[0]?.textContent.trim(), // Extracts status (e.g., "Pending trip")
+  //       pickUpLocation: item
+  //         .getElementsByClassName("list-item__subtitle")[0]
+  //         ?.textContent.trim(), // Pickup location (first subtitle)
+  //       dropOffLocation: item
+  //         .getElementsByClassName("list-item__subtitle")[1]
+  //         ?.textContent.trim(), // Dropoff location (second subtitle)
+  //       driverImage: item.getAttribute("data-driverimg"), // Driver image from the 'data-driverimg' attribute
+  //       carImage: item.getAttribute("data-rideimg"), // Car image from the 'data-rideimg' attribute
+  //       cost: item.getAttribute("data-cost"), // Cost from the 'data-cost' attribute
+  //       bookingData: JSON.parse(
+  //         item.getElementsByClassName("booking-list-item-data")[0]
+  //           ?.textContent || "{}"
+  //       ), // Parse hidden JSON data from the corresponding <span>
+  //       pickUpTime: formatDateTime(),
+  //     };
+
+  //     bookings.push(booking);
+  //   });
+  //   console.log("bookings here 2", bookings);
+
+  //   return bookings;
+  // };
+
   const convertHTMLToJSON2 = (htmlString) => {
     if (!htmlString) return []; // Handle empty HTML string
 
@@ -80,11 +123,25 @@ const Trips = () => {
         pickUpTime: formatDateTime(),
       };
 
+      // Extract the ID and value from the 'pickUpLocation'
+      if (booking.pickUpLocation) {
+        const pickUpParts = booking.pickUpLocation.split("|");
+        if (pickUpParts.length > 1) {
+          const idPart = pickUpParts[0].trim(); // ID part (e.g., 'ID:#12569')
+          const idMatch = idPart.match(/ID:#(\d+)/); // Match only numbers after 'ID:#'
+
+          if (idMatch && idMatch[1]) {
+            booking.ID = idMatch[1]; // Add the 'ID' as a separate key
+          }
+        }
+      }
+
       bookings.push(booking);
     });
 
     return bookings;
   };
+
   function formatDateTime() {
     const now = new Date();
 

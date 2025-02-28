@@ -28,6 +28,7 @@ const CustomModal = ({
   visible,
   onClose,
   navigation,
+  bookingId,
   onBook,
   onSelectItem,
   distance,
@@ -44,6 +45,8 @@ const CustomModal = ({
 
   const user = useSelector((state) => state?.user?.user);
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.7)).current;
+
+  // console.log("bookingId=====", bookingId);
 
   useEffect(() => {
     if (distance) {
@@ -119,7 +122,7 @@ const CustomModal = ({
       });
   };
   const handleOptionSelect = (option) => {
-    console.log("Option selected:", option);
+    // console.log("Option selected:", option);
 
     onSelectItem(option);
     setSelectedOption(option);

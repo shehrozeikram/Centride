@@ -87,7 +87,7 @@ const DriverMap = ({ navigation }) => {
   const mapRef = useRef(null);
   // console.log("ongoing_bk driver =", ongoing_bk);
   // const navigation = useNavigation();
-
+  const [isOnline, setIsOnline] = useState(false);
   const [showViewAlert, setShowViewAlert] = useState(false);
   const [origin, setOrigin] = useState(null);
   const [destination, setDestination] = useState(null);
@@ -356,6 +356,11 @@ const DriverMap = ({ navigation }) => {
       message_ref.off("value", reference);
     };
   }, [user?.driverid]);
+
+  const toggleOnlineStatus = () => {
+    handleSetAvailability();
+    setIsOnline(!isOnline); // Toggle between online and offline
+  };
 
   const sound = new Sound("ride-alloc.mp3", Sound.MAIN_BUNDLE, (error) => {
     if (error) {
@@ -680,6 +685,83 @@ const DriverMap = ({ navigation }) => {
       console.error("Error:", error);
     }
   };
+
+  // const handleSetAvailability = async () => {
+  //   console.log("mai a gya ");
+  //   const sess_id = await getSessionId();
+  //   const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
+
+  //   const body = new URLSearchParams({
+  //     action: "setAvailability",
+  //   }).toString();
+
+  //   try {
+  //     const response = await fetch(url, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/x-www-form-urlencoded",
+  //       },
+  //       body: body,
+  //     });
+
+  //     const responseData = await response.json();
+  //     console.log("responseData ==", responseData);
+  //     if (response.ok) {
+  //       // console.log("response ==", response);
+  //       // onCancel(bookingId);
+  //     } else {
+  //       Alert.alert("Error", "Failed to process the request");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error:", error);
+  //     Alert.alert("Error", "Something went wrong");
+  //   }
+  // };
+
+  const handleSetAvailability = async () => {
+    console.log("Toggling availability...");
+    const sess_id = await getSessionId(); // Fetch session id
+    const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
+
+    // Set the status based on the current online status
+    const status = isOnline ? "false" : "true"; // If online, set false (go offline), else true (go online)
+
+    const body = new URLSearchParams({
+      action: "setAvailability",
+      status: status, // Set the status as "true" or "false"
+    }).toString();
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body,
+      });
+
+      const responseData = await response.json();
+      console.log("responseData ==", responseData);
+
+      if (response.ok) {
+        if (responseData.status === 1 && responseData.success === 1) {
+          // Set the driver as online
+          setIsOnline(true);
+        } else if (responseData.status === 0 && responseData.success === 1) {
+          // Set the driver as offline
+          setIsOnline(false);
+        } else {
+          Alert.alert("Error", "Unexpected response status");
+        }
+      } else {
+        Alert.alert("Error", "Failed to process the request");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      Alert.alert("Error", "Something went wrong");
+    }
+  };
+
   const setDriverLocation = async () => {
     if (!origin) {
       console.log("Origin is not yet available");
@@ -920,6 +1002,20 @@ const DriverMap = ({ navigation }) => {
 
       {driverArriveModal && <DriverArriveModal visible={driverArriveModal} />}
       {dropoffModal && <DriverDropoffModal visible={dropoffModal} />}
+
+      <TouchableOpacity
+        style={[
+          styles.toggleButton,
+          {
+            backgroundColor: isOnline ? "green" : "gray", // Green when online, gray when offline
+          },
+        ]}
+        onPress={toggleOnlineStatus}
+      >
+        <Text style={styles.toggleButtonText}>
+          {isOnline ? "Online" : "Offline"} {/* Toggle between labels */}
+        </Text>
+      </TouchableOpacity>
 
       {origin && (
         <View style={{ flex: 1 }}>
@@ -1167,6 +1263,35 @@ const styles = StyleSheet.create({
   markerImage: {
     height: 30,
     width: 30,
+  },
+  headerStyle: {
+    height: 40,
+    width: 40,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+    position: "absolute",
+    backgroundColor: "black", // assuming Color.black is a predefined color
+    top: Platform.OS === "ios" ? 60 : 30,
+    left: 10,
+    zIndex: 9999,
+  },
+  toggleButton: {
+    position: "absolute",
+    top: 110, // Adjust top position to place it where you want
+    right: 10, // Position it at the right
+    padding: 10,
+    borderRadius: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 5,
+  },
+  toggleButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
 

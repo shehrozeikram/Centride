@@ -31,10 +31,12 @@ import DriverVerification from "../screens/SafetyScreens/DriverVerification";
 import SafetyProtocols from "../screens/SafetyScreens/SafetyProtocols";
 import Current from "../screens/TripsScreens/Current";
 import CentrideSupport from "../screens/SafetyScreens/CentrideSupport";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
+import { TouchableOpacity } from "react-native";
 
 const Stack = createNativeStackNavigator();
 
-const RiderRoute = ({ route }) => {
+const RiderRoute = ({ route, navigation }) => {
   const { ongoing_bk } = route.params || {};
   // const { phone, sess_id } = route.params // Access the passed parameters
   return (
@@ -62,11 +64,25 @@ const RiderRoute = ({ route }) => {
         component={RideCompleted}
         options={{ headerShown: true }}
       />
+
       <Stack.Screen
         name="DropOffLocation"
         component={DropOffLocation}
-        options={{ headerShown: true }}
+        options={{
+          headerShown: true,
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <FontAwesome name="arrow-left" size={20} color="black" />
+            </TouchableOpacity>
+          ),
+        }}
       />
+
+      {/* <Stack.Screen
+        name="DropOffLocation"
+        component={DropOffLocation}
+        options={{ headerShown: true }}
+      /> */}
       <Stack.Screen
         name="AboutTxyCo"
         component={AboutTxyCo}

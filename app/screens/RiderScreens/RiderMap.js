@@ -136,7 +136,6 @@ const RiderMapScreen = ({ route }) => {
   const [driverLocations, setDriverLocations] = useState([]); // Nearby drivers
   const [error, setError] = useState(null); // To handle errors
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isShimmering, setIsShimmering] = useState(true);
   const [isMenuIcon, setIsMenuIcon] = useState(true);
   const [bookingId, setBookingId] = useState(null);
   const [serverClientTimeDiff, setServerClientTimeDiff] = useState(0);
@@ -183,6 +182,14 @@ const RiderMapScreen = ({ route }) => {
     setShowViewAlert(false);
   };
 
+  useEffect(() => {
+    // console.log("showDriverOnWay", showDriverOnWay);
+    if (showDriverOnWay) {
+      setShowRings(false);
+      setIsMenuIcon(true);
+    }
+  }, [showDriverOnWay]);
+
   // console.log("user-", user);
 
   const handleCloseDriverCard = (driverId) => {
@@ -191,12 +198,6 @@ const RiderMapScreen = ({ route }) => {
   const [isDriverBid, setIsDriverBid] = useState(false);
   useEffect(() => {
     if (isDriverBid && formattedNotifications.length > 0) {
-      // console.log(
-      //   "isDriverBid=======>",
-      //   "is====>",
-      //   isDriverBid,
-      //   formattedNotifications
-      // );
       driver_bid_notify(formattedNotifications);
     }
   }, [formattedNotifications, isDriverBid]);
@@ -208,7 +209,7 @@ const RiderMapScreen = ({ route }) => {
         .ref(`Riders/ridr-${userId}/notf`)
         .on("value", async (snapshot) => {
           const data = snapshot.val();
-          console.log("data==", data);
+          // console.log("data==", data);
           const stringValue = JSON.stringify(data.msg_t);
           if (data == null) return;
           if (!(data?.msg && data?.msg_t)) return;
@@ -317,38 +318,16 @@ const RiderMapScreen = ({ route }) => {
     }
   }, [formattedNotifications]);
 
-  // useEffect(() => {
-  //     if (formattedNotifications.length > 0) {
-  //         // Remove duplicates based on booking_id and driver_id
-  //         const uniqueNotifications = formattedNotifications
-  //             .flat() // Flatten the array of arrays into a single array
-  //             .filter(
-  //                 (value, index, self) =>
-  //                     index ===
-  //                     self.findIndex(
-  //                         (t) =>
-  //                             t.booking_id === value.booking_id &&
-  //                             t.driver_id === value.driver_id,
-  //                     ),
-  //             )
-
-  //         console.log('Unique Notifications in rider:', uniqueNotifications)
-
-  //         // Call the driver_bid_notify with the unique notifications
-  //         driver_bid_notify(uniqueNotifications)
-  //     }
-  // }, [formattedNotifications])
-
   const driver_complete_notify = (notification) => {
-    console.log(
-      "Handling driver_complete_notify notification in rider and i came in driver_complete_notify",
-      notification
-    );
+    // console.log(
+    //   "Handling driver_complete_notify notification in rider and i came in driver_complete_notify",
+    //   notification
+    // );
     setDriverRequests([]);
     navigation.navigate("RideCompleted", {
       notification,
     });
-
+    setShowDirections(false);
     setShowDriverOnWay(false);
     setMorningContainer(true);
 
@@ -382,6 +361,9 @@ const RiderMapScreen = ({ route }) => {
 
   const driver_cancelled_notify = (notification) => {
     setShowDriverOnWay(false);
+    setShowRings(false);
+    setShowDirections(false);
+    setDestination(false);
   };
 
   const customer_onride_notify = (notification) => {
@@ -390,7 +372,6 @@ const RiderMapScreen = ({ route }) => {
       console.error("Missing location data in notification:", notification);
       return;
     }
-
     setShowDriverOnWay(true);
     setBookingId(notification.booking_id);
     setNewRideRequest({
@@ -511,7 +492,6 @@ const RiderMapScreen = ({ route }) => {
       console.error("Missing location data in notification:", notification);
       return;
     }
-
     setShowDriverOnWay(true);
     setNewRideRequest({
       ...notification,
@@ -544,6 +524,7 @@ const RiderMapScreen = ({ route }) => {
     }
 
     setHideDirections(true);
+    setShowRings(false);
     showDriverOnWayModal("ride_alloc.mp3", notification.action);
     Alert.alert(
       "Driver Assigned",
@@ -806,12 +787,10 @@ const RiderMapScreen = ({ route }) => {
       console.error("Missing location data in notification:", notification);
       return;
     }
-
     setShowDriverOnWay(true);
     setNewRideRequest({
       ...notification,
     });
-    console.log("bookingId=", notification.msg.booking_id);
     if (mapRef.current) {
       const driverLocationLat = parseFloat(notification?.driver_location_lat);
       const driverLocationLong = parseFloat(notification?.driver_location_long);
@@ -838,7 +817,7 @@ const RiderMapScreen = ({ route }) => {
         longitudeDelta,
       });
     }
-
+    setShowRings(false);
     setHideDirections(true);
     showDriverOnWayModal("ride_alloc.mp3", notification.action);
     Alert.alert(
@@ -856,6 +835,7 @@ const RiderMapScreen = ({ route }) => {
 
   const accept_driver_bid_notify = (notification) => {
     console.log("notifi=", notification);
+    setShowRings(false);
     setShowDriverOnWay(true);
     setNewRideRequest({
       ...notification,
@@ -956,7 +936,7 @@ const RiderMapScreen = ({ route }) => {
   const showDriverOnWayModal = (soundFile, action) => {
     // setShowDriverOnWay(true)
     playSound(soundFile); // Play the sound
-
+    setShowRings(false);
     // Set titleText based on action
     let titleText = "Driver is on his way"; // Default title
 
@@ -1140,7 +1120,7 @@ const RiderMapScreen = ({ route }) => {
   }, []);
 
   const showAlert = (data) => {
-    console.log("Alerttttttttttt", data);
+    // console.log("Alerttttttttttt", data);
     if (data) {
       setNewRideRequest(data);
       setIsModalVisible(true);
@@ -1503,22 +1483,9 @@ const RiderMapScreen = ({ route }) => {
 
           setRingPosition({ x: centerX, y: centerY });
           setShowRings(true);
-
-          // Hide rings after 30 seconds
-          setTimeout(() => {
-            setShowRings(false);
-          }, 15000);
           setLoading(false);
-          // Close the modal
           setModalVisible(false);
-
-          // Change MenuIcon to Cross Button
           setIsMenuIcon(false);
-
-          // After 5 seconds, revert back to the MenuIcon
-          setTimeout(() => {
-            setIsMenuIcon(true);
-          }, 10000);
         }
       }
     } catch (error) {
@@ -1622,12 +1589,12 @@ const RiderMapScreen = ({ route }) => {
         const pendingArray = convertHTMLToJSON2(response.pend_onride);
         const canceledArray = convertHTMLToJSON(response.booking_canc);
 
-        console.log("==>pendingArr=============>", pendingArray);
-
+        // console.log("==>pendingArr=============>", pendingArray);
+        // console.log("bookingId=", bookingId);
         // Navigate to the Trips screen and pass the pendingBookings
         navigation.navigate("Trips", {
           screen: "Current",
-          params: { currentBookings: pendingArray }, // Sending pendingBookings as currentBookings
+          params: { currentBookings: pendingArray, bookingId: bookingId }, // Sending pendingBookings as currentBookings
         });
 
         setPendingBookings(pendingArray); // Optionally set state for local use
@@ -1861,7 +1828,8 @@ const RiderMapScreen = ({ route }) => {
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.headerStyle]}>
-        {isMenuIcon && !showDriverOnWay ? (
+        {/* {isMenuIcon && !showDriverOnWay ? ( */}
+        {isMenuIcon ? (
           <Header
             menuIconStyle={{
               zIndex: 9999,
@@ -2138,6 +2106,7 @@ const RiderMapScreen = ({ route }) => {
       <CustomModal
         visible={modalVisible}
         onBook={onBook}
+        bookingId={bookingId}
         onSelectItem={(option) => setSelectedVehicle(option)}
         onClose={() => setModalVisible(false)}
         origin={origin}

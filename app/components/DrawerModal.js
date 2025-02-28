@@ -59,10 +59,12 @@ const DrawerRow = memo(({ Icon, onPress, text, style }) => (
   </TouchableHighlight>
 ));
 
-const DrawerModal = ({ isVisible, onClose }) => {
+const DrawerModal = ({ isVisible, onClose, bookingId }) => {
   const { t, i18n } = useTranslation();
   const [selectedTab, setSelectedTab] = useState(null);
   const user = useSelector((state) => state.user?.user);
+
+  // console.log("bookingId 111", bookingId);
 
   const translateX = useSharedValue(-width);
   const animate_Width = I18nManager.isRTL ? width : -width;
