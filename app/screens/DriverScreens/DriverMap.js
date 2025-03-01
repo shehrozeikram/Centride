@@ -41,7 +41,6 @@ import DriverArriveModal from "../../modals/DriverArriveModal";
 import DriverDropoffModal from "../../modals/DriverDropoffModal";
 let sound;
 import { GOOGLE_MAPS_API_KEY } from "../../constants/googleMapKey";
-console.log("GOOGLE_MAPS_API_KEY", GOOGLE_MAPS_API_KEY);
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius of the Earth in km
@@ -115,6 +114,7 @@ const DriverMap = ({ navigation }) => {
 
   const user = useSelector((state) => state.user?.user);
   const isMounted = useRef(true);
+  const intervalIdRef = useRef(null);
 
   const [directionsData, setDirectionsData] = useState(null);
   const [showDirections, setShowDirections] = useState(false);
@@ -122,6 +122,8 @@ const DriverMap = ({ navigation }) => {
   const [dropoffModal, setDropoffModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [completedTrips, setCompletedTrips] = useState(0);
+  const [todayEarning, setTodayEarning] = useState();
 
   const markerRefs = useRef([]);
   const user_id = user?.driverid;
@@ -660,12 +662,13 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
-  const setAvailability = async () => {
-    const sessId = await getSessionId();
-    const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
+  const handleCheckDriverLoginStatus = async () => {
+    const sess_id = await getSessionId();
+    const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
 
-    const body = new URLSearchParams();
-    body.append("action", "setAvailability");
+    const body = new URLSearchParams({
+      action: "checkDriverLoginStatus",
+    }).toString();
 
     try {
       const response = await fetch(url, {
@@ -673,62 +676,40 @@ const DriverMap = ({ navigation }) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: body.toString(),
+        body: body,
       });
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+      const responseData = await response.json();
+      if (response.ok) {
+        console.log(
+          "completed_trips=====",
+          responseData.profileinfo.completed_rides
+        );
+        console.log("driver_today_earning=====", responseData.profileinfo);
+        setCompletedTrips(responseData.profileinfo.completed_rides);
+        setTodayEarning(responseData.driver_today_earning);
+      } else {
+        Alert.alert("Error", "Failed to process the request");
       }
-
-      const data = await response.json();
     } catch (error) {
       console.error("Error:", error);
+      Alert.alert("Error", "Something went wrong");
     }
   };
-
-  // const handleSetAvailability = async () => {
-  //   console.log("mai a gya ");
-  //   const sess_id = await getSessionId();
-  //   const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
-
-  //   const body = new URLSearchParams({
-  //     action: "setAvailability",
-  //   }).toString();
-
-  //   try {
-  //     const response = await fetch(url, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/x-www-form-urlencoded",
-  //       },
-  //       body: body,
-  //     });
-
-  //     const responseData = await response.json();
-  //     console.log("responseData ==", responseData);
-  //     if (response.ok) {
-  //       // console.log("response ==", response);
-  //       // onCancel(bookingId);
-  //     } else {
-  //       Alert.alert("Error", "Failed to process the request");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error:", error);
-  //     Alert.alert("Error", "Something went wrong");
-  //   }
-  // };
+  useEffect(() => {
+    handleCheckDriverLoginStatus(); // Call the function on component mount
+  }, []);
 
   const handleSetAvailability = async () => {
     console.log("Toggling availability...");
-    const sess_id = await getSessionId(); // Fetch session id
+    const sess_id = await getSessionId();
     const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
 
-    // Set the status based on the current online status
-    const status = isOnline ? "false" : "true"; // If online, set false (go offline), else true (go online)
+    const status = isOnline ? "false" : "true";
 
     const body = new URLSearchParams({
       action: "setAvailability",
-      status: status, // Set the status as "true" or "false"
+      status: status,
     }).toString();
 
     try {
@@ -745,11 +726,26 @@ const DriverMap = ({ navigation }) => {
 
       if (response.ok) {
         if (responseData.status === 1 && responseData.success === 1) {
-          // Set the driver as online
           setIsOnline(true);
+          console.log("setDriverLocation started...");
+          await AsyncStorage.setItem("isOnline", "true");
+          intervalIdRef.current = setInterval(() => {
+            setDriverLocation();
+            console.log("setDriverLocation executed");
+          }, 10000);
         } else if (responseData.status === 0 && responseData.success === 1) {
           // Set the driver as offline
           setIsOnline(false);
+          console.log("Driver set to offline");
+
+          // Save the offline status in AsyncStorage
+          await AsyncStorage.setItem("isOnline", "false");
+
+          // Stop the interval when the driver is offline
+          if (intervalIdRef.current) {
+            clearInterval(intervalIdRef.current);
+            intervalIdRef.current = null; // Reset the ref to null after clearing
+          }
         } else {
           Alert.alert("Error", "Unexpected response status");
         }
@@ -762,17 +758,41 @@ const DriverMap = ({ navigation }) => {
     }
   };
 
+  // Load the online status from AsyncStorage when the app starts
+  const loadOnlineStatus = async () => {
+    try {
+      const storedStatus = await AsyncStorage.getItem("isOnline");
+      if (storedStatus === "true") {
+        setIsOnline(true); // Set online if the stored status is true
+      } else {
+        setIsOnline(false); // Otherwise, set it as offline
+      }
+    } catch (error) {
+      console.error("Error loading online status:", error);
+    }
+  };
+
+  // In your useEffect, load the saved online status when the component mounts
+  useEffect(() => {
+    loadOnlineStatus();
+  }, []);
+
+  useEffect(() => {
+    if (completedTrips > 0) {
+      loadOnlineStatus(); // Call loadOnlineStatus whenever completedTrips updates
+    }
+  }, [completedTrips]);
+
   const setDriverLocation = async () => {
     if (!origin) {
       console.log("Origin is not yet available");
       return;
     }
 
-    // const sessId = await getSessionId();
-    const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE";
+    const sessId = await getSessionId();
     const lat = origin?.latitude;
     const long = origin?.longitude;
-    console.log("===origin in setDriverLocation===", origin);
+    // console.log("===origin in setDriverLocation===", origin);
 
     const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}&lat=${lat}&long=${long}`;
 
@@ -793,7 +813,7 @@ const DriverMap = ({ navigation }) => {
       }
 
       const data = await response.json();
-      console.log("Running setDriverLocation after every 10 secs", data);
+      // console.log("Running setDriverLocation ", data);
       setTimeOnline(data.driver_time_online);
     } catch (error) {
       console.error("Error:", error);
@@ -1003,20 +1023,6 @@ const DriverMap = ({ navigation }) => {
       {driverArriveModal && <DriverArriveModal visible={driverArriveModal} />}
       {dropoffModal && <DriverDropoffModal visible={dropoffModal} />}
 
-      <TouchableOpacity
-        style={[
-          styles.toggleButton,
-          {
-            backgroundColor: isOnline ? "green" : "gray", // Green when online, gray when offline
-          },
-        ]}
-        onPress={toggleOnlineStatus}
-      >
-        <Text style={styles.toggleButtonText}>
-          {isOnline ? "Online" : "Offline"} {/* Toggle between labels */}
-        </Text>
-      </TouchableOpacity>
-
       {origin && (
         <View style={{ flex: 1 }}>
           <MapView
@@ -1100,6 +1106,20 @@ const DriverMap = ({ navigation }) => {
 
       <TouchableOpacity
         style={[
+          styles.toggleButton,
+          {
+            backgroundColor: isOnline ? "green" : "gray",
+          },
+        ]}
+        onPress={toggleOnlineStatus}
+      >
+        <Text style={styles.toggleButtonText}>
+          {isOnline ? "Online" : "Offline"}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
           styles.mapToggleButton,
           { position: "absolute", right: 10, top: 150 },
         ]} // Positioned on the right side of the map
@@ -1115,11 +1135,11 @@ const DriverMap = ({ navigation }) => {
         <View style={styles.mainContainer}>
           <View style={styles.tripsContainer}>
             <Text style={styles.text}>Completed Trips</Text>
-            <Text style={styles.number}>0</Text>
+            <Text style={styles.number}>{completedTrips}</Text>
           </View>
           <View style={styles.earningsContainer}>
             <Text style={styles.text}>Today's earning</Text>
-            <Text style={styles.number}>Rs0.00</Text>
+            <Text style={styles.number}>Rs {todayEarning}</Text>
           </View>
           <View style={styles.onlineContainer}>
             <Text style={styles.text}>Time online</Text>
@@ -1272,23 +1292,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 5,
     position: "absolute",
-    backgroundColor: "black", // assuming Color.black is a predefined color
+    backgroundColor: "black",
     top: Platform.OS === "ios" ? 60 : 30,
     left: 10,
     zIndex: 9999,
   },
   toggleButton: {
     position: "absolute",
-    top: 110, // Adjust top position to place it where you want
-    right: 10, // Position it at the right
-    padding: 10,
-    borderRadius: 5,
+    top: "5%",
+    right: 10,
+    backgroundColor: "#FBC02D",
+    padding: 15,
+    borderRadius: 30,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
     shadowRadius: 2,
     elevation: 5,
   },
+
   toggleButtonText: {
     color: "white",
     fontWeight: "bold",
