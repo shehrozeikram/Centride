@@ -1020,7 +1020,13 @@ const DriverMap = ({ navigation }) => {
         <Header isMenuIcon={true} isRightView={false} isDriver={true} />
       </View>
 
-      {driverArriveModal && <DriverArriveModal visible={driverArriveModal} />}
+      {driverArriveModal && (
+        <DriverArriveModal
+          visible={driverArriveModal}
+          closeModal={() => setDriverArriveModal(false)}
+        />
+      )}
+
       {dropoffModal && <DriverDropoffModal visible={dropoffModal} />}
 
       {origin && (
@@ -1138,8 +1144,8 @@ const DriverMap = ({ navigation }) => {
             <Text style={styles.number}>{completedTrips}</Text>
           </View>
           <View style={styles.earningsContainer}>
-            <Text style={styles.text}>Today's earning</Text>
-            <Text style={styles.number}>Rs {todayEarning}</Text>
+            {/* <Text style={styles.text}>Today's earning</Text>
+            <Text style={styles.number}>Rs {todayEarning}</Text> */}
           </View>
           <View style={styles.onlineContainer}>
             <Text style={styles.text}>Time online</Text>
@@ -1155,6 +1161,9 @@ const DriverMap = ({ navigation }) => {
         location={origin}
         driverArriveModalVisible={driverArriveModalVisible}
         setDriverArriveModalVisible={setDriverArriveModalVisible}
+        setPickupModalVisible={setPickupModalVisible}
+        setDropoffModalVisible={setDropoffModalVisible}
+        setShowDirections={setShowDirections}
       />
     </View>
   );

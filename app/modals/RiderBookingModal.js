@@ -27,6 +27,9 @@ const RiderBookingModal = ({
   newRideRequest,
   driverArriveModalVisible,
   setDriverArriveModalVisible,
+  setPickupModalVisible,
+  setDropoffModalVisible,
+  setShowDirections,
 }) => {
   const [updatedRiderId, setUpdatedRiderId] = useState(null);
   const [ridersData, setRidersData] = useState([]);
@@ -206,7 +209,10 @@ const RiderBookingModal = ({
       <DriverArriveModal
         visible={driverArriveModalVisible}
         newRideRequest={newRideRequest}
-        // pickupAddress={pickupAddress}
+        setDriverArriveModalVisible={setDriverArriveModalVisible}
+        setPickupModalVisible={setPickupModalVisible}
+        setDropoffModalVisible={setDropoffModalVisible}
+        setShowDirections={setShowDirections}
       />
     );
   }

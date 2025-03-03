@@ -22,7 +22,12 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 Geocoding.init(GOOGLE_MAPS_API_KEY);
 
-const DriverArriveModal = ({ newRideRequest }) => {
+const DriverArriveModal = ({
+  newRideRequest,
+  setDriverArriveModalVisible,
+  setDropoffModalVisible,
+  setShowDirections,
+}) => {
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -143,62 +148,6 @@ const DriverArriveModal = ({ newRideRequest }) => {
     }
   };
 
-  // const getDistanceAndTime = async () => {
-  //   try {
-  //     Geolocation.getCurrentPosition(
-  //       async (position) => {
-  //         const { latitude, longitude } = position.coords;
-
-  //         const origin = `${latitude},${longitude}`;
-  //         const destination = `${newRideRequest?.p_lat},${newRideRequest?.p_lng}`;
-
-  //         const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
-
-  //         const response = await fetch(url);
-  //         const data = await response.json();
-
-  //         if (data.status === "OK") {
-  //           const element = data.rows[0].elements[0];
-  //           if (element.status === "OK") {
-  //             const distanceText = element.distance.text;
-  //             const distanceInMeters = element.distance.value;
-  //             const durationText = element.duration.text;
-
-  //             console.log(
-  //               `Distance: ${distanceText}, Duration: ${durationText}`
-  //             );
-
-  //             const distanceInKilometers = distanceInMeters / 1000;
-
-  //             const speed = 60;
-  //             const timeInHours = distanceInKilometers / speed;
-  //             let timeInMinutes = timeInHours * 60;
-  //             if (timeInMinutes < 1) {
-  //               timeInMinutes = 1;
-  //             }
-
-  //             timeInMinutes = Math.round(timeInMinutes);
-
-  //             console.log(
-  //               `Estimated Time at 60 km/h: ${timeInMinutes} minutes`
-  //             );
-  //             setRideData((prevData) => ({
-  //               ...prevData,
-  //               time_to_pickup: `${timeInMinutes}`,
-  //               estimated_distance: `${distanceInKilometers.toFixed(2)} km`,
-  //             }));
-  //           }
-  //         }
-  //       },
-  //       (error) => {
-  //         console.error("Error getting location:", error);
-  //       },
-  //       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-  //     );
-  //   } catch (error) {
-  //     console.error("Error fetching distance and time:", error);
-  //   }
-  // };
   const handleDriverArrive = async () => {
     setLoading(true);
     const url = `${DRIVER_BASE_URL}`;
@@ -231,11 +180,21 @@ const DriverArriveModal = ({ newRideRequest }) => {
     }
   };
 
+  const handleCancelRide = () => {
+    console.log("ride is cancelled");
+    setDriverArriveModalVisible(false);
+    setShowDirections(false);
+  };
+
   if (pickupModalVisible) {
     return (
       <DriverPickupModal
         visible={pickupModalVisible}
         newRideRequest={rideData}
+        setDriverArriveModalVisible={setDriverArriveModalVisible}
+        setPickupModalVisible={setPickupModalVisible}
+        setDropoffModalVisible={setDropoffModalVisible}
+        setShowDirections={setShowDirections}
       />
     );
   }
@@ -295,6 +254,13 @@ const DriverArriveModal = ({ newRideRequest }) => {
               ) : (
                 <Text style={styles.arrivedText}>I'VE ARRIVED</Text>
               )}
+            </TouchableOpacity>
+            {/* Cancel Ride Button */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelRide}
+            >
+              <Text style={styles.cancelText}>CANCEL RIDE</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -395,6 +361,22 @@ const styles = StyleSheet.create({
     width: screenWidth * 0.85,
   },
   arrivedText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  cancelButton: {
+    backgroundColor: "#f44336", // Red color
+    borderRadius: 30,
+    paddingVertical: 10,
+    // paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    width: screenWidth * 0.25,
+    marginLeft: "70%",
+    marginTop: 10,
+  },
+  cancelText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "400",

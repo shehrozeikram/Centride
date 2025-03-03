@@ -22,8 +22,16 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 Geocoding.init(GOOGLE_MAPS_API_KEY);
 
-const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
+const DriverDropoffModal = ({
+  visible,
+  onClose,
+  newRideRequest,
+  setDriverArriveModalVisible,
+  setPickupModalVisible,
+  setShowDirections,
+}) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
   const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -113,6 +121,10 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
       // setResponseData(jsonResponse);
       setLoading(false);
       setModalVisible(false);
+      setDriverArriveModalVisible(false);
+      setShowDirections(false);
+      setPickupModalVisible(false);
+      setDropoffModalVisible(false);
       navigation.replace("DriverRideCompleted", { newRideRequest });
     } catch (error) {
       setLoading(false);
@@ -120,6 +132,15 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancelRide = () => {
+    console.log("ride is cancelled");
+    setDriverArriveModalVisible(false);
+    setPickupModalVisible(false);
+    setDropoffModalVisible(false);
+    setModalVisible(false);
+    setShowDirections(false);
   };
 
   return (
@@ -177,6 +198,13 @@ const DriverDropoffModal = ({ visible, onClose, newRideRequest }) => {
               ) : (
                 <Text style={styles.dropoffText}>Drop Off</Text>
               )}
+            </TouchableOpacity>
+            {/* Cancel Ride Button */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelRide}
+            >
+              <Text style={styles.cancelText}>CANCEL RIDE</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -278,6 +306,22 @@ const styles = StyleSheet.create({
     width: screenWidth * 0.85,
   },
   dropoffText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  cancelButton: {
+    backgroundColor: "#f44336", // Red color
+    borderRadius: 30,
+    paddingVertical: 10,
+    // paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    width: screenWidth * 0.25,
+    marginLeft: "70%",
+    marginTop: 10,
+  },
+  cancelText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "400",

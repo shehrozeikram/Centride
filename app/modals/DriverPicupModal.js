@@ -420,95 +420,16 @@ import { DRIVER_BASE_URL } from "../utils/constants";
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 Geocoding.init(GOOGLE_MAPS_API_KEY);
 
-const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
+const DriverPickupModal = ({
+  visible,
+  onClose,
+  newRideRequest,
+  setDriverArriveModalVisible,
+  setPickupModalVisible,
+  setShowDirections,
+}) => {
   const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // const apiUrl = "https://appserver.txy.co/ajaxdriver_2_1_1.php";
-  // const sessId = getSessionId();
-  // const params = {
-  //   sess_id: sessId,
-  //   action_get: "startride",
-  //   bookingid: newRideRequest.booking_id,
-  // };
-
-  // const handlePickUp = async () => {
-  //   setLoading(true);
-
-  //   const sessId = "ZWxybHIzcGVsOW5qbjhqbTA2b2VyOHRwZHE=";
-  //   const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
-
-  //   const body = new URLSearchParams({
-  //     action_get: "startride",
-  //     bookingid: newRideRequest.booking_id,
-  //   });
-
-  //   try {
-  //     const res = await fetch(url, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/x-www-form-urlencoded",
-  //         Connection: "keep-alive",
-  //       },
-  //       body: body.toString(),
-  //     });
-
-  //     if (res.ok) {
-  //       setDropoffModalVisible(true);
-
-  //       // Only proceed with map update if locations are valid
-  //       if (
-  //         newRideRequest?.p_lat &&
-  //         newRideRequest?.p_lng &&
-  //         newRideRequest?.d_lat &&
-  //         newRideRequest?.d_lng
-  //       ) {
-  //         // 1. Calculate the midpoint between the driver and rider pickup location
-  //         const centerLat = (newRideRequest?.d_lat + newRideRequest?.p_lat) / 2;
-  //         const centerLng = (newRideRequest?.p_lng + newRideRequest?.d_lng) / 2;
-
-  //         // 2. Calculate the lat and lng differences
-  //         const latDiff = Math.abs(
-  //           newRideRequest?.p_lat - newRideRequest?.d_lat
-  //         );
-  //         const lngDiff = Math.abs(
-  //           newRideRequest?.p_lng - newRideRequest?.d_lng
-  //         );
-
-  //         // 3. Set delta values to ensure both locations are visible on the map
-  //         const latitudeDelta = latDiff + 0.06;
-  //         const longitudeDelta = lngDiff + 0.06;
-
-  //         // 4. Animate the map to the new region (focusing on both driver and rider's location)
-  //         mapRef.current.animateToRegion({
-  //           latitude: centerLat,
-  //           longitude: centerLng,
-  //           latitudeDelta: latitudeDelta,
-  //           longitudeDelta: longitudeDelta,
-  //         });
-
-  //         // 5. Set directions data to show the route from driver to rider's pickup location
-  //         setDirectionsData({
-  //           origin: {
-  //             latitude: newRideRequest?.d_lat,
-  //             longitude: newRideRequest?.d_lng,
-  //           },
-  //           destination: {
-  //             latitude: newRideRequest?.p_lat,
-  //             longitude: newRideRequest?.p_lng,
-  //           },
-  //         });
-  //         setShowDirections(true);
-  //       }
-  //     } else {
-  //       console.log("Request failed with status: ", res.status);
-  //     }
-  //   } catch (err) {
-  //     console.log("Error: ", err.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handlePickUp = async () => {
     setLoading(true);
@@ -542,12 +463,23 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
     }
   };
 
+  const handleCancelRide = () => {
+    console.log("ride is cancelled");
+    setDriverArriveModalVisible(false);
+    setPickupModalVisible(false);
+    setShowDirections(false);
+  };
+
   // Conditionally show the modal
   if (dropoffModalVisible) {
     return (
       <DriverDropoffModal
         visible={dropoffModalVisible}
         newRideRequest={newRideRequest}
+        setDriverArriveModalVisible={setDriverArriveModalVisible}
+        setPickupModalVisible={setPickupModalVisible}
+        setDropoffModalVisible={setDropoffModalVisible}
+        setShowDirections={setShowDirections}
       />
     );
   }
@@ -570,7 +502,7 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
                 </Text>
               </View>
               <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>Waiting for the driver</Text>
+                <Text style={styles.timeText}>Waiting for the Customer</Text>
               </View>
             </View>
             <View style={styles.divider} />
@@ -605,6 +537,13 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
                 <Text style={styles.pickupText}>Pick Up</Text>
               )}
             </TouchableOpacity>
+            {/* Cancel Ride Button */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelRide}
+            >
+              <Text style={styles.cancelText}>CANCEL RIDE</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
@@ -614,141 +553,6 @@ const DriverPickupModal = ({ visible, onClose, newRideRequest }) => {
 };
 
 const styles = StyleSheet.create({
-  // modalContainer: {
-  //   // flex: 1,
-  //   justifyContent: "flex-end",
-  //   alignItems: "center",
-  //   backgroundColor: "rgba(0, 0, 0, 0.5)",
-  // },
-  // transparentBackground: {
-  //   backgroundColor: "transparent",
-  // },
-  // modalContent: {
-  //   width: screenWidth,
-  //   maxHeight: screenHeight * 0.55,
-  //   backgroundColor: "#fff",
-  //   borderTopLeftRadius: 20,
-  //   borderTopRightRadius: 20,
-  //   overflow: "hidden",
-  // },
-  // scrollContainer: {
-  //   paddingVertical: 10,
-  // },
-  // section: {
-  //   paddingHorizontal: 12,
-  //   paddingVertical: 6,
-  // },
-  // row: {
-  //   flexDirection: "row",
-  //   alignItems: "center",
-  //   justifyContent: "space-between",
-  // },
-  // column: {
-  //   flexDirection: "column",
-  //   justifyContent: "flex-start",
-  // },
-  // titleText: {
-  //   fontSize: 18,
-  //   fontWeight: "bold",
-  //   color: "#000",
-  // },
-  // timeContainer: {
-  //   backgroundColor: "#000",
-  //   borderRadius: 10,
-  //   paddingHorizontal: 12,
-  //   paddingVertical: 6,
-  //   alignItems: "center",
-  //   justifyContent: "center",
-  // },
-  // timeText: {
-  //   color: "#fff",
-  //   fontSize: 14,
-  // },
-  // divider: {
-  //   height: 1,
-  //   backgroundColor: "#ddd",
-  //   marginVertical: 6,
-  // },
-  // profileAndRating: {
-  //   flexDirection: "column",
-  //   alignItems: "center",
-  // },
-  // profileImage: {
-  //   width: 70,
-  //   height: 70,
-  //   borderRadius: 35,
-  // },
-  // ratingContainer: {
-  //   flexDirection: "row",
-  //   alignItems: "center",
-  //   marginTop: 5,
-  // },
-  // ratingText: {
-  //   fontSize: 14,
-  //   color: "#000",
-  //   marginRight: 5,
-  // },
-  // driverInfo: {
-  //   flexDirection: "row",
-  //   alignItems: "center",
-  //   justifyContent: "flex-start",
-  //   marginLeft: 10,
-  // },
-  // driverDetailsContainer: {
-  //   flex: 1,
-  //   justifyContent: "center",
-  // },
-  // driverDetails: {
-  //   alignItems: "center",
-  // },
-  // driverName: {
-  //   marginLeft: 10,
-  //   fontSize: 16,
-  //   fontWeight: "bold",
-  //   color: "#000",
-  // },
-  // pickupInfo: {
-  //   flexDirection: "row",
-  //   alignItems: "center",
-  //   marginBottom: 12,
-  // },
-  // pickupImage: {
-  //   width: 25,
-  //   height: 25,
-  //   marginRight: 6,
-  // },
-  // pickupText: {
-  //   fontSize: 12,
-  //   flex: 1,
-  //   overflow: "hidden",
-  //   flexWrap: "wrap",
-  // },
-  // pickupAddressText: {
-  //   fontSize: 12,
-  //   flex: 1,
-  //   overflow: "hidden",
-  //   flexWrap: "wrap",
-  //   color: "black",
-  // },
-  // buttonContainer: {
-  //   justifyContent: "center",
-  //   alignItems: "center",
-  //   marginTop: 15,
-  // },
-  // pickupButton: {
-  //   backgroundColor: "green",
-  //   borderRadius: 30,
-  //   paddingVertical: 10,
-  //   paddingHorizontal: 40,
-  //   alignItems: "center",
-  //   justifyContent: "center",
-  //   width: screenWidth * 0.85,
-  // },
-  // pickupText: {
-  //   color: "#fff",
-  //   fontSize: 14,
-  //   fontWeight: "400",
-  // },
   modalContainer: {
     flex: 1,
     justifyContent: "flex-start",
@@ -840,6 +644,22 @@ const styles = StyleSheet.create({
     width: screenWidth * 0.85,
   },
   pickupText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  cancelButton: {
+    backgroundColor: "#f44336", // Red color
+    borderRadius: 30,
+    paddingVertical: 10,
+    // paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    width: screenWidth * 0.25,
+    marginLeft: "70%",
+    marginTop: 10,
+  },
+  cancelText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "400",
