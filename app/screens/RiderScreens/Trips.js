@@ -146,10 +146,10 @@ const Trips = () => {
     const now = new Date();
 
     const options = {
-      weekday: "long", // Full weekday name (e.g., "Thursday")
-      year: "numeric", // Full year (e.g., "2025")
-      month: "short", // Abbreviated month name (e.g., "Jan")
-      day: "numeric", // Day of the month (e.g., "2")
+      weekday: "long",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     };
 
     const formattedDate = new Intl.DateTimeFormat("en-US", options).format(now);

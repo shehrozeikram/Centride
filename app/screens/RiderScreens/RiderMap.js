@@ -154,6 +154,7 @@ const RiderMapScreen = ({ route }) => {
   const [greetingMessage, setGreetingMessage] = useState("");
   const [greetingImage, setGreetingImage] = useState(null);
   const [time, setTime] = useState(null);
+  const [isBookingDone, setIsBookingDone] = useState(false); // Track if booking is completed
 
   const user = useSelector((state) => state.user?.user);
   const mapRef = useRef(null); // MapView reference
@@ -1486,6 +1487,7 @@ const RiderMapScreen = ({ route }) => {
           setLoading(false);
           setModalVisible(false);
           setIsMenuIcon(false);
+          setIsBookingDone(true);
         }
       }
     } catch (error) {
@@ -1911,7 +1913,8 @@ const RiderMapScreen = ({ route }) => {
                   />
                 </Marker>
 
-                {!hideStroke &&
+                {isBookingDone &&
+                  !hideStroke &&
                   !hideDirections &&
                   showDirections &&
                   origin &&
@@ -2059,6 +2062,8 @@ const RiderMapScreen = ({ route }) => {
               navigation.navigate("DropOffLocation", {
                 origin,
                 userAddress,
+                hideDirections,
+                hideStroke,
               })
             }
           >
@@ -2092,7 +2097,7 @@ const RiderMapScreen = ({ route }) => {
       )}
 
       {/* Conditionally render DriverOnWay instead of morningContainer */}
-      {showDriverOnWay && (
+      {isBookingDone && showDriverOnWay && (
         <DriverOnWay
           visible={showDriverOnWay}
           onClose={() => setShowDriverOnWay(false)}
@@ -2114,6 +2119,7 @@ const RiderMapScreen = ({ route }) => {
         distance={distance}
         destination={destination}
         navigation={navigation}
+        setHideDirections={setHideDirections}
         style={{ pointerEvents: "auto" }} // Allow interactions with the map
       />
     </View>

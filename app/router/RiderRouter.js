@@ -70,11 +70,6 @@ const RiderRoute = ({ route, navigation }) => {
         component={DropOffLocation}
         options={{
           headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <FontAwesome name="arrow-left" size={20} color="black" />
-            </TouchableOpacity>
-          ),
         }}
       />
 

@@ -53,37 +53,36 @@ const DriverRideCompleted = ({ navigation, route }) => {
     }
   }, [newRideRequest]);
 
-  // const fetchDropoffAddress = async (latitude, longitude) => {
-  //   try {
-  //     const json = await Geocoding.from(latitude, longitude);
-  //     if (json.results.length > 0) {
-  //       setDropoffAddress(json.results[0].formatted_address);
-  //     } else {
-  //       setDropoffAddress("Address not found");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching drop-off address:", error);
-  //     setDropoffAddress("Error fetching address");
-  //   }
-  // };
+  const fetchDropoffAddress = async (latitude, longitude) => {
+    try {
+      const json = await Geocoding.from(latitude, longitude);
+      if (json.results.length > 0) {
+        setDropoffAddress(json.results[0].formatted_address);
+      } else {
+        setDropoffAddress("Address not found");
+      }
+    } catch (error) {
+      console.error("Error fetching drop-off address:", error);
+      setDropoffAddress("Error fetching address");
+    }
+  };
 
-  // const fetchPickupAddress = async (latitude, longitude) => {
-  //   try {
-  //     const json = await Geocoding.from(latitude, longitude);
-  //     if (json.results.length > 0) {
-  //       setPickupAddress(json.results[0].formatted_address);
-  //     } else {
-  //       setPickupAddress("Address not found");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching pickup address:", error);
-  //     setPickupAddress("Error fetching address");
-  //   }
-  // };
+  const fetchPickupAddress = async (latitude, longitude) => {
+    try {
+      const json = await Geocoding.from(latitude, longitude);
+      if (json.results.length > 0) {
+        setPickupAddress(json.results[0].formatted_address);
+      } else {
+        setPickupAddress("Address not found");
+      }
+    } catch (error) {
+      console.error("Error fetching pickup address:", error);
+      setPickupAddress("Error fetching address");
+    }
+  };
 
   const handleSubmit = () => {
     console.log("User rating:", rating);
-    // navigation.navigate('RiderMap')
     navigation.navigate("DriverMap");
   };
 

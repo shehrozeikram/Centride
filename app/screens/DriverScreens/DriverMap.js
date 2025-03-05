@@ -722,7 +722,7 @@ const DriverMap = ({ navigation }) => {
       });
 
       const responseData = await response.json();
-      console.log("responseData ==", responseData);
+      // console.log("responseData ==", responseData);
 
       if (response.ok) {
         if (responseData.status === 1 && responseData.success === 1) {
@@ -757,6 +757,10 @@ const DriverMap = ({ navigation }) => {
       Alert.alert("Error", "Something went wrong");
     }
   };
+
+  useEffect(() => {
+    handleSetAvailability();
+  }, []);
 
   // Load the online status from AsyncStorage when the app starts
   const loadOnlineStatus = async () => {
@@ -1010,10 +1014,6 @@ const DriverMap = ({ navigation }) => {
     }, 1000); // Delay in milliseconds
   };
 
-  // if (dropoffModal) {
-  //   return <DriverDropoffModal visible={dropoffModal} />;
-  // }
-
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.headerStyle]}>
@@ -1164,6 +1164,7 @@ const DriverMap = ({ navigation }) => {
         setPickupModalVisible={setPickupModalVisible}
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
+        setIsOnline={setIsOnline}
       />
     </View>
   );

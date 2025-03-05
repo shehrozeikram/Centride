@@ -134,13 +134,47 @@ const DriverDropoffModal = ({
     }
   };
 
-  const handleCancelRide = () => {
-    console.log("ride is cancelled");
-    setDriverArriveModalVisible(false);
-    setPickupModalVisible(false);
-    setDropoffModalVisible(false);
-    setModalVisible(false);
-    setShowDirections(false);
+  // const handleCancelRide = () => {
+  //   console.log("ride is cancelled");
+  //   setDriverArriveModalVisible(false);
+  //   setPickupModalVisible(false);
+  //   setDropoffModalVisible(false);
+  //   setModalVisible(false);
+  //   setShowDirections(false);
+  // };
+
+  const handleCancelRide = async () => {
+    const url = `${DRIVER_BASE_URL}`;
+    const sess_id = await getSessionId();
+    const params = {
+      sess_id: sess_id,
+      action_get: "bookingcancel",
+      bookingid: newRideRequest?.booking_id || rideData?.booking_id,
+      comment: "delete",
+    };
+
+    const queryString = new URLSearchParams(params).toString();
+    const requestUrl = `${url}?${queryString}`;
+
+    try {
+      const response = await fetch(requestUrl, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        setLoading(false);
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await response.json();
+      setDriverArriveModalVisible(false);
+      setPickupModalVisible(false);
+      setDropoffModalVisible(false);
+      setModalVisible(false);
+      setShowDirections(false);
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (

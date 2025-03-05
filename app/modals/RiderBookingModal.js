@@ -30,6 +30,7 @@ const RiderBookingModal = ({
   setPickupModalVisible,
   setDropoffModalVisible,
   setShowDirections,
+  setIsOnline,
 }) => {
   const [updatedRiderId, setUpdatedRiderId] = useState(null);
   const [ridersData, setRidersData] = useState([]);
