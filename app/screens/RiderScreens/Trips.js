@@ -205,7 +205,6 @@ const Trips = () => {
 
     return bookings;
   };
-  //   console.log("pendingBookings======>", pendingBookings);
   return (
     <View style={Style.container}>
       <Spacing val={Platform.OS === "ios" ? 55 : 35} />

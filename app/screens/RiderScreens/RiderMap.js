@@ -93,7 +93,7 @@ const CustomMarker = ({ driver }) => (
 const RiderMapScreen = ({ route }) => {
   const [showViewAlert, setShowViewAlert] = useState(false);
   const { ongoing_bk } = route?.params || {};
-  // console.log("Received ongoing_bk:", ongoing_bk);
+  const { isPendingTripCancel } = route?.params || {};
 
   useEffect(() => {
     if (ongoing_bk && Object.keys(ongoing_bk).length > 0) {
@@ -155,6 +155,9 @@ const RiderMapScreen = ({ route }) => {
   const [greetingImage, setGreetingImage] = useState(null);
   const [time, setTime] = useState(null);
   const [isBookingDone, setIsBookingDone] = useState(false); // Track if booking is completed
+  // const [isPendingTripCancel, setPendingTripCancel] = useState(false);
+
+  // console.log("isPendingTripCancel:", isPendingTripCancel);
 
   const user = useSelector((state) => state.user?.user);
   const mapRef = useRef(null); // MapView reference
@@ -163,6 +166,13 @@ const RiderMapScreen = ({ route }) => {
   const prevActionRef = useRef(null);
   const prevMessageRef = useRef(null);
   const isInitialLoadRef = useRef(true);
+
+  useEffect(() => {
+    // If the trip is canceled, you may want to hide the driver on the way
+    if (isPendingTripCancel) {
+      setShowDriverOnWay(false); // Hide the driver on the way if the trip is canceled
+    }
+  }, [isPendingTripCancel]);
 
   useEffect(() => {
     if (Platform.OS === "ios") {
@@ -184,7 +194,6 @@ const RiderMapScreen = ({ route }) => {
   };
 
   useEffect(() => {
-    // console.log("showDriverOnWay", showDriverOnWay);
     if (showDriverOnWay) {
       setShowRings(false);
       setIsMenuIcon(true);
@@ -788,10 +797,10 @@ const RiderMapScreen = ({ route }) => {
       console.error("Missing location data in notification:", notification);
       return;
     }
-    setShowDriverOnWay(true);
     setNewRideRequest({
       ...notification,
     });
+    setShowDirections(true);
     if (mapRef.current) {
       const driverLocationLat = parseFloat(notification?.driver_location_lat);
       const driverLocationLong = parseFloat(notification?.driver_location_long);
@@ -819,7 +828,8 @@ const RiderMapScreen = ({ route }) => {
       });
     }
     setShowRings(false);
-    setHideDirections(true);
+    setShowDirections(true);
+    // setHideDirections(true);
     showDriverOnWayModal("ride_alloc.mp3", notification.action);
     Alert.alert(
       "Driver Assigned",
@@ -1581,30 +1591,62 @@ const RiderMapScreen = ({ route }) => {
     return bookings;
   };
 
-  const getBookings = () => {
-    const data = {
-      action: "getbookings",
-    };
-    Post({ data: data })
-      .then((response) => {
-        const completedArray = convertHTMLToJSON(response.booking_comp);
-        const pendingArray = convertHTMLToJSON2(response.pend_onride);
-        const canceledArray = convertHTMLToJSON(response.booking_canc);
+  // const getBookings = () => {
+  //   const data = {
+  //     action: "getbookings",
+  //   };
+  //   Post({ data: data })
+  //     .then((response) => {
+  //       const pendingArray = convertHTMLToJSON2(response.pend_onride);
+  //       setPendingBookings(pendingArray);
+  //       if (pendingArray.length > 0) {
+  //         setShowDriverOnWay(true);
+  //       } else {
+  //         setShowDriverOnWay(false);
+  //       }
+  //       console.log("pendingArray==", pendingArray);
+  //     })
+  //     .catch((error) => {
+  //       console.log("error", error);
+  //     });
+  // };
 
-        // console.log("==>pendingArr=============>", pendingArray);
-        // console.log("bookingId=", bookingId);
-        // Navigate to the Trips screen and pass the pendingBookings
-        navigation.navigate("Trips", {
-          screen: "Current",
-          params: { currentBookings: pendingArray, bookingId: bookingId }, // Sending pendingBookings as currentBookings
-        });
+  // useEffect(() => {
+  //   getBookings();
+  // }, []);
 
-        setPendingBookings(pendingArray); // Optionally set state for local use
-      })
-      .catch((error) => {
-        console.log("Error fetching bookings:", error);
-      });
-  };
+  // useEffect(() => {
+  //   if (pendingBookings.length > 0) {
+  //     setShowDriverOnWay(true);
+  //   } else {
+  //     setShowDriverOnWay(false);
+  //   }
+  // }, [pendingBookings]);
+
+  // const getBookings = () => {
+  //   const data = {
+  //     action: "getbookings",
+  //   };
+  //   Post({ data: data })
+  //     .then((response) => {
+  //       console.log("response=-", response);
+  //       // const completedArray = convertHTMLToJSON(response.booking_comp);
+  //       const pendingArray = convertHTMLToJSON2(response.pend_onride);
+  //       // const canceledArray = convertHTMLToJSON(response.booking_canc);
+  //       console.log("==>pendingArr=============>", pendingArray);
+  //       // console.log("bookingId=", bookingId);
+  //       // Navigate to the Trips screen and pass the pendingBookings
+  //       // navigation.navigate("Trips", {
+  //       //   screen: "Current",
+  //       //   params: { currentBookings: pendingArray, bookingId: bookingId }, // Sending pendingBookings as currentBookings
+  //       // });
+
+  //       setPendingBookings(pendingArray); // Optionally set state for local use
+  //     })
+  //     .catch((error) => {
+  //       console.log("Error fetching bookings:", error);
+  //     });
+  // };
 
   function formatDateTime() {
     const now = new Date();
@@ -2097,7 +2139,7 @@ const RiderMapScreen = ({ route }) => {
       )}
 
       {/* Conditionally render DriverOnWay instead of morningContainer */}
-      {isBookingDone && showDriverOnWay && (
+      {!isPendingTripCancel && showDriverOnWay && (
         <DriverOnWay
           visible={showDriverOnWay}
           onClose={() => setShowDriverOnWay(false)}

@@ -194,7 +194,7 @@ import {
   TouchableOpacity,
   ActivityIndicator, // Import the ActivityIndicator
 } from "react-native";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import FontAwesome6 from "react-native-vector-icons/FontAwesome6";
 import Style from "../../utils/Styles";
@@ -272,15 +272,26 @@ const RideItem = ({ item, onCancel }) => {
 };
 
 const Current = ({ data = [] }) => {
+  const navigation = useNavigation();
   const { t, i18n } = useTranslation();
   const route = useRoute();
   const { currentBookings } = route.params || {};
   const [bookings, setBookings] = useState(currentBookings || data);
   const [loading, setLoading] = useState(false); // New state to handle loading indicator
+  const [isPendingTripCancel, setPendingTripCancel] = useState(false);
+
+  // const handleCancelBooking = (bookingId) => {
+  //   const updatedBookings = bookings.filter((item) => item.ID !== bookingId);
+  //   setBookings(updatedBookings);
+  //   setPendingTripCancel(true);
+  //   navigation.navigate("RiderMap", { isPendingTripCancel });
+  // };
 
   const handleCancelBooking = (bookingId) => {
     const updatedBookings = bookings.filter((item) => item.ID !== bookingId);
     setBookings(updatedBookings);
+    setPendingTripCancel(true); // Set the state indicating the trip is being canceled
+    navigation.navigate("RiderMap", { isPendingTripCancel: true }); // Pass this state to RiderMap
   };
 
   useEffect(() => {
