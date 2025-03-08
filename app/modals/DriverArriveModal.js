@@ -205,6 +205,7 @@ const DriverArriveModal = ({
 
       const data = await response.json();
       setLoading(false);
+      setShowDirections(false);
       setDriverArriveModalVisible(false);
     } catch (error) {
       console.error("Error:", error);

@@ -135,6 +135,14 @@ const DriverMap = ({ navigation }) => {
   const message_ref = database().ref(`Drivers/drvr-${user_id}/notf`);
 
   useEffect(() => {
+    if (route.params?.isPendingTripCancel) {
+      setDriverArriveModalVisible(false);
+      setDestination(false);
+
+      setShowDirections(false);
+    }
+  }, [route.params]);
+  useEffect(() => {
     if (Platform.OS === "ios") {
       const requestPermission = async () => {
         const permissionStatus = await requestTrackingPermission();
@@ -395,68 +403,6 @@ const DriverMap = ({ navigation }) => {
     }, 13000);
   };
 
-  // const booking_allocate_notify = (pushData) => {
-  //   const driverAcceptDuration = pushData.driver_accept_duration;
-  //   const notifSentTime = pushData.sent_time;
-
-  //   let currentTimestamp = Date.now();
-  //   currentTimestamp += server_client_time_diff;
-  //   currentTimestamp = Math.floor(currentTimestamp / 1000);
-
-  //   let driverAcceptTime =
-  //     driverAcceptDuration - (currentTimestamp - notifSentTime);
-
-  //   if (driverAcceptTime <= 0) return;
-
-  //   const driverAcceptTimerStep = 100 / driverAcceptTime;
-  //   let driverAcceptTimerIndicator = 0;
-  //   const handleRideRequest = () => {
-  //     console.log("New Booking Request Received");
-  //     showModal("ride_alloc.mp3");
-  //   };
-
-  //   // Function to update map with pickup location (if needed)
-  //   const updateMapWithPickupLocation = (lat, lng) => {
-  //     // Update logic for handling map's marker or any other task related to pickup location
-  //     if (riderPickupMarker) {
-  //       riderPickupMarker.setPosition({
-  //         latitude: lat,
-  //         longitude: lng,
-  //       });
-  //     } else {
-  //       riderPickupMarker = {
-  //         latitude: lat,
-  //         longitude: lng,
-  //       };
-  //     }
-  //   };
-
-  //   // Handle sound and timer related logic
-  //   const processTimerAndSound = () => {
-  //     let playRate = 0;
-  //     const interval = setInterval(() => {
-  //       playRate++;
-  //       if (playRate > 2) {
-  //         playRate = 0;
-  //         rideAllocSound.play(); // Play the allocation sound
-  //       }
-  //       driverAcceptTimerIndicator += driverAcceptTimerStep;
-  //       if (driverAcceptTimerIndicator >= 100) {
-  //         clearInterval(interval); // Stop the timer once completed
-  //       }
-  //     }, 1000); // Update every second
-  //   };
-
-  //   // Show ride allocation notification (just simulate or internal handling)
-  //   handleRideRequest();
-
-  //   // Update the map with pickup location
-  //   updateMapWithPickupLocation(pushData.p_lat, pushData.p_lng);
-
-  //   // Process the timer and sound
-  //   processTimerAndSound();
-  // };
-
   const booking_allocate_notify = (notification) => {
     console.log("Handling booking allocation notification:", notification);
 
@@ -501,6 +447,7 @@ const DriverMap = ({ navigation }) => {
       push_data.time_to_pickup = timeToPickup;
 
       setNewRideRequest(push_data);
+
       showModal("ride_alloc.mp3");
 
       // Set directions data to show the route from driver to rider's pickup location
@@ -549,6 +496,7 @@ const DriverMap = ({ navigation }) => {
 
   const customer_cancelled_notify = (notification) => {
     console.log("notification in customer_cancelled_notify ", notification);
+    setIsModalVisible(false);
     setDriverArriveModal(false);
     setDriverArriveModalVisible(false);
     setPickupModalVisible(false);
@@ -1024,6 +972,11 @@ const DriverMap = ({ navigation }) => {
         <DriverArriveModal
           visible={driverArriveModal}
           closeModal={() => setDriverArriveModal(false)}
+          setShowDirections={() => {
+            setShowDirections(false);
+            setShowDirections(false);
+            setIsModalVisible(false);
+          }}
         />
       )}
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -204,4 +204,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Cancelled;
+export default memo(Cancelled);

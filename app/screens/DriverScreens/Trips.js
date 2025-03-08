@@ -101,6 +101,8 @@ const Trips = () => {
   const [completedBookings, setCompletedBookings] = useState([]);
   const [pendingBookings, setPendingBookings] = useState([]);
   const [canceledBookings, setCanceledBookings] = useState([]);
+
+  const [loading, setLoading] = useState(false);
   const onBackPress = () => {
     navigation.goBack();
   };
@@ -133,23 +135,27 @@ const Trips = () => {
     const data = {
       action: "getDriverHistory",
     };
-
+    setLoading(true);
     Post({ data: data })
       .then((response) => {
         console.log("=============BOOKINGS ==========>", response.booking_comp);
+        console.log("=============PENDING ==========>", response.pend_onride);
+        console.log("=============CANCEL ==========>", response.booking_canc);
 
         const completedArray = convertHTMLToJSON(response.booking_comp);
         const pendingArray = convertHTMLToJSON2(response.pend_onride);
         const canceledArray = convertHTMLToJSON(response.booking_canc);
 
-        console.log("====completedArray====", completedArray);
+        console.log("====pendingArray====", pendingArray);
 
         setCompletedBookings(completedArray);
         setPendingBookings(pendingArray);
         setCanceledBookings(canceledArray);
+        setLoading(false);
       })
       .catch((error) => {
         console.log("======error===", error);
+        setLoading(false);
       });
   };
 
@@ -161,47 +167,94 @@ const Trips = () => {
 
     // Extract the list items (each booking item)
     const listItems = doc.getElementsByTagName("ons-list-item");
-
-    // Convert NodeList to Array
-    const listArray = Array.from(listItems);
     const bookings = [];
 
-    listArray.forEach((item) => {
-      const booking = {
-        bookingId: item.getAttribute("id")?.split("-")[2], // Extracts the booking ID from the 'id' attribute
-        time: item
-          .getElementsByClassName("list-item__title")[0]
-          ?.textContent.trim(), // Extracts time
-        status: item.getElementsByTagName("span")[0]?.textContent.trim(), // Extracts status (e.g., "Pending trip")
-        pickUpLocation: item
-          .getElementsByClassName("list-item__subtitle")[0]
-          ?.textContent.trim(), // Pickup location (first subtitle)
-        dropOffLocation: item
-          .getElementsByClassName("list-item__subtitle")[1]
-          ?.textContent.trim(), // Dropoff location (second subtitle)
-        driverImage: item.getAttribute("data-driverimg"), // Driver image from the 'data-driverimg' attribute
-        carImage: item.getAttribute("data-rideimg"), // Car image from the 'data-rideimg' attribute
-        cost: item.getAttribute("data-cost"), // Cost from the 'data-cost' attribute
-        bookingData: JSON.parse(
-          item.getElementsByClassName("booking-list-item-data")[0]
-            ?.textContent || "{}"
-        ), // Parse hidden JSON data from the corresponding <span>
-        pickUpTime: formatDateTime(),
-      };
+    // Convert NodeList to Array and process each item
+    Array.from(listItems).forEach((item) => {
+      // Get the booking ID from the item's id attribute
+      const itemId = item.getAttribute("id") || "";
+      const bookingId = itemId.split("-").pop();
 
-      // Extract the ID and value from the 'pickUpLocation'
-      if (booking.pickUpLocation) {
-        const pickUpParts = booking.pickUpLocation.split("|");
-        if (pickUpParts.length > 1) {
-          const idPart = pickUpParts[0].trim(); // ID part (e.g., 'ID:#12569')
-          const idMatch = idPart.match(/ID:#(\d+)/); // Match only numbers after 'ID:#'
+      // Find all subtitle elements
+      const subtitles = item.getElementsByClassName("list-item__subtitle");
 
-          if (idMatch && idMatch[1]) {
-            booking.ID = idMatch[1]; // Add the 'ID' as a separate key
+      // Extract booking ID from first subtitle
+      let bookingIdFromSubtitle = "";
+      if (subtitles[0]) {
+        const bookingIdSpan = subtitles[0].getElementsByTagName("span")[0];
+        if (bookingIdSpan) {
+          const bookingIdText = bookingIdSpan.textContent;
+          bookingIdFromSubtitle = bookingIdText.split("#")[1];
+        }
+      }
+
+      // Extract locations from other subtitles
+      let pickupLocation = "";
+      let dropoffLocation = "";
+
+      Array.from(subtitles).forEach((subtitle, index) => {
+        if (index > 0) {
+          // Skip first subtitle as it contains booking ID
+          const locationSpan = subtitle.getElementsByTagName("span")[1];
+          if (locationSpan) {
+            const location = locationSpan.textContent.trim();
+            if (index === 1) {
+              pickupLocation = location;
+            } else if (index === 2) {
+              dropoffLocation = location;
+            }
+          }
+        }
+      });
+
+      // Find the hidden data span that contains the JSON data
+      const dataSpans = doc.getElementsByTagName("span");
+      let bookingData = {};
+      for (let span of Array.from(dataSpans)) {
+        if (span.getAttribute("id") === `booking-list-item-data-${bookingId}`) {
+          try {
+            bookingData = JSON.parse(span.textContent);
+            break;
+          } catch (e) {
+            console.log("Error parsing booking data:", e);
           }
         }
       }
 
+      // Extract time from the title element
+      const titleElements = item.getElementsByClassName("list-item__title");
+      const time =
+        titleElements.length > 0 ? titleElements[0].textContent.trim() : "";
+
+      // Extract status from the span following the title
+      const statusSpans = item.getElementsByTagName("span");
+      let status = "";
+      if (statusSpans.length > 1) {
+        status = statusSpans[1].textContent.trim();
+      }
+
+      // Create the booking object with the correct mapping
+      const booking = {
+        bookingId: bookingIdFromSubtitle || bookingData.booking_id || bookingId,
+        time: time,
+        status: status,
+        pickUpLocation: bookingData.p_location || pickupLocation,
+        dropOffLocation: bookingData.d_location || dropoffLocation,
+        pickUpTime: bookingData.pick_up_time || "",
+        carType: bookingData.car_type || "",
+        carDescription: bookingData.car_desc || "",
+        userFirstName: bookingData.user_firstname || "",
+        userRating: bookingData.user_rating || "",
+        paymentType: bookingData.payment_type || "",
+        userImage: bookingData.user_image || "",
+        carImage: bookingData.car_image || "",
+        bookingCost: bookingData.booking_cost || "",
+        bookingType: bookingData.booking_type || "",
+        bookingStatus: bookingData.booking_status || "",
+        couponCode: bookingData.coupon_code || "",
+      };
+
+      console.log("Parsed booking:", booking);
       bookings.push(booking);
     });
 
@@ -230,7 +283,6 @@ const Trips = () => {
   const convertHTMLToJSON = (htmlString) => {
     if (!htmlString) return []; // Handle empty HTML string
 
-    // Initialize the parser
     const parser = new HTMLParser.DOMParser();
     const doc = parser.parseFromString(htmlString, "text/html");
 
@@ -238,66 +290,94 @@ const Trips = () => {
     const listItems = doc.getElementsByTagName("ons-list-item");
     const bookings = [];
 
-    // Iterate over the NodeList directly using a standard for loop
-    for (let i = 0; i < listItems.length; i++) {
-      const item = listItems[i];
+    // Convert NodeList to Array and process each item
+    Array.from(listItems).forEach((item) => {
+      // Get the booking ID from the item's id attribute
+      const itemId = item.getAttribute("id") || "";
+      const bookingId = itemId.split("-").pop();
 
-      // Extract the hidden data with the ID pattern: "booking-list-item-data-<booking_id>"
-      let bookingData = {};
-      const bookingDataElements = item.getElementsByTagName("span");
+      // Find all subtitle elements
+      const subtitles = item.getElementsByClassName("list-item__subtitle");
 
-      // Iterate through the span elements to find the one containing the booking data
-      for (let j = 0; j < bookingDataElements.length; j++) {
-        const span = bookingDataElements[j];
-        if (span.id && span.id.startsWith("booking-list-item-data")) {
-          bookingData = JSON.parse(span.textContent);
-          break; // Once we find the booking data, we can stop the loop
+      // Extract booking ID from first subtitle
+      let bookingIdFromSubtitle = "";
+      if (subtitles[0]) {
+        const bookingIdSpan = subtitles[0].getElementsByTagName("span")[0];
+        if (bookingIdSpan) {
+          const bookingIdText = bookingIdSpan.textContent;
+          bookingIdFromSubtitle = bookingIdText.split("#")[1];
         }
       }
 
-      // Extract title for time
-      const timeElement = item.getElementsByClassName("list-item__title")[0];
-      const time = timeElement ? timeElement.textContent.trim() : null;
+      // Extract locations from other subtitles
+      let pickupLocation = "";
+      let dropoffLocation = "";
 
-      // Extract status from the subtitle section
-      const statusElement = item.getElementsByClassName(
-        "list-item__subtitle"
-      )[0];
-      const status = statusElement
-        ? statusElement.getElementsByTagName("span")[0].textContent.trim()
-        : null;
+      Array.from(subtitles).forEach((subtitle, index) => {
+        if (index > 0) {
+          // Skip first subtitle as it contains booking ID
+          const locationSpan = subtitle.getElementsByTagName("span")[1];
+          if (locationSpan) {
+            const location = locationSpan.textContent.trim();
+            if (index === 1) {
+              pickupLocation = location;
+            } else if (index === 2) {
+              dropoffLocation = location;
+            }
+          }
+        }
+      });
 
-      // Extract pickup and dropoff locations
-      const locationElements = item.getElementsByClassName(
-        "list-item__subtitle"
-      );
-      const pickUpLocation = locationElements[0]
-        ? locationElements[0].textContent.trim()
-        : null;
-      const dropOffLocation = locationElements[1]
-        ? locationElements[1].textContent.trim()
-        : null;
+      // Find the hidden data span that contains the JSON data
+      const dataSpans = doc.getElementsByTagName("span");
+      let bookingData = {};
+      for (let span of Array.from(dataSpans)) {
+        if (span.getAttribute("id") === `booking-list-item-data-${bookingId}`) {
+          try {
+            bookingData = JSON.parse(span.textContent);
+            break;
+          } catch (e) {
+            console.log("Error parsing booking data:", e);
+          }
+        }
+      }
 
-      // Fallback if item.id is not available
-      const bookingId =
-        bookingData.booking_id ||
-        (item.id ? item.id.split("-").pop() : "unknown");
+      // Extract time from the title element
+      const titleElements = item.getElementsByClassName("list-item__title");
+      const time =
+        titleElements.length > 0 ? titleElements[0].textContent.trim() : "";
 
-      // Construct the booking object
+      // Extract status from the span following the title
+      const statusSpans = item.getElementsByTagName("span");
+      let status = "";
+      if (statusSpans.length > 1) {
+        status = statusSpans[1].textContent.trim();
+      }
+
+      // Create the booking object with the correct mapping
       const booking = {
-        bookingId: bookingId,
+        bookingId: bookingIdFromSubtitle || bookingData.booking_id || bookingId,
         time: time,
         status: status,
-        pickUpLocation: bookingData.p_location || pickUpLocation,
-        dropOffLocation: bookingData.d_location || dropOffLocation,
-        pickUpTime: bookingData.pick_up_time || null,
-        carType: bookingData.car_type || null,
-        distanceTravelled: bookingData.distance_travelled || null,
-        rideDuration: bookingData.ride_duration || null,
+        pickUpLocation: bookingData.p_location || pickupLocation,
+        dropOffLocation: bookingData.d_location || dropoffLocation,
+        pickUpTime: bookingData.pick_up_time || "",
+        carType: bookingData.car_type || "",
+        carDescription: bookingData.car_desc || "",
+        userFirstName: bookingData.user_firstname || "",
+        userRating: bookingData.user_rating || "",
+        paymentType: bookingData.payment_type || "",
+        userImage: bookingData.user_image || "",
+        carImage: bookingData.car_image || "",
+        bookingCost: bookingData.booking_cost || "",
+        bookingType: bookingData.booking_type || "",
+        bookingStatus: bookingData.booking_status || "",
+        couponCode: bookingData.coupon_code || "",
       };
 
+      console.log("Parsed booking:", booking);
       bookings.push(booking);
-    }
+    });
 
     return bookings;
   };
