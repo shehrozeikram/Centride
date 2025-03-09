@@ -369,7 +369,6 @@ const DriverMap = ({ navigation }) => {
 
   const toggleOnlineStatus = () => {
     handleSetAvailability();
-    setIsOnline(!isOnline); // Toggle between online and offline
   };
 
   const sound = new Sound("ride-alloc.mp3", Sound.MAIN_BUNDLE, (error) => {
@@ -649,18 +648,17 @@ const DriverMap = ({ navigation }) => {
   }, []);
 
   const handleSetAvailability = async () => {
-    console.log("Toggling availability...");
-    const sess_id = await getSessionId();
-    const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
-
-    const status = isOnline ? "false" : "true";
-
-    const body = new URLSearchParams({
-      action: "setAvailability",
-      status: status,
-    }).toString();
-
     try {
+      setLoading(true);
+      const sess_id = await getSessionId();
+      const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
+      const newStatus = !isOnline;
+
+      const body = new URLSearchParams({
+        action: "setAvailability",
+        status: newStatus ? "true" : "false",
+      }).toString();
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -670,70 +668,68 @@ const DriverMap = ({ navigation }) => {
       });
 
       const responseData = await response.json();
-      // console.log("responseData ==", responseData);
 
-      if (response.ok) {
-        if (responseData.status === 1 && responseData.success === 1) {
-          setIsOnline(true);
-          console.log("setDriverLocation started...");
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      if (responseData.success === 1) {
+        if (responseData.status === 1) {
+          // Driver is now online
           await AsyncStorage.setItem("isOnline", "true");
-          intervalIdRef.current = setInterval(() => {
-            setDriverLocation();
-            console.log("setDriverLocation executed");
-          }, 10000);
-        } else if (responseData.status === 0 && responseData.success === 1) {
-          // Set the driver as offline
-          setIsOnline(false);
-          console.log("Driver set to offline");
-
-          // Save the offline status in AsyncStorage
+          setIsOnline(true);
+          // Interval will be started by the useEffect that watches isOnline
+        } else if (responseData.status === 0) {
+          // Driver is now offline
           await AsyncStorage.setItem("isOnline", "false");
-
-          // Stop the interval when the driver is offline
+          setIsOnline(false);
           if (intervalIdRef.current) {
-            clearInterval(intervalIdRef.current);
-            intervalIdRef.current = null; // Reset the ref to null after clearing
+            // clearInterval(intervalIdRef.current);
+            // intervalIdRef.current = null;
           }
-        } else {
-          Alert.alert("Error", "Unexpected response status");
         }
       } else {
-        Alert.alert("Error", "Failed to process the request");
+        throw new Error("Operation was not successful");
       }
     } catch (error) {
-      console.error("Error:", error);
-      Alert.alert("Error", "Something went wrong");
+      console.error("Error in handleSetAvailability:", error);
+      const currentStatus = await AsyncStorage.getItem("isOnline");
+      setIsOnline(currentStatus === "true");
+      Alert.alert(
+        "Error",
+        "Failed to update availability status. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    handleSetAvailability();
-  }, []);
-
-  // Load the online status from AsyncStorage when the app starts
   const loadOnlineStatus = async () => {
     try {
-      const storedStatus = await AsyncStorage.getItem("isOnline");
-      if (storedStatus === "true") {
-        setIsOnline(true); // Set online if the stored status is true
+      const savedStatus = await AsyncStorage.getItem("isOnline");
+      if (savedStatus === "true") {
+        setIsOnline(true);
+        // Start location updates immediately if driver is online
+        if (origin) {
+          setDriverLocation();
+          if (intervalIdRef.current) {
+            clearInterval(intervalIdRef.current);
+          }
+          intervalIdRef.current = setInterval(() => {
+            setDriverLocation();
+          }, 10000);
+        }
       } else {
-        setIsOnline(false); // Otherwise, set it as offline
+        setIsOnline(false);
+        if (intervalIdRef.current) {
+          clearInterval(intervalIdRef.current);
+          intervalIdRef.current = null;
+        }
       }
     } catch (error) {
       console.error("Error loading online status:", error);
     }
   };
-
-  // In your useEffect, load the saved online status when the component mounts
-  useEffect(() => {
-    loadOnlineStatus();
-  }, []);
-
-  useEffect(() => {
-    if (completedTrips > 0) {
-      loadOnlineStatus(); // Call loadOnlineStatus whenever completedTrips updates
-    }
-  }, [completedTrips]);
 
   const setDriverLocation = async () => {
     if (!origin) {
@@ -961,6 +957,54 @@ const DriverMap = ({ navigation }) => {
       animateToRegion();
     }, 1000); // Delay in milliseconds
   };
+
+  // Add cleanup effect
+  useEffect(() => {
+    const initializeDriver = async () => {
+      await getLocation();
+      await loadOnlineStatus();
+    };
+
+    initializeDriver();
+
+    // Cleanup interval when component unmounts
+    return () => {
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+    };
+  }, []); // Run only once on mount
+
+  // Add effect to start interval when origin is available and driver is online
+  useEffect(() => {
+    if (origin && isOnline && !intervalIdRef.current) {
+      setDriverLocation();
+      intervalIdRef.current = setInterval(() => {
+        setDriverLocation();
+      }, 10000);
+    }
+  }, [origin, isOnline]);
+
+  // Update the booking-related effect
+  // useEffect(() => {
+  //   if (showViewAlert || isModalVisible || driverArriveModal || dropoffModal) {
+  //     const persistOnlineStatus = async () => {
+  //       const savedStatus = await AsyncStorage.getItem("isOnline");
+  //       if (savedStatus === "true") {
+  //         setIsOnline(true);
+  //         // Ensure location updates are running
+  //         if (!intervalIdRef.current) {
+  //           setDriverLocation();
+  //           intervalIdRef.current = setInterval(() => {
+  //             setDriverLocation();
+  //           }, 10000);
+  //         }
+  //       }
+  //     };
+  //     persistOnlineStatus();
+  //   }
+  // }, [showViewAlert, isModalVisible, driverArriveModal, dropoffModal]);
 
   return (
     <View style={{ flex: 1 }}>
