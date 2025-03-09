@@ -43,7 +43,7 @@ import Sound from "react-native-sound";
 import DriverOnWay from "../../modals/DriverOnWay";
 import DriverCard from "../../modals/DriverCard";
 import HTMLParser from "react-native-html-parser";
-import moment from "moment-timezone";
+import moment from 'moment-timezone';
 
 import { useTranslation } from "react-i18next";
 
