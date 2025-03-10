@@ -54,7 +54,7 @@ const Completed = ({ data }) => {
     setTimeout(() => {
       setRideData(data); // Set the actual data after 5 seconds
       setLoading(false); // Stop loading after the delay
-    }, 5000);
+    }, 1000);
   }, [data]);
 
   return (

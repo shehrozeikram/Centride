@@ -1,49 +1,57 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
-$RNFirebaseAsStaticFramework = true
-require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "react-native/scripts/react_native_pods.rb",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip
+source 'https://cdn.cocoapods.org/'
 
-platform :ios, min_ios_version_supported
+# Set deployment target before requiring react-native-pods
+$RN_DEPLOYMENT_TARGET = '14.0'
+$RNFirebaseAsStaticFramework = true
+
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+platform :ios, $RN_DEPLOYMENT_TARGET
 prepare_react_native_project!
 
-# Enable modular headers globally
-# use_modular_headers!
 use_frameworks! :linkage => :static
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
 
 target 'TxyCo' do
   config = use_native_modules!
 
   use_react_native!(
     :path => config[:reactNativePath],
-    :app_path => "#{Pod::Config.instance.installation_root}/..",
-   
-
+    :hermes_enabled => true,
+    :fabric_enabled => false,
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # Explicitly specify DoubleConversion version
+  pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec', :modular_headers => false
+
   # Firebase dependencies
-  pod 'Firebase/Auth'
-  pod 'Firebase/Database'
+  pod 'Firebase', '~> 11.2.0'
+  pod 'Firebase/Core', '~> 11.2.0'
+  pod 'Firebase/Auth', '~> 11.2.0'
+  pod 'Firebase/Database', '~> 11.2.0'
+  
+  # Maps dependencies
   pod 'GoogleMaps'
   pod 'GooglePlaces'
+
   target 'TxyCoTests' do
     inherit! :complete
-    # Pods for testing
   end
 
   post_install do |installer|
-    # React Native post-install configurations
     react_native_post_install(
       installer,
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
+
+    # Fix deployment target for all pods
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = $RN_DEPLOYMENT_TARGET
+      end
+    end
   end
 end
