@@ -12,6 +12,7 @@ import {
   Animated,
   Pressable,
   ActivityIndicator,
+  Easing,
 } from "react-native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import OfferModal from "./OfferModal";
@@ -21,6 +22,7 @@ import { Post } from "../network/network";
 import Spacing from "../components/Spacing";
 import Style from "../utils/Styles";
 import Color from "../utils/Color";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -42,6 +44,9 @@ const CustomModal = ({
   const [loading, setLoading] = useState(false);
   const [distanceInKm, setDistanceInKm] = useState(null);
   const [timeInMinutes, setTimeInMinutes] = useState(null);
+  const bounceAnimation = useRef(new Animated.Value(0)).current;
+  const translateYAnimation = useRef(new Animated.Value(0)).current;
+  const [promoData, setPromoData] = useState(null);
 
   const user = useSelector((state) => state?.user?.user);
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.7)).current;
@@ -74,26 +79,143 @@ const CustomModal = ({
     }
   }, [distanceInKm, timeInMinutes]);
 
+  useEffect(() => {
+    if (visible) {
+      // Reset animations
+      bounceAnimation.setValue(0);
+      translateYAnimation.setValue(screenHeight); // Start from bottom of screen
+
+      Animated.parallel([
+        // Fade in with bounce
+        Animated.spring(bounceAnimation, {
+          toValue: 1,
+          tension: 65,
+          friction: 5,
+          useNativeDriver: true,
+        }),
+        // Quick consecutive bounces
+        Animated.sequence([
+          // Initial rise
+          Animated.timing(translateYAnimation, {
+            toValue: -25,
+            duration: 250,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          // First bounce
+          Animated.timing(translateYAnimation, {
+            toValue: -5,
+            duration: 150,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          // Second bounce
+          Animated.timing(translateYAnimation, {
+            toValue: -15,
+            duration: 150,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          // Final settle
+          Animated.timing(translateYAnimation, {
+            toValue: 0,
+            duration: 100,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    } else {
+      // Animate out
+      Animated.parallel([
+        Animated.timing(bounceAnimation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnimation, {
+          toValue: screenHeight,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const getPromoData = async () => {
+      try {
+        console.log('Checking for promo data...');
+        const savedPromoData = await AsyncStorage.getItem('activePromoCode');
+        console.log('Retrieved Promo Data:', savedPromoData);
+        
+        if (savedPromoData) {
+          const parsedData = JSON.parse(savedPromoData);
+          console.log('Parsed Promo Data:', parsedData);
+          
+          if (parsedData.discount) {
+            console.log('Discount value:', parsedData.discount);
+            setPromoData(parsedData);
+            if (carsArray.length > 0) {
+              calculateFaresForAllOptions(carsArray);
+            }
+          } else {
+            console.log('No discount value found in promo data');
+          }
+        } else {
+          console.log('No promo data found in AsyncStorage');
+        }
+      } catch (error) {
+        console.error('Error retrieving promo data:', error);
+      }
+    };
+
+    if (visible) {
+      getPromoData();
+    }
+  }, [visible]);
+
   const calculateFaresForAllOptions = (carsData) => {
     if (distanceInKm && timeInMinutes && carsData?.length > 0) {
+      console.log('Calculating fares with promoData:', promoData);
+
       const updatedCarsArray = carsData.map((car) => {
         const baseFare = parseFloat(car?.pickup_cost) || 0;
         const costPerKm = parseFloat(car?.cost_per_km) || 0;
         const costPerMinute = parseFloat(car?.cost_per_minute) || 0;
         const initialDistance = parseFloat(car?.init_distance) || 0;
 
-        let totalFare = baseFare;
+        let originalFare = baseFare;
         if (distanceInKm > initialDistance) {
-          totalFare += (distanceInKm - initialDistance) * costPerKm;
+          originalFare += (distanceInKm - initialDistance) * costPerKm;
         }
+        originalFare += timeInMinutes * costPerMinute;
+        originalFare = Math.round(originalFare);
 
-        totalFare += timeInMinutes * costPerMinute;
-
-        totalFare = Math.round(totalFare);
+        let discountedFare = originalFare;
+        if (promoData && promoData.discount) {
+          // Convert "20.00" to 20 for percentage calculation
+          const discountPercentage = parseFloat(promoData.discount);
+          console.log('Applying discount percentage:', discountPercentage, '%');
+          
+          // Calculate discount amount (20% of original fare)
+          const discountAmount = (originalFare * (discountPercentage / 100));
+          discountedFare = originalFare - discountAmount;
+          discountedFare = Math.round(discountedFare);
+          
+          console.log('Discount calculation:', {
+            originalFare,
+            discountPercentage,
+            discountAmount,
+            finalPrice: discountedFare
+          });
+        }
 
         return {
           ...car,
-          totalFare: totalFare.toFixed(2),
+          originalFare: originalFare.toFixed(2),
+          totalFare: discountedFare.toFixed(2),
+          hasPromo: !!promoData
         };
       });
 
@@ -151,13 +273,27 @@ const CustomModal = ({
             <Text style={styles.optionSeats}>{item.num_seats}</Text>
           </View>
         </View>
-        <View>
-          <Text style={styles.priceText}>
-            <Text style={styles.currencySymbol}>{item?.symbol}</Text>
-            {item?.totalFare != null
-              ? ` ${parseFloat(item?.totalFare)}`
-              : "Fare not calculated yet"}
-          </Text>
+        <View style={styles.priceContainer}>
+          {promoData ? (
+            <>
+              <Text style={styles.originalPrice}>
+                <Text style={styles.currencySymbol}>{item?.symbol}</Text>
+                {item?.originalFare}
+              </Text>
+              <Text style={styles.discountedPrice}>
+                <Text style={styles.currencySymbol}>{item?.symbol}</Text>
+                {item?.totalFare}
+              </Text>
+              <Text style={styles.promoApplied}>
+                {parseFloat(promoData.discount)}% OFF
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.priceText}>
+              <Text style={styles.currencySymbol}>{item?.symbol}</Text>
+              {item?.totalFare}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -168,11 +304,27 @@ const CustomModal = ({
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
-      animationType="slide"
+      animationType="none"
     >
       <Pressable onPress={onClose} style={styles.modalContainer}>
         <Animated.View
-          style={[styles.modalContent, { height: animatedHeight }]}
+          style={[
+            styles.modalContent,
+            {
+              transform: [
+                {
+                  translateY: translateYAnimation,
+                },
+                {
+                  scale: bounceAnimation.interpolate({
+                    inputRange: [0, 0.4, 0.7, 1],
+                    outputRange: [0.3, 1.05, 0.98, 1],
+                  }),
+                },
+              ],
+              opacity: bounceAnimation,
+            },
+          ]}
         >
           <FlatList
             data={carsArray}
@@ -351,6 +503,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#000",
+  },
+  promoApplied: {
+    fontSize: 12,
+    color: 'green',
+    marginTop: 4,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+    minWidth: 80,
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: '#666',
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
+  },
+  discountedPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 2,
+  },
+  promoApplied: {
+    fontSize: 12,
+    color: '#4CAF50',
+    marginTop: 2,
+    fontWeight: '500',
   },
 });
 

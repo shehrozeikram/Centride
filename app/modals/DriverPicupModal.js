@@ -280,9 +280,9 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   cancelButton: {
-    backgroundColor: "#f44336", // Red color
-    borderRadius: 30,
-    paddingVertical: 10,
+    // backgroundColor: "#f44336", // Red color
+    // borderRadius: 30,
+    // paddingVertical: 10,
     // paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   cancelText: {
-    color: "#fff",
+    color: "red",
     fontSize: 14,
     fontWeight: "400",
   },

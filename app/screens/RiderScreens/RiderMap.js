@@ -13,6 +13,9 @@ import {
   FlatList,
   Linking,
   Modal,
+  ActivityIndicator,
+  Animated, // Add this import
+  Easing, // Add this import
 } from "react-native";
 import Ring from "../../components/Ring";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
@@ -90,6 +93,22 @@ const CustomMarker = ({ driver }) => (
   </View>
 );
 
+const calculateBearing = (startLat, startLng, endLat, endLng) => {
+  const startLatRad = startLat * (Math.PI / 180);
+  const startLngRad = startLng * (Math.PI / 180);
+  const endLatRad = endLat * (Math.PI / 180);
+  const endLngRad = endLng * (Math.PI / 180);
+
+  const dLong = endLngRad - startLngRad;
+  const y = Math.sin(dLong) * Math.cos(endLatRad);
+  const x = Math.cos(startLatRad) * Math.sin(endLatRad) -
+    Math.sin(startLatRad) * Math.cos(endLatRad) * Math.cos(dLong);
+  let bearing = Math.atan2(y, x) * (180 / Math.PI);
+  bearing = (bearing + 360) % 360;
+
+  return bearing;
+};
+
 const RiderMapScreen = ({ route }) => {
   const [showViewAlert, setShowViewAlert] = useState(false);
   const { ongoing_bk } = route?.params || {};
@@ -157,15 +176,28 @@ const RiderMapScreen = ({ route }) => {
   const [isBookingDone, setIsBookingDone] = useState(false); // Track if booking is completed
   // const [isPendingTripCancel, setPendingTripCancel] = useState(false);
 
+  // Add these new states near the top with other useState declarations
+  const [driverRoute, setDriverRoute] = useState({
+    start: null,
+    end: null,
+    show: false
+  });
+
+  const [searchButtonAnim] = useState(new Animated.Value(0));
+  const [greetingScale] = useState(new Animated.Value(0));
+
   // console.log("isPendingTripCancel:", isPendingTripCancel);
 
   const user = useSelector((state) => state.user?.user);
   const mapRef = useRef(null); // MapView reference
-  const markerRefs = useRef([]);
+  const markerRefs = useRef({}); // Change to object instead of array
 
   const prevActionRef = useRef(null);
   const prevMessageRef = useRef(null);
   const isInitialLoadRef = useRef(true);
+
+  const [animatedMarkers, setAnimatedMarkers] = useState({});
+  const animatedMarkersRef = useRef({});
 
   useEffect(() => {
     // If the trip is canceled, you may want to hide the driver on the way
@@ -215,92 +247,99 @@ const RiderMapScreen = ({ route }) => {
   useEffect(() => {
     const fetchNotifications = async () => {
       const userId = user?.userid;
-      const reference = database()
-        .ref(`Riders/ridr-${userId}/notf`)
-        .on("value", async (snapshot) => {
-          const data = snapshot.val();
-          // console.log("data==", data);
-          const stringValue = JSON.stringify(data.msg_t);
-          if (data == null) return;
-          if (!(data?.msg && data?.msg_t)) return;
+      let reference;
 
-          // Get last message timestamp from AsyncStorage
-          const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
-          if (data.msg_t === last_msg_time_id) return;
+      if (userId) {
+        reference = database()
+          .ref(`Riders/ridr-${userId}/notf`)
+          .on("value", async (snapshot) => {
+            const data = snapshot.val();
+            // console.log("data==", data);
+            const stringValue = JSON.stringify(data.msg_t);
+            if (data == null) return;
+            if (!(data?.msg && data?.msg_t)) return;
 
-          const lastMsgTimeIdString = last_msg_time_id
-            ? last_msg_time_id.toString()
-            : null;
-          if (data.msg_t.toString() === lastMsgTimeIdString) return;
+            // Get last message timestamp from AsyncStorage
+            const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
+            if (data.msg_t === last_msg_time_id) return;
 
-          // Update last message timestamp in AsyncStorage
-          await AsyncStorage.setItem(
-            "fb_last_recvd",
-            // stringValue,
-            // JSON.stringify(data.msg_t),
-            data?.msg_t?.toString()
-          );
+            const lastMsgTimeIdString = last_msg_time_id
+              ? last_msg_time_id.toString()
+              : null;
+            if (data.msg_t.toString() === lastMsgTimeIdString) return;
 
-          let current_local_timestamp = Date.now();
-          current_local_timestamp += serverClientTimeDiff;
-          current_local_timestamp = Math.floor(current_local_timestamp / 1000);
+            // Update last message timestamp in AsyncStorage
+            await AsyncStorage.setItem(
+              "fb_last_recvd",
+              // stringValue,
+              // JSON.stringify(data.msg_t),
+              data?.msg_t?.toString()
+            );
 
-          if (current_local_timestamp - 5 > data.msg_t) return;
+            let current_local_timestamp = Date.now();
+            current_local_timestamp += serverClientTimeDiff;
+            current_local_timestamp = Math.floor(current_local_timestamp / 1000);
 
-          const message = data.msg;
+            if (current_local_timestamp - 5 > data.msg_t) return;
 
-          if (
-            message.hasOwnProperty("booking_id") &&
-            message.hasOwnProperty("action")
-          ) {
-            if (message.action === "driver-bid-notify") {
-              if (message !== null) {
-                setFormattedNotifications((prevNotifications) => [
-                  ...prevNotifications,
-                  ...[message],
-                ]);
+            const message = data.msg;
+
+            if (
+              message.hasOwnProperty("booking_id") &&
+              message.hasOwnProperty("action")
+            ) {
+              if (message.action === "driver-bid-notify") {
+                if (message !== null) {
+                  setFormattedNotifications((prevNotifications) => [
+                    ...prevNotifications,
+                    ...[message],
+                  ]);
+                }
+              }
+              // Switch based on action type
+              switch (message.action) {
+                case "driver-assigned":
+                  // accept_driver_bid_notify(message)
+                  driver_assigned_notify(message);
+                  break;
+                case "driver-bid-notify":
+                  setIsDriverBid(true);
+                  // driver_bid_notify(formattedNotifications)
+                  break;
+                case "accept-driver-bid-notify":
+                  accept_driver_bid_notify(message);
+                  break;
+                case "driver-arrived":
+                  driver_arrived_notify(message);
+                  break;
+                case "customer-onride":
+                  customer_onride_notify(message);
+                  break;
+                case "driver-complete":
+                  driver_complete_notify(message);
+                  break;
+                case "driver-cancelled":
+                  driver_cancelled_notify(message);
+                  break;
+                case "chat-message":
+                  driver_chat_msg_notify(message);
+                  break;
+                case "app-message":
+                  app_message(message);
+                  break;
+                default:
+                  console.log("Unknown action type:", message.action);
+                  break;
               }
             }
-            // Switch based on action type
-            switch (message.action) {
-              case "driver-assigned":
-                // accept_driver_bid_notify(message)
-                driver_assigned_notify(message);
-                break;
-              case "driver-bid-notify":
-                setIsDriverBid(true);
-                // driver_bid_notify(formattedNotifications)
-                break;
-              case "accept-driver-bid-notify":
-                accept_driver_bid_notify(message);
-                break;
-              case "driver-arrived":
-                driver_arrived_notify(message);
-                break;
-              case "customer-onride":
-                customer_onride_notify(message);
-                break;
-              case "driver-complete":
-                driver_complete_notify(message);
-                break;
-              case "driver-cancelled":
-                driver_cancelled_notify(message);
-                break;
-              case "chat-message":
-                driver_chat_msg_notify(message);
-                break;
-              case "app-message":
-                app_message(message);
-                break;
-              default:
-                console.log("Unknown action type:", message.action);
-                break;
-            }
-          }
-        });
+          });
+      }
 
+      // Cleanup function
       return () => {
-        database().ref(`Riders/ridr-${userId}/notf`).off("value", reference);
+        if (reference) {
+          database().ref(`Riders/ridr-${userId}/notf`).off("value", reference);
+        }
       };
     };
 
@@ -377,259 +416,203 @@ const RiderMapScreen = ({ route }) => {
   };
 
   const customer_onride_notify = (notification) => {
-    // Ensure all necessary fields exist and are valid
     if (!notification?.driver_location_lat || !notification?.pickup_lat) {
-      console.error("Missing location data in notification:", notification);
-      return;
+        console.error("Missing location data in notification:", notification);
+        return;
     }
+
     setShowDriverOnWay(true);
+    setShowDirections(true);
+    setHideDirections(false);
     setBookingId(notification.booking_id);
     setNewRideRequest({
-      ...notification,
+        ...notification,
     });
 
     if (mapRef.current) {
-      const driverLocationLat = parseFloat(notification?.driver_location_lat);
-      const driverLocationLong = parseFloat(notification?.driver_location_long);
-      const riderPickupLocationLat = parseFloat(notification?.pickup_lat);
-      const riderPickupLocationLng = parseFloat(notification?.pickup_long);
+        try {
+            const driverLocationLat = parseFloat(notification?.driver_location_lat);
+            const driverLocationLong = parseFloat(notification?.driver_location_long);
+            const destinationLat = parseFloat(notification?.dropoff_lat);
+            const destinationLng = parseFloat(notification?.dropoff_long);
 
-      if (isNaN(driverLocationLat) || isNaN(driverLocationLong)) {
-        console.error("Invalid driver location data:", notification);
-        return;
-      }
+            if (isNaN(driverLocationLat) || isNaN(driverLocationLong) || 
+                isNaN(destinationLat) || isNaN(destinationLng)) {
+                console.error("Invalid location data:", notification);
+                return;
+            }
 
-      // Proceed with map region animation
-      const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
-      const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
-      const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
-      const lngDiff = Math.abs(driverLocationLong - riderPickupLocationLng);
-      const latitudeDelta = latDiff + 0.05;
-      const longitudeDelta = lngDiff + 0.05;
+            // Set origin and destination for the route
+            setOrigin({
+                latitude: driverLocationLat,
+                longitude: driverLocationLong
+            });
+            setDestination({
+                latitude: destinationLat,
+                longitude: destinationLng
+            });
 
-      mapRef.current.animateToRegion({
-        latitude: centerLat,
-        longitude: centerLng,
-        latitudeDelta,
-        longitudeDelta,
-      });
+            // Update stroke color to light blue
+            setStrokeColor("#1E90FF");
+
+            // Calculate bearing between points
+            const bearing = calculateBearing(
+                driverLocationLat,
+                driverLocationLong,
+                destinationLat,
+                destinationLng
+            );
+
+            // First animation: Zoom out to show both points
+            const zoomOutAnimation = () => {
+                const centerLat = (driverLocationLat + destinationLat) / 2;
+                const centerLng = (driverLocationLong + destinationLng) / 2;
+                const latDiff = Math.abs(driverLocationLat - destinationLat);
+                const lngDiff = Math.abs(driverLocationLong - destinationLng);
+
+                mapRef.current.animateCamera({
+                    center: {
+                        latitude: centerLat,
+                        longitude: centerLng
+                    },
+                    pitch: 45,
+                    heading: bearing,
+                    zoom: 15,
+                    altitude: Math.max(latDiff, lngDiff) * 110000 * 1.2
+                }, { duration: 1000 });
+            };
+
+            // Second animation: Set street-level view looking down the road
+            const adjustViewAnimation = () => {
+                setTimeout(() => {
+                    // Calculate a slight offset in the direction of travel
+                    const offsetMultiplier = 0.0001; // Small offset to position camera slightly behind
+                    const latOffset = Math.sin(bearing * Math.PI / 180) * offsetMultiplier;
+                    const lngOffset = Math.cos(bearing * Math.PI / 180) * offsetMultiplier;
+                    
+                    mapRef.current.animateCamera({
+                        center: {
+                            latitude: driverLocationLat - latOffset, // Position slightly behind the start point
+                            longitude: driverLocationLong - lngOffset
+                        },
+                        pitch: 75, // Higher pitch for more ground-level view
+                        heading: bearing,
+                        zoom: 18.5, // Closer zoom for street level
+                        altitude: 100 // Lower altitude for ground-level perspective
+                    }, { duration: 1500 });
+                }, 1000);
+            };
+
+            // Execute animation sequence
+            zoomOutAnimation();
+            adjustViewAnimation();
+
+        } catch (error) {
+            console.error('Error animating map:', error);
+        }
     }
 
-    setHideDirections(true);
+    setHideDirections(false);
     showDriverOnWayModal("ride_alloc.mp3", notification.action);
     Alert.alert(
-      "Driver Assigned",
-      "A driver has been assigned to you and is on his way.",
-      [
-        {
-          text: "OK",
-          onPress: () => setShowDriverAssignedModal(false),
-        },
-      ],
-      { cancelable: false }
+        "Trip Begin",
+        "Your trip has started. I hope you will have a good time",
+        [
+            {
+                text: "OK",
+                onPress: () => setShowDriverAssignedModal(false),
+            },
+        ],
+        { cancelable: false }
     );
-  };
 
-  // const customer_onride_notify = (notification) => {
-  //   // console.log("customer_onride_notify notification=", notification);
-  //   // Update newRideRequest state with relevant data
-  //   setNewRideRequest({
-  //     ...notification, // Keep the existing notification data
-  //     // titleText: "Your trip has started", // Set title based on action
-  //   });
-
-  //   if (mapRef.current) {
-  //     const driverLocationLat = notification?.driver_location_lat;
-  //     const driverLocationLong = notification?.driver_location_long;
-  //     // const riderPickupLocationLat = notification?.pickup_lat
-  //     // const riderPickupLocationLng = notification?.pickup_long
-  //     const riderDropoffLocationLat = notification?.dropoff_lat;
-  //     const riderDropoffLocationLng = notification?.dropoff_long;
-
-  //     // Get destination coordinates from the push data
-  //     const destinationLat = parseFloat(notification?.dropoff_lat);
-  //     const destinationLng = parseFloat(notification?.dropoff_long);
-
-  //     if (
-  //       // riderPickupLocationLat &&
-  //       // riderPickupLocationLng &&
-  //       driverLocationLat &&
-  //       driverLocationLong &&
-  //       riderDropoffLocationLat &&
-  //       riderDropoffLocationLng
-  //     ) {
-  //       // Calculate the center of the region (midpoint between pickup and dropoff)
-  //       const centerLat = (driverLocationLat + riderDropoffLocationLat) / 2;
-  //       const centerLng = (driverLocationLong + riderDropoffLocationLng) / 2;
-
-  //       // Calculate the lat/lng difference between pickup and dropoff
-  //       const latDiff = Math.abs(driverLocationLat - riderDropoffLocationLat);
-  //       const lngDiff = Math.abs(driverLocationLong - riderDropoffLocationLng);
-
-  //       // Add a small margin to account for the visible region
-  //       const latitudeDelta = latDiff + 0.1;
-  //       const longitudeDelta = lngDiff + 0.1;
-
-  //       const adjustedCenterLat = centerLat - latDiff * 0.2;
-
-  //       // Zoom in the map to focus on driver and pickup location
-  //       mapRef.current.animateToRegion({
-  //         latitude: adjustedCenterLat,
-  //         longitude: centerLng,
-  //         latitudeDelta: latitudeDelta,
-  //         longitudeDelta: longitudeDelta,
-  //       });
-  //     }
-  //   }
-
-  //   // Show modal with updated data and sound
-  //   showDriverOnWayModal("ride_alloc.mp3", notification.action);
-  //   Alert.alert(
-  //     "Trip Begin",
-  //     "Your trip has started. I hope you will have a good time ",
-  //     [
-  //       {
-  //         text: "OK",
-  //         onPress: () => setShowDriverAssignedModal(false), // Close alert
-  //       },
-  //     ],
-  //     { cancelable: false } // Prevents dismissing by tapping outside
-  //   );
-  // };
+    // Reset driver route
+    setDriverRoute({ start: null, end: null, show: false });
+    setShowDirections(true); // Show the actual trip route
+};
 
   const driver_arrived_notify = (notification) => {
     if (!notification?.driver_location_lat || !notification?.pickup_lat) {
-      console.error("Missing location data in notification:", notification);
-      return;
+        console.error("Missing location data in notification:", notification);
+        return;
     }
+    
     setShowDriverOnWay(true);
+    setShowDirections(false); // Remove directions when driver arrives
+    setHideDirections(true);
+    
     setNewRideRequest({
-      ...notification,
+        ...notification,
     });
 
     if (mapRef.current) {
-      const driverLocationLat = parseFloat(notification?.driver_location_lat);
-      const driverLocationLong = parseFloat(notification?.driver_location_long);
-      const riderPickupLocationLat = parseFloat(notification?.pickup_lat);
-      const riderPickupLocationLng = parseFloat(notification?.pickup_long);
+        try {
+            const driverLocationLat = parseFloat(notification?.driver_location_lat);
+            const driverLocationLong = parseFloat(notification?.driver_location_long);
+            const riderPickupLocationLat = parseFloat(notification?.pickup_lat);
+            const riderPickupLocationLng = parseFloat(notification?.pickup_long);
 
-      if (isNaN(driverLocationLat) || isNaN(driverLocationLong)) {
-        console.error("Invalid driver location data:", notification);
-        return;
-      }
+            if (isNaN(driverLocationLat) || isNaN(driverLocationLong)) {
+                console.error("Invalid driver location data:", notification);
+                return;
+            }
 
-      const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
-      const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
-      const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
-      const lngDiff = Math.abs(driverLocationLong - riderPickupLocationLng);
-      const latitudeDelta = latDiff + 0.05;
-      const longitudeDelta = lngDiff + 0.05;
+            // Zoom in to show driver and pickup location more closely
+            const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
+            const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
+            const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
+            const lngDiff = Math.abs(driverLocationLong - riderPickupLocationLng);
+            
+            // Smaller deltas for closer zoom
+            const latitudeDelta = latDiff + 0.02;
+            const longitudeDelta = lngDiff + 0.02;
 
-      mapRef.current.animateToRegion({
-        latitude: centerLat,
-        longitude: centerLng,
-        latitudeDelta,
-        longitudeDelta,
-      });
+            mapRef.current.animateToRegion({
+                latitude: centerLat,
+                longitude: centerLng,
+                latitudeDelta,
+                longitudeDelta,
+            });
+        } catch (error) {
+            console.error('Error animating map:', error);
+        }
     }
 
     setHideDirections(true);
     setShowRings(false);
     showDriverOnWayModal("ride_alloc.mp3", notification.action);
     Alert.alert(
-      "Driver Assigned",
-      "A driver has been assigned to you and is on his way.",
-      [
-        {
-          text: "OK",
-          onPress: () => setShowDriverAssignedModal(false),
-        },
-      ],
-      { cancelable: false }
+        "Driver has arrived",
+        "Driver is waiting for you",
+        [
+            {
+                text: "OK",
+                onPress: () => setShowDriverAssignedModal(false),
+            },
+        ],
+        { cancelable: false }
     );
-  };
-
-  // const driver_arrived_notify = (notification) => {
-  //   // console.log("driver_arrived_notify notification=", notification);
-  //   setNewRideRequest({
-  //     ...notification,
-  //     // titleText: "Driver has arrived, Meet him",
-  //   });
-
-  //   // here is new code
-  //   if (mapRef.current) {
-  //     const driverLocationLat = notification?.driver_location_lat;
-  //     const driverLocationLong = notification?.driver_location_long;
-  //     const riderPickupLocationLat = notification?.pickup_lat;
-  //     const riderPickupLocationLng = notification?.pickup_long;
-  //     const riderDropoffLocationLat = notification?.dropoff_lat;
-  //     const riderDropoffLocationLng = notification?.dropoff_long;
-
-  //     // Get destination coordinates from the push data
-  //     const destinationLat = parseFloat(notification?.dropoff_lat);
-  //     const destinationLng = parseFloat(notification?.dropoff_long);
-
-  //     if (
-  //       riderPickupLocationLat &&
-  //       riderPickupLocationLng &&
-  //       riderDropoffLocationLat &&
-  //       riderDropoffLocationLng
-  //     ) {
-  //       // Calculate the center of the region (midpoint between pickup and dropoff)
-  //       const centerLat =
-  //         (riderPickupLocationLat + riderDropoffLocationLat) / 2;
-  //       const centerLng =
-  //         (riderPickupLocationLng + riderDropoffLocationLng) / 2;
-
-  //       // Calculate the lat/lng difference between pickup and dropoff
-  //       const latDiff = Math.abs(
-  //         riderPickupLocationLat - riderDropoffLocationLat
-  //       );
-  //       const lngDiff = Math.abs(
-  //         riderPickupLocationLng - riderDropoffLocationLng
-  //       );
-
-  //       // Add a small margin to account for the visible region
-  //       const latitudeDelta = latDiff + 0.1;
-  //       const longitudeDelta = lngDiff + 0.1;
-
-  //       const adjustedCenterLat = centerLat - latDiff * 0.2;
-
-  //       // Zoom in the map to focus on driver and pickup location
-  //       mapRef.current.animateToRegion({
-  //         latitude: adjustedCenterLat,
-  //         longitude: centerLng,
-  //         latitudeDelta: latitudeDelta,
-  //         longitudeDelta: longitudeDelta,
-  //       });
-  //     }
-  //   }
-  //   setHideDirections(false);
-  //   showDriverOnWayModal("ride_alloc.mp3", notification.action);
-  //   Alert.alert(
-  //     "Driver has arrived",
-  //     "Driver is waiting for you ",
-  //     [
-  //       {
-  //         text: "OK",
-  //         onPress: () => setShowDriverAssignedModal(false), // Close alert
-  //       },
-  //     ],
-  //     { cancelable: false } // Prevents dismissing by tapping outside
-  //   );
-  // };
+};
 
   const driver_bid_notify = (notifications) => {
-    console.log("notification of driver bid", notifications);
-    const notificationArray = Array.isArray(notifications)
-      ? notifications
-      : [notifications]; // If not an array, wrap it in an array
-    console.log("notificationArray.length", notificationArray.length);
-    // Iterate over each notification
-    notificationArray.forEach((push_data) => {
-      // Ensure that push_data is an object, as expected
-      if (typeof push_data === "object") {
-        console.log("Processing push_data:", push_data);
+    if (!notifications) {
+        console.warn('No notifications received');
+        return;
+    }
+
+    const notificationArray = Array.isArray(notifications) ? notifications : [notifications];
+    
+    if (notificationArray.length === 0) {
+        console.warn('Empty notifications array');
+        return;
+    }
+
+    // Process each notification safely
+    notificationArray.forEach((push_data, index) => {
+        if (!push_data || typeof push_data !== 'object') {
+            console.warn(`Invalid notification at index ${index}`);
+            return;
+        }
 
         // Set the pickup location of the rider
         const riderPickupLocationLat = parseFloat(push_data.pickup_lat);
@@ -662,15 +645,22 @@ const RiderMapScreen = ({ route }) => {
 
           // Update the state to display the new ride requests
           setDriverRequests((prevRequests) => {
+            if (!Array.isArray(prevRequests)) {
+                return [push_data];
+            }
+            
             const isDuplicate = prevRequests.some(
-              (item) => item.driver_id === push_data.driver_id
+                (item) => item?.driver_id === push_data?.driver_id
             );
 
             if (isDuplicate) {
-              return prevRequests;
+                return prevRequests;
             }
 
-            return [...prevRequests, push_data];
+            // Ensure we're not exceeding array bounds
+            const maxRequests = 9; // Set maximum number of requests to store
+            const newRequests = [...prevRequests, push_data];
+            return newRequests.slice(-maxRequests); // Keep only the latest requests
           });
           setIsDriverBid(false);
 
@@ -707,9 +697,6 @@ const RiderMapScreen = ({ route }) => {
             }
           }
         }
-      } else {
-        console.log("Expected an object for push_data, but got:", push_data);
-      }
     });
   };
 
@@ -732,176 +719,208 @@ const RiderMapScreen = ({ route }) => {
     );
   };
 
-  // const driver_assigned_notify = (notification) => {
-  //   console.log("noti-driver_assigned_notify", notification);
-  //   setShowDriverOnWay(true);
-  //   setNewRideRequest({
-  //     ...notification, // Keep the existing notification data
-  //     titleText: "Driver is on his way", // Set title based on action
-  //   });
-
-  //   if (mapRef.current) {
-  //     const driverLocationLat = notification?.driver_location_lat;
-  //     const driverLocationLong = notification?.driver_location_long;
-  //     const riderPickupLocationLat = notification?.pickup_lat;
-  //     const riderPickupLocationLng = notification?.pickup_long;
-
-  //     // Get destination coordinates from the push data
-  //     const destinationLat = parseFloat(notification?.dropoff_lat);
-  //     const destinationLng = parseFloat(notification?.dropoff_long);
-
-  //     if (
-  //       driverLocationLat &&
-  //       driverLocationLong &&
-  //       riderPickupLocationLat &&
-  //       riderPickupLocationLng
-  //     ) {
-  //       // Calculate the center of the region (midpoint between driver and pickup)
-  //       const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
-  //       const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
-
-  //       // Calculate the lat/lng difference between driver and pickup
-  //       const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
-  //       const lngDiff = Math.abs(driverLocationLong - riderPickupLocationLng);
-
-  //       // Set dynamic deltas (latitudeDelta and longitudeDelta)
-  //       const latitudeDelta = latDiff + 0.05; // Adding some buffer to the region
-  //       const longitudeDelta = lngDiff + 0.05; // Adding some buffer to the region
-
-  //       // Zoom in the map to focus on driver and pickup location
-  //       mapRef.current.animateToRegion({
-  //         latitude: centerLat,
-  //         longitude: centerLng,
-  //         latitudeDelta: latitudeDelta,
-  //         longitudeDelta: longitudeDelta,
-  //       });
-  //     }
-  //   }
-  //   setHideDirections(true);
-  //   showDriverOnWayModal("ride_alloc.mp3", notification.action);
-  //   Alert.alert(
-  //     "Driver Assigned",
-  //     "A driver has been assigned to you and is on his way.",
-  //     [
-  //       {
-  //         text: "OK",
-  //         onPress: () => setShowDriverAssignedModal(false), // Close alert
-  //       },
-  //     ],
-  //     { cancelable: false } // Prevents dismissing by tapping outside
-  //   );
-  // };
-
   const driver_assigned_notify = (notification) => {
-    if (!notification?.driver_location_lat || !notification?.pickup_lat) {
-      console.error("Missing location data in notification:", notification);
-      return;
-    }
-    setNewRideRequest({
-      ...notification,
-    });
-    setShowDirections(true);
-    if (mapRef.current) {
-      const driverLocationLat = parseFloat(notification?.driver_location_lat);
-      const driverLocationLong = parseFloat(notification?.driver_location_long);
-      const riderPickupLocationLat = parseFloat(notification?.pickup_lat);
-      const riderPickupLocationLng = parseFloat(notification?.pickup_long);
-
-      if (isNaN(driverLocationLat) || isNaN(driverLocationLong)) {
-        console.error("Invalid driver location data:", notification);
+    if (!notification || !notification.driver_location_lat || !notification.pickup_lat) {
+        console.warn('Invalid notification data received');
         return;
-      }
-
-      // Proceed with map region animation
-      const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
-      const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
-      const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
-      const lngDiff = Math.abs(driverLocationLong - riderPickupLocationLng);
-      const latitudeDelta = latDiff + 0.05;
-      const longitudeDelta = lngDiff + 0.05;
-
-      mapRef.current.animateToRegion({
-        latitude: centerLat,
-        longitude: centerLng,
-        latitudeDelta,
-        longitudeDelta,
-      });
     }
-    setShowRings(false);
-    setShowDirections(true);
-    // setHideDirections(true);
-    showDriverOnWayModal("ride_alloc.mp3", notification.action);
-    Alert.alert(
-      "Driver Assigned",
-      "A driver has been assigned to you and is on his way.",
-      [
-        {
-          text: "OK",
-          onPress: () => setShowDriverAssignedModal(false),
-        },
-      ],
-      { cancelable: false }
+
+    // Set driver's current location as origin and pickup location as destination
+    const driverLocationLat = parseFloat(notification.driver_location_lat);
+    const driverLocationLong = parseFloat(notification.driver_location_long);
+    const pickupLocationLat = parseFloat(notification.pickup_lat);
+    const pickupLocationLng = parseFloat(notification.pickup_long);
+
+    if (isNaN(driverLocationLat) || isNaN(driverLocationLong) || 
+        isNaN(pickupLocationLat) || isNaN(pickupLocationLng)) {
+        console.warn('Invalid coordinates');
+        return;
+    }
+
+    // Calculate distance using haversine formula
+    const distance = haversine(
+        driverLocationLat,
+        driverLocationLong,
+        pickupLocationLat,
+        pickupLocationLng
     );
-  };
+
+    // Calculate estimated time
+    const timeToPickup = calculateTime(distance);
+
+    // Update the notification object with distance and time
+    const updatedNotification = {
+        ...notification,
+        titleText: "Driver is on his way",
+        distance: distance.toFixed(2),
+        time_to_pickup: timeToPickup
+    };
+
+    // Set states for map and UI updates
+    setNewRideRequest(updatedNotification);
+    setShowDirections(true);
+    setShowRings(false);
+    setShowDriverOnWay(true);
+
+    // Set origin (driver location) and destination (pickup location)
+    setOrigin({
+        latitude: driverLocationLat,
+        longitude: driverLocationLong
+    });
+    setDestination({
+        latitude: pickupLocationLat,
+        longitude: pickupLocationLng
+    });
+
+    if (mapRef.current) {
+        try {
+            // First animation: Show both points
+            const centerLat = (driverLocationLat + pickupLocationLat) / 2;
+            const centerLng = (driverLocationLong + pickupLocationLng) / 2;
+            const latDiff = Math.abs(driverLocationLat - pickupLocationLat);
+            const lngDiff = Math.abs(driverLocationLong - pickupLocationLng);
+
+            // Calculate bearing for camera orientation
+            const bearing = calculateBearing(
+                driverLocationLat,
+                driverLocationLong,
+                pickupLocationLat,
+                pickupLocationLng
+            );
+
+            // Animate camera to show both points
+            mapRef.current.animateCamera({
+                center: {
+                    latitude: centerLat,
+                    longitude: centerLng
+                },
+                pitch: 45,
+                heading: bearing,
+                zoom: 15,
+                altitude: Math.max(latDiff, lngDiff) * 110000 * 1.2
+            }, { 
+                duration: 1000,
+                onComplete: () => {
+                    // Second animation: Zoom in slightly for better view
+                    setTimeout(() => {
+                        if (mapRef.current) {
+                            mapRef.current.animateCamera({
+                                center: {
+                                    latitude: centerLat,
+                                    longitude: centerLng
+                                },
+                                pitch: 55,
+                                heading: bearing,
+                                zoom: 16,
+                                altitude: Math.max(latDiff, lngDiff) * 110000
+                            }, { duration: 1000 });
+                        }
+                    }, 1000);
+                }
+            });
+
+            // Update stroke color for the route
+            setStrokeColor("#1E90FF");
+
+        } catch (error) {
+            console.warn('Error in camera animation:', error);
+        }
+    }
+
+    // Show modal and play sound
+    showDriverOnWayModal("ride_alloc.mp3", "driver-assigned");
+
+    // Show alert to user
+    Alert.alert(
+        "Driver Assigned",
+        `A driver has been assigned and will arrive in approximately ${timeToPickup} minutes (${distance.toFixed(2)} km)`,
+        [
+            {
+                text: "OK",
+                onPress: () => setShowDriverAssignedModal(false),
+            },
+        ],
+        { cancelable: false }
+    );
+};
 
   const accept_driver_bid_notify = (notification) => {
     console.log("notifi=", notification);
     setShowRings(false);
     setShowDriverOnWay(true);
     setNewRideRequest({
-      ...notification,
-      titleText: "Driver is on his way",
+        ...notification,
+        titleText: "Driver is on his way",
     });
+
+    // Show directions between driver and pickup location
+    setShowDirections(true);
+    setHideDirections(false);
+
     if (mapRef.current) {
-      const driverLocationLat = notification?.driver_location_lat;
-      const driverLocationLong = notification?.driver_location_long;
+        try {
+            const driverLocationLat = parseFloat(notification?.driver_location_lat);
+            const driverLocationLong = parseFloat(notification?.driver_location_long);
+            const riderPickupLocationLat = parseFloat(notification?.pickup_lat);
+            const riderPickupLocationLng = parseFloat(notification?.pickup_long);
+            const destinationLat = parseFloat(notification?.dropoff_lat);
+            const destinationLng = parseFloat(notification?.dropoff_long);
 
-      const riderPickupLocationLat = notification?.pickup_lat;
-      const riderPickupLocationLng = notification?.pickup_long;
+            // Validate coordinates
+            if (isNaN(driverLocationLat) || isNaN(driverLocationLong) || 
+                isNaN(riderPickupLocationLat) || isNaN(riderPickupLocationLng)) {
+                console.warn('Invalid coordinates in notification');
+                return;
+            }
 
-      // Get destination coordinates from the push data
-      const destinationLat = parseFloat(notification?.dropoff_lat);
-      const destinationLng = parseFloat(notification?.dropoff_long);
+            // Calculate center point between driver and pickup location
+            const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
+            const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
 
-      if (
-        driverLocationLat &&
-        driverLocationLong &&
-        destinationLat &&
-        destinationLng
-      ) {
-        // Calculate the center of the region (midpoint)
-        const centerLat = (driverLocationLat + riderPickupLocationLat) / 2;
-        const centerLng = (driverLocationLong + riderPickupLocationLng) / 2;
+            // Calculate the lat/lng difference between driver and pickup
+            const latDiff = Math.abs(driverLocationLat - riderPickupLocationLat);
+            const lngDiff = Math.abs(driverLocationLong - riderPickupLocationLng);
 
-        // Calculate the lat/lng difference between pickup and destination
-        const latDiff = Math.abs(driverLocationLat - riderPickupLocationLng);
-        const lngDiff = Math.abs(driverLocationLong - destinationLng);
+            // Set dynamic deltas to show both driver and pickup location
+            const latitudeDelta = latDiff + 0.05;
+            const longitudeDelta = lngDiff + 0.05;
 
-        // Set dynamic deltas (latitudeDelta and longitudeDelta)
-        const latitudeDelta = latDiff + 0.05; // Adding some buffer to the region
-        const longitudeDelta = lngDiff + 0.05; // Adding some buffer to the region
+            // Animate map to show driver and pickup location
+            mapRef.current.animateToRegion({
+                latitude: centerLat,
+                longitude: centerLng,
+                latitudeDelta,
+                longitudeDelta,
+            });
 
-        mapRef.current.animateToRegion({
-          latitude: centerLat,
-          longitude: centerLng,
-          latitudeDelta: latitudeDelta,
-          longitudeDelta: longitudeDelta,
-        });
-      }
+            // Set origin to driver's location and destination to rider's pickup location
+            setOrigin({
+                latitude: driverLocationLat,
+                longitude: driverLocationLong
+            });
+            setDestination({
+                latitude: riderPickupLocationLat,
+                longitude: riderPickupLocationLng
+            });
+
+        } catch (error) {
+            console.error('Error animating map:', error);
+        }
     }
+
     showDriverOnWayModal("ride_alloc.mp3", notification.action);
     Alert.alert(
-      "Driver Assigned",
-      "A driver has been assigned to you and is on his way.",
-      [
-        {
-          text: "OK",
-          onPress: () => setShowDriverAssignedModal(false),
-        },
-      ],
-      { cancelable: false }
+        "Driver Assigned",
+        "A driver has been assigned to you and is on his way.",
+        [
+            {
+                text: "OK",
+                onPress: () => setShowDriverAssignedModal(false),
+            },
+        ],
+        { cancelable: false }
     );
-  };
+};
 
   const syncServer = async () => {
     const body = new URLSearchParams({
@@ -945,9 +964,9 @@ const RiderMapScreen = ({ route }) => {
   };
 
   const showDriverOnWayModal = (soundFile, action) => {
-    // setShowDriverOnWay(true)
+    setShowDriverOnWay(true)
     playSound(soundFile); // Play the sound
-    setShowRings(false);
+    // setShowRings(false);
     // Set titleText based on action
     let titleText = "Driver is on his way"; // Default title
 
@@ -1125,8 +1144,8 @@ const RiderMapScreen = ({ route }) => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setStrokeColor((prev) => (prev === "black" ? "lightcoral" : "black"));
-    }, 1000);
+      setStrokeColor((prev) => (prev === "black" ? "#1E90FF" : "black"));
+    }, 1000); // Change color every second
     return () => clearInterval(interval);
   }, []);
 
@@ -1140,33 +1159,56 @@ const RiderMapScreen = ({ route }) => {
 
   // Animate code
   const animateToRegion = () => {
-    if (mapRef.current) {
-      mapRef.current.animateCamera(
-        {
-          center: {
-            latitude: origin?.latitude || 33.6844, // Use origin as center
-            longitude: origin?.longitude || 73.0479,
-          },
-          pitch: 0,
-          heading: 0,
-          altitude: 1000,
-          zoom: 18,
-        },
-        { duration: 2000 }
-      );
+    if (!mapRef.current) {
+        console.warn('Map reference not ready in animateToRegion');
+        return;
     }
-  };
+
+    try {
+        mapRef.current.animateCamera(
+            {
+                center: {
+                    latitude: origin?.latitude || 33.6844,
+                    longitude: origin?.longitude || 73.0479,
+                },
+                pitch: 0,
+                heading: 0,
+                altitude: 1000,
+                zoom: 18,
+            },
+            { 
+                duration: 2000,
+                // Add optional callback for animation completion
+                onComplete: () => {
+                    console.log('Animation completed');
+                }
+            }
+        );
+    } catch (error) {
+        console.warn('Error in animateToRegion:', error);
+    }
+};
 
   const onMapReady = () => {
-    // Add a delay of 1 second before calling animateToRegion
+    if (!mapRef.current) {
+        console.warn('Map reference not ready');
+        return;
+    }
+
     setTimeout(() => {
-      animateToRegion();
-    }, 1000); // Delay in milliseconds
-  };
+        if (mapRef.current) {
+            try {
+                animateToRegion();
+            } catch (error) {
+                console.warn('Error in onMapReady animation:', error);
+            }
+        }
+    }, 1000);
+};
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setStrokeColor((prev) => (prev === "black" ? "lightcoral" : "black"));
+      setStrokeColor((prev) => (prev === "black" ? "#1E90FF" : "black"));
     }, 1000); // Change color every second
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
@@ -1322,32 +1364,49 @@ const RiderMapScreen = ({ route }) => {
 
   const getLocation = () => {
     GetLocation.getCurrentPosition({
-      enableHighAccuracy: true,
-      timeout: 15000,
+        enableHighAccuracy: true,
+        timeout: 15000,
     })
-      .then((location) => {
-        console.log("Location:", location);
-        setOrigin({
-          latitude: location?.latitude,
-          longitude: location?.longitude,
-        });
+        .then((location) => {
+            if (location) {
+                setOrigin({
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                });
 
-        // Send this location to the backend to get available drivers
-        const body = {
-          city: 1,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
-          priority_driver: 0,
-        };
-        setInterval(() => {
-          handleTest(body);
-        }, 10000);
-      })
-      .catch((error) => {
-        console.log("Location Error:", error.code, error.message);
-        setError("Failed to get location.");
-      });
-  };
+                // Send this location to the backend to get available drivers
+                const body = {
+                    city: 1,
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    priority_driver: 0,
+                };
+
+                // Use cleanup variable to prevent state updates after unmount
+                let isComponentMounted = true;
+                // Update driver locations more frequently (every 3 seconds)
+                const intervalId = setInterval(() => {
+                    if (isComponentMounted) {
+                        handleTest(body);
+                    }
+                }, 3000); // Changed from 10000 to 3000 for more frequent updates
+
+                // Cleanup function
+                return () => {
+                    isComponentMounted = false;
+                    clearInterval(intervalId);
+                };
+            }
+        })
+        .catch((error) => {
+            console.log("Location Error:", error.code, error.message);
+            setError("Failed to get location.");
+            Alert.alert(
+                "Location Error",
+                "Unable to get your current location. Please check your location settings."
+            );
+        });
+};
 
   // Fetch drivers' locations
   const handleTest = async (data) => {
@@ -1356,43 +1415,59 @@ const RiderMapScreen = ({ route }) => {
     const url = `${RIDER_BASE_URL}?sess_id=${sess_id}&action_get=getavailablecitydrivers&city=${data?.city}&pickup_location[lat]=${data?.latitude}&pickup_location[lng]=${data?.longitude}&priority_driver=${data?.priority_driver}`;
 
     try {
-      const response = await axios.get(url);
-      const driversLocations = response?.data?.drivers_locations || [];
-      setDriverLocations(driversLocations);
+        const response = await axios.get(url);
+        const driversLocations = response?.data?.drivers_locations || [];
+        
+        // Update driver locations with animation
+        driversLocations.forEach((driver) => {
+            const driverId = driver?.driver_id || Math.random().toString();
+            const newLat = parseFloat(driver?.position?.lat);
+            const newLng = parseFloat(driver?.position?.lng);
 
-      // Animate the markers gradually when their location changes
-      if (driversLocations.length > 0) {
-        driversLocations.forEach((driver, index) => {
-          const newLat = parseFloat(driver?.position?.lat);
-          const newLng = parseFloat(driver?.position?.lng);
-
-          if (!isNaN(newLat) && !isNaN(newLng)) {
-            // Animate marker only if position has changed
-            const currentMarkerRef = markerRefs.current[index];
-
-            if (currentMarkerRef) {
-              const currentCoord = currentMarkerRef.props.coordinate;
-              const distance = Math.sqrt(
-                Math.pow(currentCoord.latitude - newLat, 2) +
-                  Math.pow(currentCoord.longitude - newLng, 2)
-              );
-
-              if (distance > 0.0001) {
-                // Animate only if the marker's position changes
-                currentMarkerRef.animateMarkerToCoordinate(
-                  { latitude: newLat, longitude: newLng },
-                  1000 // Adjust the animation duration
-                );
-              }
+            if (!isNaN(newLat) && !isNaN(newLng)) {
+                const oldCoordinate = driverLocations.find(d => d?.driver_id === driverId)?.position;
+                
+                // Only animate if the position has changed significantly
+                if (oldCoordinate) {
+                    const oldLat = parseFloat(oldCoordinate.lat);
+                    const oldLng = parseFloat(oldCoordinate.lng);
+                    const distance = haversine(oldLat, oldLng, newLat, newLng);
+                    
+                    // Only animate if the car has moved more than 10 meters
+                    if (distance > 0.01) {
+                        animateMarkerToCoordinate(
+                            driverId,
+                            {
+                                latitude: newLat,
+                                longitude: newLng,
+                            },
+                            {
+                                latitude: oldLat,
+                                longitude: oldLng,
+                            }
+                        );
+                    }
+                } else {
+                    // For new drivers, set their position immediately
+                    animateMarkerToCoordinate(
+                        driverId,
+                        {
+                            latitude: newLat,
+                            longitude: newLng,
+                        },
+                        null
+                    );
+                }
             }
-          }
         });
-      }
+
+        setDriverLocations(driversLocations);
     } catch (error) {
-      console.error("Error fetching drivers:", error.message);
-      setError("Failed to fetch drivers.");
+        console.error("Error fetching drivers:", error.message);
+        setError("Failed to fetch drivers.");
     }
-  };
+};
+
   const getCurrentDateTime = () => {
     const now = new Date();
 
@@ -1869,6 +1944,67 @@ const RiderMapScreen = ({ route }) => {
     }
   }, [origin, destination]);
 
+  useEffect(() => {
+    const sound = new Sound("ride-alloc.mp3", Sound.MAIN_BUNDLE, (error) => {
+        if (error) {
+            console.warn('Error loading sound:', error);
+        }
+    });
+
+    return () => {
+        sound.release(); // Clean up the sound resource
+    };
+}, []);
+
+  useEffect(() => {
+    return () => {
+        // Cleanup marker references when component unmounts
+        markerRefs.current = [];
+    };
+}, []);
+
+  // Add this new function
+  const animateMarkerToCoordinate = (markerId, newCoordinate, oldCoordinate) => {
+    if (!animatedMarkersRef.current[markerId]) {
+      animatedMarkersRef.current[markerId] = {
+        coordinate: new Animated.ValueXY({
+          x: oldCoordinate?.longitude || newCoordinate.longitude,
+          y: oldCoordinate?.latitude || newCoordinate.latitude
+        }),
+        rotation: new Animated.Value(0)
+      };
+    }
+
+    // Calculate bearing for rotation
+    const bearing = calculateBearing(
+      oldCoordinate?.latitude || animatedMarkersRef.current[markerId].coordinate.y._value,
+      oldCoordinate?.longitude || animatedMarkersRef.current[markerId].coordinate.x._value,
+      newCoordinate.latitude,
+      newCoordinate.longitude
+    );
+
+    const duration = 5000; // Increased duration to 5 seconds for smoother movement
+
+    // Create smooth animations with easing
+    const coordAnimation = Animated.timing(animatedMarkersRef.current[markerId].coordinate, {
+      toValue: { x: newCoordinate.longitude, y: newCoordinate.latitude },
+      duration: duration,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: false
+    });
+
+    // Smoother rotation animation with less rotation
+    const rotationAnimation = Animated.timing(animatedMarkersRef.current[markerId].rotation, {
+      toValue: bearing,
+      duration: duration,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: false
+    });
+
+    // Run animations in parallel
+    Animated.parallel([coordAnimation, rotationAnimation]).start();
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.headerStyle]}>
@@ -1918,26 +2054,28 @@ const RiderMapScreen = ({ route }) => {
         </View>
       )}
 
-      {origin && (
+      {origin ? (
         <View style={{ flex: 1 }}>
           <MapView
             ref={mapRef}
             style={styles.map}
             onLayout={onLayout}
-            provider={
-              Platform.OS === "android"
-                ? MapView.PROVIDER_GOOGLE
-                : MapView.PROVIDER_DEFAULT
-            }
+            provider={Platform.OS === "android" ? MapView.PROVIDER_GOOGLE : MapView.PROVIDER_DEFAULT}
             mapType={mapType}
             initialRegion={{
-              latitude: origin?.latitude || 33.6844,
-              longitude: origin?.longitude || 73.0479,
-              latitudeDelta: 0.06,
-              longitudeDelta: 0.06,
+                latitude: origin.latitude || 33.6844,
+                longitude: origin.longitude || 73.0479,
+                latitudeDelta: 0.06,
+                longitudeDelta: 0.06,
             }}
-            onMapReady={onMapReady}
+            onMapReady={() => {
+                // Ensure map is ready before any animations
+                if (mapRef.current) {
+                    onMapReady();
+                }
+            }}
             zoomEnabled
+            onError={(error) => console.error('Map error:', error)}
           >
             <Marker coordinate={origin}>
               <Image
@@ -1966,62 +2104,100 @@ const RiderMapScreen = ({ route }) => {
                       destination={destination}
                       apikey={GOOGLE_MAPS_API_KEY}
                       strokeColor={strokeColor}
-                      strokeWidth={2.5}
+                      strokeWidth={4.5}
                     />
                   )}
               </>
             )}
 
+            {driverRoute.show && driverRoute.start && driverRoute.end && (
+                <Animated.View
+                    style={{
+                        transform: [{
+                            translateY: driverRoute.bounceAnim?.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [300, 0] // Start 300 units below and animate to final position
+                            }) || 0
+                        }],
+                        opacity: driverRoute.bounceAnim?.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, 1]
+                        }) || 1
+                    }}
+                >
+                    <MapViewDirections
+                        origin={driverRoute.start}
+                        destination={driverRoute.end}
+                        apikey={GOOGLE_MAPS_API_KEY}
+                        strokeColor="#1E90FF"
+                        strokeWidth={4.5}
+                    />
+                </Animated.View>
+            )}
+
             {driverLocations.length > 0 &&
               driverLocations.map((driver, index) => {
-                const latitude = parseFloat(driver?.position?.lat);
-                const longitude = parseFloat(driver?.position?.lng);
+                const driverId = driver?.driver_id || index.toString();
+                const animatedMarker = animatedMarkersRef.current[driverId];
 
-                if (isNaN(latitude) || isNaN(longitude)) {
-                  console.log(`Invalid coordinates for driver ${index + 1}`);
-                  return null;
-                }
+                if (!animatedMarker) return null;
+
+                const coordinate = {
+                  latitude: animatedMarker.coordinate.y,
+                  longitude: animatedMarker.coordinate.x
+                };
 
                 return (
-                  <Marker
-                    key={index}
-                    ref={(ref) => (markerRefs.current[index] = ref)}
-                    coordinate={{
-                      latitude: latitude,
-                      longitude: longitude,
-                    }}
+                  <Marker.Animated
+                    key={`${driverId}`}
+                    coordinate={coordinate}
                     title={driver?.title}
-                    rotation={driver?.b_angle}
                     description={`Driver's location`}
                   >
-                    {driver.title === "Ride Mini" && (
-                      <Image
-                        source={require("../../assets/city-driver-icon-4.png")}
-                        style={styles.markerImage}
-                      />
-                    )}
-                    {driver.title === "Ride" && (
-                      <Image
-                        source={require("../../assets/city-driver-icon-5.png")}
-                        style={styles.markerImage}
-                      />
-                    )}
-                    {driver.title === "Ride A/C" && (
-                      <Image
-                        source={require("../../assets/city-driver-icon-1.png")}
-                        style={styles.markerImage}
-                      />
-                    )}
-                    {driver.title === "Moto" && (
-                      <Image
-                        source={require("../../assets/city-driver-icon-6.png")}
-                        style={styles.markerImage}
-                      />
-                    )}
-                  </Marker>
+                    <Animated.View
+                      style={{
+                        transform: [{
+                          rotate: animatedMarker.rotation.interpolate({
+                            inputRange: [0, 360],
+                            outputRange: ['0deg', '360deg']
+                          })
+                        }]
+                      }}
+                    >
+                      {driver.title === "Ride Mini" && (
+                        <Image
+                          source={require("../../assets/city-driver-icon-4.png")}
+                          style={styles.markerImage}
+                        />
+                      )}
+                      {driver.title === "Ride" && (
+                        <Image
+                          source={require("../../assets/city-driver-icon-5.png")}
+                          style={styles.markerImage}
+                        />
+                      )}
+                      {driver.title === "Ride A/C" && (
+                        <Image
+                          source={require("../../assets/city-driver-icon-1.png")}
+                          style={styles.markerImage}
+                        />
+                      )}
+                      {driver.title === "Moto" && (
+                        <Image
+                          source={require("../../assets/city-driver-icon-6.png")}
+                          style={styles.markerImage}
+                        />
+                      )}
+                    </Animated.View>
+                  </Marker.Animated>
                 );
               })}
           </MapView>
+        </View>
+      ) : (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000" />
+          <Text>Loading map...</Text>
         </View>
       )}
 
@@ -2139,13 +2315,13 @@ const RiderMapScreen = ({ route }) => {
       )}
 
       {/* Conditionally render DriverOnWay instead of morningContainer */}
-      {!isPendingTripCancel && showDriverOnWay && (
+      {!isPendingTripCancel && showDriverOnWay && newRideRequest && (
         <DriverOnWay
           visible={showDriverOnWay}
           onClose={() => setShowDriverOnWay(false)}
-          newRideRequest={newRideRequest}
+          newRideRequest={newRideRequest || {}} // Provide default empty object
           handleDeclineBid={handleDeclineBid}
-          titleText={newRideRequest.titleText}
+          titleText={newRideRequest?.titleText || ''} // Add null check and default value
           style={{ pointerEvents: "auto" }}
         />
       )}
@@ -2249,6 +2425,7 @@ const styles = StyleSheet.create({
   markerImage: {
     height: 30,
     width: 30,
+    resizeMode: 'contain'
   },
   distanceContainer: {
     marginTop: 10,
@@ -2287,8 +2464,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   markerIcon: {
-    width: 30,
-    height: 30,
+    width: 20,
+    height: 20,
   },
   markerText: {
     color: "black",
@@ -2342,6 +2519,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "blue",
     // fontWeight: "bold",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
