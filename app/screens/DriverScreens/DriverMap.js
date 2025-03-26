@@ -296,7 +296,6 @@ const DriverMap = ({ navigation }) => {
       const data = snapshot.val();
       if (data == null) return;
       if (!(data.hasOwnProperty("msg") && data.hasOwnProperty("msg_t"))) return;
-
       let last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
 
       if (data.msg_t === last_msg_time_id) return;
@@ -458,6 +457,7 @@ const DriverMap = ({ navigation }) => {
         },
       });
       setShowDirections(true);
+      
 
       if (mapRef.current) {
         if (
@@ -1018,7 +1018,7 @@ const DriverMap = ({ navigation }) => {
           closeModal={() => setDriverArriveModal(false)}
           setShowDirections={() => {
             setShowDirections(false);
-            setShowDirections(false);
+            // setShowDirections(false);
             setIsModalVisible(false);
           }}
         />
@@ -1162,6 +1162,7 @@ const DriverMap = ({ navigation }) => {
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
         setIsOnline={setIsOnline}
+
       />
     </View>
   );

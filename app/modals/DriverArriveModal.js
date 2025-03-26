@@ -174,6 +174,7 @@ const DriverArriveModal = ({
       const data = await response.json();
       setLoading(false);
       setPickupModalVisible(true);
+      // setShowDirections(true)
     } catch (error) {
       setLoading(false);
       console.error("Error:", error);

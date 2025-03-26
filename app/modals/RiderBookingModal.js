@@ -160,6 +160,7 @@ const RiderBookingModal = ({
             console.log("success");
             setIsLoading(false);
             setDriverArriveModalVisible(true);
+            setShowDirections(true)
           }
         } catch (e) {
           setIsLoading(false);
