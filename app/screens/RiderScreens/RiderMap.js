@@ -254,7 +254,6 @@ const RiderMapScreen = ({ route }) => {
           .ref(`Riders/ridr-${userId}/notf`)
           .on("value", async (snapshot) => {
             const data = snapshot.val();
-            // console.log("data==", data);
             const stringValue = JSON.stringify(data.msg_t);
             if (data == null) return;
             if (!(data?.msg && data?.msg_t)) return;
@@ -2319,6 +2318,7 @@ const RiderMapScreen = ({ route }) => {
         <DriverOnWay
           visible={showDriverOnWay}
           onClose={() => setShowDriverOnWay(false)}
+          setShowDriverOnWay={setShowDriverOnWay}
           newRideRequest={newRideRequest || {}} // Provide default empty object
           handleDeclineBid={handleDeclineBid}
           titleText={newRideRequest?.titleText || ''} // Add null check and default value

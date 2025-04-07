@@ -7,17 +7,33 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  Alert,
 } from "react-native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { RIDER_BASE_URL } from "../utils/constants";
-import { getSessionId } from "../utils/common";
+import { getSessionId, SESSION_ID } from "../utils/common";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
+const ALERT_MESSAGES = {
+  NO_BOOKING_ID: {
+    title: 'Error',
+    message: 'Cannot cancel booking: Booking ID not found'
+  },
+  SUCCESS: {
+    title: 'Success',
+    message: 'Booking cancelled successfully'
+  },
+  ERROR: {
+    title: 'Error',
+    message: 'Failed to cancel booking'
+  }
+};
+
 const DriverOnWay = ({
   visible,
-  onClose,
+  setShowDriverOnWay,
   newRideRequest = {},
   handleDeclineBid,
   titleText = '',
@@ -30,7 +46,6 @@ const DriverOnWay = ({
   if (!newRideRequest) {
     return null;
   }
-
   // Use optional chaining and default image
   const driverName = newRideRequest?.driver_name || 'Driver';
   const driverImage = newRideRequest?.driver_image || defaultDriverImage;
@@ -187,37 +202,58 @@ const DriverOnWay = ({
     }
   };
 
-  const handleCancelRide = async () => {
-    const url = `${RIDER_BASE_URL}`;
-    const sess_id =  'N29hMmpsOGFzNjQyZ3FxdDExc3Qza2ZuajY='
-    const params = {
-      sess_id: sess_id,
-      action_get:"bookingcancel",
-      bookingid: newRideRequest?.booking_id || rideData?.booking_id,
-      // comment: "delete",
-    };
-
-    console.log("params", params);
-    const queryString = new URLSearchParams(params).toString();
-    const requestUrl = `${url}?${queryString}`;
-
+  const cancelBooking = async () => {
     try {
-      const response = await fetch(requestUrl, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        setLoading(false);
-        throw new Error("Network response was not ok");
+      const bookingId = newRideRequest?.booking_id;
+      
+      if (!bookingId) {
+        console.error('No booking ID found');
+        Alert.alert(
+          ALERT_MESSAGES.NO_BOOKING_ID.title, 
+          ALERT_MESSAGES.NO_BOOKING_ID.message
+        );
+        return;
       }
 
+      console.log('Cancelling booking:', bookingId);
+
+      const sess_id = await getSessionId();
+      const url = `${RIDER_BASE_URL}?sess_id=${sess_id}`;
+
+      const formData = new URLSearchParams({
+        action: 'bookingcancel',
+        bookingid: bookingId
+      });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString()
+      });
+
       const data = await response.json();
-      console.log("data", data);
-      // setLoading(false);
-      // setShowDirections(false);
-      // setDriverArriveModalVisible(false);
+      console.log('Cancel booking response:', data);
+      
+      if (data.success) {
+        setShowDriverOnWay(false);
+        Alert.alert(
+          ALERT_MESSAGES.SUCCESS.title,
+          ALERT_MESSAGES.SUCCESS.message
+        );
+      } else {
+        Alert.alert(
+          ALERT_MESSAGES.ERROR.title,
+          data.error || ALERT_MESSAGES.ERROR.message
+        );
+      }
     } catch (error) {
-      console.error("Error:", error);
+      console.error('Error cancelling booking:', error);
+      Alert.alert(
+        ALERT_MESSAGES.ERROR.title,
+        ALERT_MESSAGES.ERROR.message
+      );
     }
   };
 
@@ -326,7 +362,7 @@ const DriverOnWay = ({
               <View style={styles.divider} />
               <TouchableOpacity
               style={styles.cancelButton}
-              onPress={handleCancelRide}
+              onPress={cancelBooking}
             >
               <Text style={styles.cancelText}>CANCEL RIDE</Text>
             </TouchableOpacity>

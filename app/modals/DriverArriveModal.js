@@ -91,10 +91,24 @@ const DriverArriveModal = ({
   };
 
   const getDistanceAndTime = async () => {
+    // Initial calculation
+    calculateDistanceAndTime();
+    
+    // Set up interval for periodic updates
+    const intervalId = setInterval(() => {
+      calculateDistanceAndTime();
+    }, 5000); // Update every 5 seconds
+
+    // Cleanup interval when component unmounts
+    return () => clearInterval(intervalId);
+  };
+
+  const calculateDistanceAndTime = () => {
     try {
       Geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
+          console.log("Updated location - Lat:", latitude, "Long:", longitude);
 
           const origin = `${latitude},${longitude}`;
           const destination = `${newRideRequest?.p_lat},${newRideRequest?.p_lng}`;
@@ -112,14 +126,14 @@ const DriverArriveModal = ({
               const durationText = element.duration.text;
 
               console.log(
-                `Distance: ${distanceText}, Duration: ${durationText}`
+                `Updated Distance: ${distanceText}, Duration: ${durationText}`
               );
 
               const distanceInKilometers = distanceInMeters / 1000;
-
               const speed = 60;
               const timeInHours = distanceInKilometers / speed;
               let timeInMinutes = timeInHours * 60;
+              
               if (timeInMinutes < 1) {
                 timeInMinutes = 1;
               }
@@ -127,10 +141,9 @@ const DriverArriveModal = ({
               timeInMinutes = Math.round(timeInMinutes);
 
               console.log(
-                `Estimated Time at 60 km/h: ${timeInMinutes} minutes`
+                `Updated ETA at 60 km/h: ${timeInMinutes} minutes`
               );
 
-              // Update the calculatedRideData state without affecting the original rideData
               setCalculatedRideData({
                 time_to_pickup: timeInMinutes,
                 estimated_distance: `${distanceInKilometers.toFixed(2)} km`,
@@ -139,12 +152,12 @@ const DriverArriveModal = ({
           }
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error("Error getting updated location:", error);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
       );
     } catch (error) {
-      console.error("Error fetching distance and time:", error);
+      console.error("Error updating distance and time:", error);
     }
   };
 
