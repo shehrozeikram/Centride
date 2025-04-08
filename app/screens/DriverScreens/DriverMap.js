@@ -402,7 +402,7 @@ const DriverMap = ({ navigation }) => {
   };
 
   const booking_allocate_notify = (notification) => {
-    console.log("Handling booking allocation notification:", notification);
+    console.log("Handling booking allocation notification abc:", notification);
 
     const push_data = notification;
 
@@ -449,13 +449,13 @@ const DriverMap = ({ navigation }) => {
       showModal("ride_alloc.mp3");
 
       // Set directions data to show the route from driver to rider's pickup location
-      setDirectionsData({
-        origin: { latitude: driverLat, longitude: driverLng },
-        destination: {
-          latitude: riderPickupLocationLat,
-          longitude: riderPickupLocationLng,
-        },
-      });
+      // setDirectionsData({
+      //   origin: { latitude: driverLat, longitude: driverLng },
+      //   destination: {
+      //     latitude: riderPickupLocationLat,
+      //     longitude: riderPickupLocationLng,
+      //   },
+      // });
       setShowDirections(true);
       
 
@@ -473,8 +473,8 @@ const DriverMap = ({ navigation }) => {
           const latDiff = Math.abs(driverLat - riderPickupLocationLat);
           const lngDiff = Math.abs(driverLng - riderPickupLocationLng);
 
-          const latitudeDelta = latDiff + 0.06;
-          const longitudeDelta = lngDiff + 0.06;
+          const latitudeDelta = latDiff + 0.08;
+          const longitudeDelta = lngDiff + 0.08;
 
           mapRef.current.animateToRegion({
             latitude: centerLat,
@@ -495,6 +495,8 @@ const DriverMap = ({ navigation }) => {
 
   const customer_cancelled_notify = (notification) => {
     console.log("notification in customer_cancelled_notify ", notification);
+    
+    // Reset all modals
     setIsModalVisible(false);
     setDriverArriveModal(false);
     setDriverArriveModalVisible(false);
@@ -502,12 +504,28 @@ const DriverMap = ({ navigation }) => {
     setDropoffModalVisible(false);
     setShowDirections(false);
     setShowViewAlert(false);
+    
+    // Reset destination and directions data
+    setDestination(null);
+    setDirectionsData(null);
+    setNewRideRequest(null);
+    
+    // Reset map to current location
+    if (mapRef.current && origin) {
+      mapRef.current.animateToRegion({
+        latitude: origin.latitude,
+        longitude: origin.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+    
     Alert.alert(
       "Booking Cancelled",
       "Your booking has been cancelled",
       [
         {
-          text: "OK", // This is the button text
+          text: "OK",
           onPress: () => {},
         },
       ],
@@ -571,6 +589,7 @@ const DriverMap = ({ navigation }) => {
       });
 
       if (location.latitude && location.longitude) {
+        console.log("location in getLocation", location);
         // await setDriverLocation()
         // await callApis()
       }
@@ -1021,6 +1040,8 @@ const DriverMap = ({ navigation }) => {
             // setShowDirections(false);
             setIsModalVisible(false);
           }}
+          setDirectionsData={setDirectionsData}
+
         />
       )}
 
@@ -1162,6 +1183,8 @@ const DriverMap = ({ navigation }) => {
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
         setIsOnline={setIsOnline}
+        setIsModalVisible = {setIsModalVisible}
+        setDirectionsData = {setDirectionsData}
 
       />
     </View>

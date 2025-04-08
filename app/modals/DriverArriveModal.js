@@ -27,6 +27,7 @@ const DriverArriveModal = ({
   setDriverArriveModalVisible,
   setDropoffModalVisible,
   setShowDirections,
+  setDirectionsData,
 }) => {
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupModalVisible, setPickupModalVisible] = useState(false);
@@ -39,7 +40,9 @@ const DriverArriveModal = ({
   });
   const user = useSelector((state) => state.user?.user);
 
-  const mapRef = useRef(null);
+  // const mapRef = useRef(null);
+
+  // console.log("directionsData-+", setDirectionsData);
 
   // console.log("newRideRequest-+", newRideRequest);
   // console.log("user-+", user);
@@ -221,6 +224,8 @@ const DriverArriveModal = ({
       setLoading(false);
       setShowDirections(false);
       setDriverArriveModalVisible(false);
+      setDirectionsData(null);
+      
     } catch (error) {
       console.error("Error:", error);
     }
@@ -241,6 +246,7 @@ const DriverArriveModal = ({
         setPickupModalVisible={setPickupModalVisible}
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
+        setDirectionsData={setDirectionsData}
       />
     );
   }

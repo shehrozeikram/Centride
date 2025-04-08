@@ -31,6 +31,8 @@ const RiderBookingModal = ({
   setDropoffModalVisible,
   setShowDirections,
   setIsOnline,
+  setIsModalVisible,
+  setDirectionsData,
 }) => {
   const [updatedRiderId, setUpdatedRiderId] = useState(null);
   const [ridersData, setRidersData] = useState([]);
@@ -158,9 +160,36 @@ const RiderBookingModal = ({
 
           if (data_obj.hasOwnProperty("success")) {
             console.log("success");
-            setIsLoading(false);
+            
+            // Get coordinates from newRideRequest
+            const pickupLat = parseFloat(newRideRequest.p_lat);
+            const pickupLng = parseFloat(newRideRequest.p_lng);
+            const dropoffLat = parseFloat(newRideRequest.d_lat);
+            const dropoffLng = parseFloat(newRideRequest.d_lng);
+
+            // Log coordinates for debugging
+            console.log("Coordinates:", {
+              pickup: { lat: pickupLat, lng: pickupLng },
+              dropoff: { lat: dropoffLat, lng: dropoffLng }
+            });
+
+            // Set the directions data with origin (pickup) and destination (dropoff)
+            setDirectionsData({
+              origin: { 
+                latitude: pickupLat, 
+                longitude: pickupLng 
+              },
+              destination: {
+                latitude: dropoffLat,
+                longitude: dropoffLng
+              }
+            });
+
+            // Update UI states
+            setShowDirections(true);
+            setIsModalVisible(false);
             setDriverArriveModalVisible(true);
-            setShowDirections(true)
+            setIsLoading(false);
           }
         } catch (e) {
           setIsLoading(false);
@@ -196,6 +225,7 @@ const RiderBookingModal = ({
       if (res.ok) {
         console.log("res=", res.ok);
         // driverArriveSave()
+        
         setPickupModalVisible(true);
       } else {
         console.log("Request failed with status: ", res.status);
@@ -215,6 +245,7 @@ const RiderBookingModal = ({
         setPickupModalVisible={setPickupModalVisible}
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
+        setDirectionsData={setDirectionsData}
       />
     );
   }

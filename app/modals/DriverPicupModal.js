@@ -26,6 +26,7 @@ const DriverPickupModal = ({
   setDriverArriveModalVisible,
   setPickupModalVisible,
   setShowDirections,
+  setDirectionsData,
 }) => {
   const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -96,6 +97,7 @@ const DriverPickupModal = ({
       setDriverArriveModalVisible(false);
       setPickupModalVisible(false);
       setShowDirections(false);
+      setDirectionsData(null);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -111,6 +113,7 @@ const DriverPickupModal = ({
         setPickupModalVisible={setPickupModalVisible}
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
+        setDirectionsData={setDirectionsData}
       />
     );
   }

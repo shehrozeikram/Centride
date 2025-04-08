@@ -29,6 +29,7 @@ const DriverDropoffModal = ({
   setDriverArriveModalVisible,
   setPickupModalVisible,
   setShowDirections,
+  setDirectionsData,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
@@ -172,6 +173,7 @@ const DriverDropoffModal = ({
       setDropoffModalVisible(false);
       setModalVisible(false);
       setShowDirections(false);
+      setDirectionsData(null);
     } catch (error) {
       console.error("Error:", error);
     }
