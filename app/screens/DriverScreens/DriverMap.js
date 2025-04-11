@@ -14,6 +14,7 @@ import {
   Modal,
   ActivityIndicator,
   Linking,
+  Easing,
 } from "react-native";
 import Sound from "react-native-sound";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
@@ -134,6 +135,120 @@ const DriverMap = ({ navigation }) => {
 
   const message_ref = database().ref(`Drivers/drvr-${user_id}/notf`);
 
+  const markerRef = useRef(null);
+
+  const [lastBearing, setLastBearing] = useState(0);
+
+  const calculateBearing = (startLat, startLng, endLat, endLng) => {
+    startLat = startLat * (Math.PI / 180);
+    startLng = startLng * (Math.PI / 180);
+    endLat = endLat * (Math.PI / 180);
+    endLng = endLng * (Math.PI / 180);
+
+    const dLong = endLng - startLng;
+
+    const y = Math.sin(dLong) * Math.cos(endLat);
+    const x = Math.cos(startLat) * Math.sin(endLat) -
+             Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLong);
+
+    let bearing = Math.atan2(y, x);
+    bearing = bearing * (180 / Math.PI);
+    bearing = (bearing + 360) % 360;
+
+    return bearing;
+  };
+
+  const animateMarkerToCoordinate = (newCoordinate, oldCoordinate) => {
+    if (!oldCoordinate || !markerRef.current) {
+      return;
+    }
+
+    const duration = 1000;
+
+    // If we have destination coordinates, calculate bearing towards destination
+    let targetBearing;
+    if (directionsData?.destination) {
+      targetBearing = calculateBearing(
+        newCoordinate.latitude,
+        newCoordinate.longitude,
+        directionsData.destination.latitude,
+        directionsData.destination.longitude
+      );
+    } else {
+      // If no destination, calculate bearing based on movement
+      targetBearing = calculateBearing(
+        oldCoordinate.latitude,
+        oldCoordinate.longitude,
+        newCoordinate.latitude,
+        newCoordinate.longitude
+      );
+    }
+
+    // Calculate the shortest rotation path
+    let delta = ((((targetBearing - lastBearing) % 360) + 540) % 360) - 180;
+    let newBearing = (lastBearing + delta + 360) % 360;
+
+    // Only update if there's significant movement
+    const minMovementThreshold = 0.00001;
+    if (
+      Math.abs(oldCoordinate.latitude - newCoordinate.latitude) > minMovementThreshold || 
+      Math.abs(oldCoordinate.longitude - newCoordinate.longitude) > minMovementThreshold
+    ) {
+      if (Platform.OS === 'android') {
+        if (markerRef.current) {
+          markerRef.current.animateMarkerToCoordinate(newCoordinate, duration);
+          markerRef.current.setNativeProps({
+            style: {
+              transform: [{ rotate: `${newBearing - 90}deg` }]
+            }
+          });
+        }
+      } else {
+        // For iOS
+        const latitudeDelta = newCoordinate.latitude - oldCoordinate.latitude;
+        const longitudeDelta = newCoordinate.longitude - oldCoordinate.longitude;
+        const stepCount = Math.floor(duration / 16.67); // 60fps
+
+        let currentStep = 0;
+        const animate = () => {
+          if (currentStep < stepCount && markerRef.current) {
+            const progress = currentStep / stepCount;
+            const currentLatitude = oldCoordinate.latitude + (latitudeDelta * progress);
+            const currentLongitude = oldCoordinate.longitude + (longitudeDelta * progress);
+            const currentRotation = lastBearing + (delta * progress);
+
+            if (markerRef.current) {
+              markerRef.current.setNativeProps({
+                coordinate: {
+                  latitude: currentLatitude,
+                  longitude: currentLongitude,
+                },
+                style: {
+                  transform: [{ rotate: `${currentRotation - 90}deg` }]
+                }
+              });
+            }
+
+            currentStep++;
+            requestAnimationFrame(animate);
+          } else {
+            if (markerRef.current) {
+              markerRef.current.setNativeProps({
+                coordinate: newCoordinate,
+                style: {
+                  transform: [{ rotate: `${newBearing - 90}deg` }]
+                }
+              });
+            }
+            setLastBearing(newBearing);
+          }
+        };
+
+        requestAnimationFrame(animate);
+      }
+    }
+  };
+
   useEffect(() => {
     if (route.params?.isPendingTripCancel) {
       setDriverArriveModalVisible(false);
@@ -186,109 +301,6 @@ const DriverMap = ({ navigation }) => {
       console.log("Error syncing server time:", error);
     }
   };
-
-  // useEffect(() => {
-  //   isMounted.current = true;
-
-  //   const fetchNotifications = async () => {
-  //     const driverId = user?.driverid;
-  //     const reference = database()
-  //       .ref(`Drivers/drvr-${driverId}/notf`)
-  //       .on("value", async (snapshot) => {
-  //         const data = snapshot.val();
-  //         console.log("Fetched snapshot data:", data);
-
-  //         if (data == null) {
-  //           console.log("No data found in Firebase");
-  //           return;
-  //         }
-
-  //         const msg = data.msg;
-  //         const msg_t = data.msg_t;
-
-  //         if (!msg || !msg_t) {
-  //           console.log("Invalid message structure:", data);
-  //           return;
-  //         }
-
-  //         const last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
-  //         console.log("Last message time from AsyncStorage:", last_msg_time_id);
-
-  //         const toleranceInSeconds = 5;
-  //         const timestampDifference = Math.abs(
-  //           msg_t - parseInt(last_msg_time_id, 10)
-  //         );
-
-  //         if (
-  //           !last_msg_time_id ||
-  //           timestampDifference > toleranceInSeconds ||
-  //           timestampDifference === 0
-  //         ) {
-  //           console.log("Processing new message:", data);
-
-  //           await AsyncStorage.setItem("fb_last_recvd", msg_t?.toString());
-
-  //           const formattedNotifications = [msg];
-  //           console.log("Formatted Notifications:", formattedNotifications);
-
-  //           if (formattedNotifications.length > 0) {
-  //             if (isMounted.current) {
-  //               setNotifications(formattedNotifications);
-  //             }
-  //           } else {
-  //             console.log("No notifications to display");
-  //           }
-
-  //           if (!msg.booking_id) {
-  //             console.log("Warning: booking_id is missing", msg);
-  //             return;
-  //           } else {
-  //             const processed = await AsyncStorage.getItem(
-  //               `processed_${msg.booking_id}_${msg.action}`
-  //             );
-  //             if (processed) return;
-
-  //             switch (msg.action) {
-  //               case "driver-allocate":
-  //                 booking_allocate_notify(msg);
-  //                 break;
-  //               case "customer-cancelled":
-  //                 customer_cancelled_notify(msg);
-  //                 break;
-  //               case "decline-driver-bid-notify":
-  //                 decline_bid(msg);
-  //                 break;
-  //               case "chat-message":
-  //                 chat_msg_notify(msg);
-  //                 break;
-  //               default:
-  //                 break;
-  //             }
-
-  //             await AsyncStorage.setItem(
-  //               `processed_${msg.booking_id}_${msg.action}`,
-  //               "true"
-  //             );
-  //           }
-  //         } else {
-  //           console.log(
-  //             "Skipping processed message due to timestamp tolerance:",
-  //             data
-  //           );
-  //         }
-  //       });
-
-  //     return () => {
-  //       database().ref(`Drivers/drvr-${driverId}/notf`).off("value", reference);
-  //     };
-  //   };
-
-  //   fetchNotifications();
-
-  //   return () => {
-  //     isMounted.current = false;
-  //   };
-  // }, [user?.driverid]);
 
   let processed_notifications = {};
 
@@ -416,13 +428,9 @@ const DriverMap = ({ navigation }) => {
     currentTimestamp += server_client_time_diff;
     currentTimestamp = Math.floor(currentTimestamp / 1000);
 
-    let driverAcceptTime =
-      driverAcceptDuration - (currentTimestamp - notifSentTime);
+    let driverAcceptTime = driverAcceptDuration - (currentTimestamp - notifSentTime);
 
     if (driverAcceptTime <= 0) return;
-
-    const driverAcceptTimerStep = 100 / driverAcceptTime;
-    let driverAcceptTimerIndicator = 0;
 
     const riderPickupLocationLat = parseFloat(push_data.p_lat);
     const riderPickupLocationLng = parseFloat(push_data.p_lng);
@@ -440,7 +448,7 @@ const DriverMap = ({ navigation }) => {
 
       let distanceInUnit = distance;
       if (push_data.dist_unit === 1) {
-        distanceInUnit = distance * 0.621371; // Convert km to miles if needed
+        distanceInUnit = distance * 0.621371;
       }
 
       const timeToPickup = calculateTime(distanceInUnit);
@@ -448,45 +456,83 @@ const DriverMap = ({ navigation }) => {
       push_data.time_to_pickup = timeToPickup;
 
       setNewRideRequest(push_data);
-
       showModal("ride_alloc.mp3");
-
-      // Set directions data to show the route from driver to rider's pickup location
-      // setDirectionsData({
-      //   origin: { latitude: driverLat, longitude: driverLng },
-      //   destination: {
-      //     latitude: riderPickupLocationLat,
-      //     longitude: riderPickupLocationLng,
-      //   },
-      // });
       setShowDirections(true);
-      
+
+      // Calculate the bearing between driver and pickup location
+      const bearing = calculateBearing(
+        driverLat,
+        driverLng,
+        riderPickupLocationLat,
+        riderPickupLocationLng
+      );
 
       if (mapRef.current) {
-        if (
-          riderPickupLocationLat &&
-          riderPickupLocationLng &&
-          driverLat &&
-          driverLng
-        ) {
-          // Calculate center of the map to focus the area between driver and rider pickup location
-          const centerLat = (driverLat + riderPickupLocationLat) / 2;
-          const centerLng = (driverLng + riderPickupLocationLng) / 2;
+        // First, position the camera directly above the driver's location with a vertical view
+        mapRef.current.animateCamera({
+          center: {
+            latitude: driverLat,
+            longitude: driverLng,
+          },
+          pitch: 75, // Very steep angle for vertical view
+          heading: bearing, // Point towards destination
+          altitude: distance * 250, // Lower altitude for closer view
+          zoom: distance > 2 ? 16 : 17 // Closer zoom for better detail
+        }, {
+          duration: 1000
+        });
 
-          const latDiff = Math.abs(driverLat - riderPickupLocationLat);
-          const lngDiff = Math.abs(driverLng - riderPickupLocationLng);
+        // After a short delay, adjust to show both points while maintaining vertical perspective
+        setTimeout(() => {
+          // Calculate midpoint between driver and pickup location
+          const midLat = (driverLat + riderPickupLocationLat) / 2;
+          const midLng = (driverLng + riderPickupLocationLng) / 2;
 
-          const latitudeDelta = latDiff + 0.08;
-          const longitudeDelta = lngDiff + 0.08;
+          // Move slightly towards the driver's position for better perspective
+          const adjustedMidLat = midLat - (riderPickupLocationLat - driverLat) * 0.2;
+          const adjustedMidLng = midLng - (riderPickupLocationLng - driverLng) * 0.2;
 
-          mapRef.current.animateToRegion({
-            latitude: centerLat,
-            longitude: centerLng,
-            latitudeDelta: latitudeDelta,
-            longitudeDelta: longitudeDelta,
+          mapRef.current.animateCamera({
+            center: {
+              latitude: adjustedMidLat,
+              longitude: adjustedMidLng,
+            },
+            pitch: 70, // Maintain steep angle
+            heading: bearing,
+            altitude: distance * 300, // Adjust altitude based on distance
+            zoom: distance > 2 ? 15 : 16
+          }, {
+            duration: 1000
           });
-        }
+        }, 1500);
+
+        // Final adjustment to ensure both points are visible while keeping vertical view
+        setTimeout(() => {
+          mapRef.current.fitToCoordinates(
+            [
+              { latitude: driverLat, longitude: driverLng },
+              { latitude: riderPickupLocationLat, longitude: riderPickupLocationLng }
+            ],
+            {
+              edgePadding: {
+                top: 200,    // Large top padding for vertical view
+                right: 50,   // Minimal side padding
+                bottom: 100, // Moderate bottom padding
+                left: 50     // Minimal side padding
+              },
+              animated: true
+            }
+          );
+        }, 2500);
       }
+
+      setDirectionsData({
+        origin: { latitude: driverLat, longitude: driverLng },
+        destination: {
+          latitude: riderPickupLocationLat,
+          longitude: riderPickupLocationLng,
+        },
+      });
     }
   };
 
@@ -586,15 +632,20 @@ const DriverMap = ({ navigation }) => {
         timeout: 15000,
       });
 
-      setOrigin({
+      const newCoords = {
         latitude: location.latitude,
         longitude: location.longitude,
-      });
+      };
+
+      // Animate marker if we have previous coordinates
+      if (origin) {
+        animateMarkerToCoordinate(newCoords, origin);
+      }
+
+      setOrigin(newCoords);
 
       if (location.latitude && location.longitude) {
         console.log("location in getLocation", location);
-        // await setDriverLocation()
-        // await callApis()
       }
     } catch (error) {
       console.log("Location Error:", error.code, error.message);
@@ -760,16 +811,33 @@ const DriverMap = ({ navigation }) => {
     }
 
     const sessId = await getSessionId();
-    const lat = origin?.latitude;
-    const long = origin?.longitude;
-    // console.log("===origin in setDriverLocation===", origin);
-
-    const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}&lat=${lat}&long=${long}`;
-
-    const body = new URLSearchParams();
-    body.append("action", "setDriverLocation");
-
+    
+    // Get current location before making API call
     try {
+      const location = await GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+      });
+
+      const newCoords = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+
+      // Animate marker to new position if we have previous coordinates
+      if (origin && markerRef.current) {
+        animateMarkerToCoordinate(newCoords, origin);
+      }
+
+      // Update origin state with new coordinates
+      setOrigin(newCoords);
+
+      // Make API call with new coordinates
+      const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}&lat=${location.latitude}&long=${location.longitude}`;
+
+      const body = new URLSearchParams();
+      body.append("action", "setDriverLocation");
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -783,7 +851,6 @@ const DriverMap = ({ navigation }) => {
       }
 
       const data = await response.json();
-      // console.log("Running setDriverLocation ", data);
       setTimeOnline(data.driver_time_online);
     } catch (error) {
       console.error("Error:", error);
@@ -960,15 +1027,15 @@ const DriverMap = ({ navigation }) => {
       mapRef.current.animateCamera(
         {
           center: {
-            latitude: origin?.latitude || 33.6844, // Use origin as center
+            latitude: origin?.latitude || 33.6844,
             longitude: origin?.longitude || 73.0479,
           },
-          pitch: 0,
-          heading: 0,
-          altitude: 1000,
-          zoom: 18,
+          pitch: 45, // Add camera tilt
+          heading: 0, // North is up
+          altitude: 500, // Lower altitude for closer view
+          zoom: 17, // Increased zoom level
         },
-        { duration: 2000 }
+        { duration: 1000 }
       );
     }
   };
@@ -1068,11 +1135,23 @@ const DriverMap = ({ navigation }) => {
             }}
             zoomEnabled
           >
-            <Marker coordinate={origin}>
-              <Image
-                source={require("../../assets/city-driver-icon-1.png")}
-                style={styles.markerImage}
-              />
+            <Marker 
+              ref={markerRef}
+              coordinate={origin}
+              anchor={{ x: 0.5, y: 0.5 }}
+              flat={true}
+              tracksViewChanges={false}
+            >
+              <View style={{
+                transform: [{ rotate: `${lastBearing - 90}deg` }],
+                backgroundColor: 'transparent',
+              }}>
+                <Image
+                  source={require("../../assets/city-driver-icon-1.png")}
+                  style={styles.markerImage}
+                  resizeMode="contain"
+                />
+              </View>
             </Marker>
 
             {directionsData?.origin && (
@@ -1315,8 +1394,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   markerImage: {
-    height: 30,
-    width: 30,
+    height: 45,
+    width: 45,
+    transform: [{ rotate: '0deg' }], // Initial rotation
   },
   headerStyle: {
     height: 40,

@@ -9,6 +9,7 @@ import {
   Dimensions,
   ScrollView,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -18,6 +19,8 @@ import database from "@react-native-firebase/database";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import DriverArriveModal from "./DriverArriveModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -250,14 +253,152 @@ const RiderBookingModal = ({
     );
   }
 
+  // Add useEffect for timeout
+  useEffect(() => {
+    let timeoutId;
+    
+    if (visible && newRideRequest) {
+      timeoutId = setTimeout(() => {
+        handleRideTimeout();
+      }, 13000); // 13 seconds timeout
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [visible, newRideRequest]);
+
+  const handleRideTimeout = async () => {
+    try {
+      // Clear map states first
+      if (typeof setDirectionsData === 'function') {
+        setDirectionsData(null);
+      }
+      if (typeof setShowDirections === 'function') {
+        setShowDirections(false);
+      }
+
+      // Clear storage
+      await AsyncStorage.removeItem("newRideRequest");
+      await AsyncStorage.removeItem("activeRideState");
+      await AsyncStorage.removeItem("activeModalState");
+
+      // Reset all modal visibility states
+      if (typeof setDriverArriveModalVisible === 'function') {
+        setDriverArriveModalVisible(false);
+      }
+      if (typeof setPickupModalVisible === 'function') {
+        setPickupModalVisible(false);
+      }
+      if (typeof setIsModalVisible === 'function') {
+        setIsModalVisible(false);
+      }
+
+      // Clear ride request data
+      setNewRideRequest(null);
+      
+      console.log("Ride request timed out - all states reset");
+    } catch (error) {
+      console.error("Error in handleRideTimeout:", error);
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      // Clear map states first
+      if (typeof setDirectionsData === 'function') {
+        setDirectionsData(null);
+      }
+      if (typeof setShowDirections === 'function') {
+        setShowDirections(false);
+      }
+
+      // Clear storage
+      await AsyncStorage.removeItem("newRideRequest");
+      await AsyncStorage.removeItem("activeRideState");
+      await AsyncStorage.removeItem("activeModalState");
+
+      // Reset all modal visibility states
+      if (typeof setDriverArriveModalVisible === 'function') {
+        setDriverArriveModalVisible(false);
+      }
+      if (typeof setPickupModalVisible === 'function') {
+        setPickupModalVisible(false);
+      }
+      if (typeof setIsModalVisible === 'function') {
+        setIsModalVisible(false);
+      }
+
+      // Call the onClose prop if provided
+      if (typeof onClose === 'function') {
+        onClose();
+      }
+
+      console.log("Modal closed and all states reset successfully");
+    } catch (error) {
+      console.error("Error in handleClose:", error);
+    }
+  };
+
+  // Add new state for blinking animation
+  const [blinkAnim] = useState(new Animated.Value(1));
+
+  // Add useEffect for blinking animation
+  useEffect(() => {
+    const blinkingAnimation = Animated.sequence([
+      Animated.timing(blinkAnim, {
+        toValue: 0.4,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(blinkAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]);
+
+    // Create infinite loop of blinking
+    Animated.loop(blinkingAnimation).start();
+
+    // Cleanup animation when component unmounts
+    return () => {
+      blinkAnim.setValue(1);
+    };
+  }, []);
+
   return (
     <Modal
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       animationType="slide"
     >
       <View style={styles.modalContainer}>
+        {/* Add the close button here, before the modal content */}
+        <Animated.View 
+          style={[
+            styles.closeButtonContainer,
+            {
+              opacity: blinkAnim
+            }
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={handleClose}
+          >
+            <MaterialIcons 
+              name="close" 
+              size={28}
+              color="#FF0000"
+              style={{ fontWeight: 'bold' }}
+            />
+          </TouchableOpacity>
+        </Animated.View>
+
         <View style={styles.modalContent}>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.section}>
@@ -397,11 +538,12 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: screenWidth,
-    maxHeight: screenHeight * 0.6, // Adjust as needed
+    maxHeight: screenHeight * 0.6,
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
+    paddingTop: 20,
   },
   scrollContainer: {
     paddingVertical: 20,
@@ -585,6 +727,29 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 5,
+  },
+  closeButton: {
+    padding: 0,
+    backgroundColor: 'white',
+    borderRadius: 25,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonContainer: {
+    position: 'absolute',
+    top: screenHeight * 0.02,
+    alignSelf: 'center',
+    zIndex: 2,
   },
 });
 
