@@ -31,8 +31,8 @@ const DriverDropoffModal = ({
   setShowDirections,
   setDirectionsData,
 }) => {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(visible || false);
+  const [dropoffModalVisible, setDropoffModalVisible] = useState(visible || false);
   const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -44,20 +44,30 @@ const DriverDropoffModal = ({
   }, [newRideRequest]);
 
   useEffect(() => {
-    const fetchRideData = async () => {
-      if (newRideRequest) {
-        setRideData(newRideRequest);
-        await saveNewRideRequestToStorage(newRideRequest);
-      } else {
-        const savedRideRequest = await getNewRideRequestFromStorage();
-        if (savedRideRequest) {
-          setRideData(savedRideRequest);
+    const loadRideData = async () => {
+      if (visible) {
+        if (newRideRequest) {
+          setRideData(newRideRequest);
+          await saveNewRideRequestToStorage(newRideRequest);
+        } else {
+          const savedRideRequest = await getNewRideRequestFromStorage();
+          if (savedRideRequest) {
+            console.log("Loaded saved ride request:", savedRideRequest);
+            setRideData(savedRideRequest);
+          }
         }
       }
     };
 
-    fetchRideData();
-  }, [newRideRequest]);
+    loadRideData();
+  }, [visible, newRideRequest]);
+
+  useEffect(() => {
+    if (visible !== undefined) {
+      setModalVisible(visible);
+      setDropoffModalVisible(visible);
+    }
+  }, [visible]);
 
   const saveNewRideRequestToStorage = async (request) => {
     try {
@@ -83,103 +93,198 @@ const DriverDropoffModal = ({
     }
   };
 
-  const handleDropOff = async () => {
-    const url = `${DRIVER_BASE_URL}`;
-    const sess_id = await getSessionId();
-    const params = {
-      sess_id: sess_id,
-      action_get: "drivercompleted",
-      bookingid: newRideRequest.booking_id,
-      complete_code: newRideRequest.completion_code,
-      ride_distance: newRideRequest.distance,
-      ride_duration_secs: newRideRequest.time_to_pickup,
-      ride_duration_secs_formated: newRideRequest.time_to_pickup,
-      ride_fare: newRideRequest.fare,
-      city_currency_symbol: "₨",
-      city_currency_exchng: "1.00000",
-      city_currency_code: "PKR",
-      amount_paid_by_rider: newRideRequest.fare,
-      coupon_code: newRideRequest.coupon_code,
-      coupon_discount_type: newRideRequest.coupon_discount_type,
-      coupon_discount_value: newRideRequest.coupon_discount_value,
-      referral_used: newRideRequest.referral_used,
-      referral_discount_value: newRideRequest.referral_discount_value,
-    };
-
-    // Set loading state (if you want to show a loading indicator while the API is called)
-    setLoading(true);
-
+  const saveRideStateToStorage = async (request) => {
     try {
+      const rideState = {
+        modalState: 'DROPOFF',
+        rideRequest: request,
+        directionsData: {
+          origin: {
+            latitude: parseFloat(request.p_lat),
+            longitude: parseFloat(request.p_lng)
+          },
+          destination: {
+            latitude: parseFloat(request.d_lat),
+            longitude: parseFloat(request.d_lng)
+          }
+        },
+        showDirections: true
+      };
+      
+      await AsyncStorage.setItem("activeRideState", JSON.stringify(rideState));
+      await AsyncStorage.setItem("activeModalState", "DROPOFF");
+      console.log("Saved dropoff state:", rideState);
+    } catch (error) {
+      console.error("Error saving dropoff state:", error);
+    }
+  };
+
+  const handleDropOff = async () => {
+    try {
+      setLoading(true);
+      
+      // Get the current ride data from either source
+      const currentRideData = rideData || newRideRequest;
+      
+      if (!currentRideData?.booking_id) {
+        console.error("No booking ID found in ride data");
+        Alert.alert("Error", "Could not find booking information");
+        return;
+      }
+
+      console.log("Processing dropoff for booking:", currentRideData);
+      
+      const url = `${DRIVER_BASE_URL}`;
+      const sess_id = await getSessionId();
+      
+      // Use currentRideData instead of newRideRequest
+      const params = {
+        sess_id: sess_id,
+        action_get: "drivercompleted",
+        bookingid: currentRideData.booking_id,
+        complete_code: currentRideData.completion_code,
+        ride_distance: currentRideData.distance,
+        ride_duration_secs: currentRideData.time_to_pickup,
+        ride_duration_secs_formated: currentRideData.time_to_pickup,
+        ride_fare: currentRideData.fare,
+        city_currency_symbol: "₨",
+        city_currency_exchng: "1.00000",
+        city_currency_code: "PKR",
+        amount_paid_by_rider: currentRideData.fare,
+        coupon_code: currentRideData.coupon_code || "",
+        coupon_discount_type: currentRideData.coupon_discount_type || "",
+        coupon_discount_value: currentRideData.coupon_discount_value || "",
+        referral_used: currentRideData.referral_used || "",
+        referral_discount_value: currentRideData.referral_discount_value || "",
+      };
+
+      console.log("Sending dropoff request with params:", params);
+
       const queryString = new URLSearchParams(params).toString();
       const requestUrl = `${url}?${queryString}`;
+      
       const response = await fetch(requestUrl, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const jsonResponse = await response.json();
-      // setResponseData(jsonResponse);
-      setLoading(false);
+      console.log("Drop off API response:", jsonResponse);
+
+      // Clear stored data
+      await AsyncStorage.removeItem("newRideRequest");
+      await AsyncStorage.removeItem("activeRideState");
+      await AsyncStorage.removeItem("activeModalState");
+
+      // Reset all states
       setModalVisible(false);
-      setDriverArriveModalVisible(false);
-      setShowDirections(false);
-      setPickupModalVisible(false);
       setDropoffModalVisible(false);
-      navigation.replace("DriverRideCompleted", { newRideRequest });
+      
+      // Reset parent component states if the functions exist
+      if (typeof setDriverArriveModalVisible === 'function') {
+        setDriverArriveModalVisible(false);
+      }
+      if (typeof setShowDirections === 'function') {
+        setShowDirections(false);
+      }
+      if (typeof setPickupModalVisible === 'function') {
+        setPickupModalVisible(false);
+      }
+      if (typeof setDirectionsData === 'function') {
+        setDirectionsData(null);
+      }
+
+      // Navigate to completion screen with the current ride data
+      navigation.replace("DriverRideCompleted", { 
+        newRideRequest: currentRideData,
+        fromDropoff: true 
+      });
+
     } catch (error) {
-      setLoading(false);
-      console.error("Error calling API:", error);
+      console.error("Error in handleDropOff:", error);
+      Alert.alert(
+        "Error",
+        "Failed to complete drop off. Please try again.",
+        [{ text: "OK" }]
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // const handleCancelRide = () => {
-  //   console.log("ride is cancelled");
-  //   setDriverArriveModalVisible(false);
-  //   setPickupModalVisible(false);
-  //   setDropoffModalVisible(false);
-  //   setModalVisible(false);
-  //   setShowDirections(false);
-  // };
-
   const handleCancelRide = async () => {
-    const url = `${DRIVER_BASE_URL}`;
-    const sess_id = await getSessionId();
-    const params = {
-      sess_id: sess_id,
-      action_get: "bookingcancel",
-      bookingid: newRideRequest?.booking_id || rideData?.booking_id,
-      comment: "delete",
-    };
-
-    const queryString = new URLSearchParams(params).toString();
-    const requestUrl = `${url}?${queryString}`;
-
     try {
-      const response = await fetch(requestUrl, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        setLoading(false);
-        throw new Error("Network response was not ok");
+      setLoading(true);
+      const currentRideData = rideData || newRideRequest;
+      
+      if (!currentRideData?.booking_id) {
+        console.warn("No booking ID found");
+        return;
       }
 
-      const data = await response.json();
-      setDriverArriveModalVisible(false);
-      setPickupModalVisible(false);
-      setDropoffModalVisible(false);
+      const url = `${DRIVER_BASE_URL}`;
+      const sess_id = await getSessionId();
+      const params = {
+        sess_id: sess_id,
+        action_get: "bookingcancel",
+        bookingid: currentRideData.booking_id,
+        comment: "delete",
+      };
+
+      const queryString = new URLSearchParams(params).toString();
+      const requestUrl = `${url}?${queryString}`;
+
+      const response = await fetch(requestUrl, { method: "GET" });
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      // Clear all stored data first
+      await AsyncStorage.removeItem("newRideRequest");
+      await AsyncStorage.removeItem("activeRideState");
+      await AsyncStorage.removeItem("activeModalState");
+
+      // Reset local state
+      setRideData(null);
       setModalVisible(false);
-      setShowDirections(false);
-      setDirectionsData(null);
+      setDropoffModalVisible(false);
+      
+      // Clear map data
+      if (typeof setDirectionsData === 'function') {
+        setDirectionsData(null);
+      }
+      if (typeof setShowDirections === 'function') {
+        setShowDirections(false);
+      }
+
+      // Reset all modal visibility states
+      // Check if functions exist before calling them
+      if (typeof setDriverArriveModalVisible === 'function') {
+        setDriverArriveModalVisible(false);
+      }
+      if (typeof setPickupModalVisible === 'function') {
+        setPickupModalVisible(false);
+      }
+
+      console.log("Ride cancelled and all states reset successfully");
+
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error canceling ride:", error);
+      Alert.alert(
+        "Error",
+        "Failed to cancel ride. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
+  return modalVisible ? (
     <View style={[styles.modalContainer, styles.transparentBackground]}>
       <View style={styles.modalContent}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -187,19 +292,21 @@ const DriverDropoffModal = ({
             <View style={styles.row}>
               <View style={styles.profileAndRating}>
                 <Image
-                  source={{
-                    uri: newRideRequest?.rider_image,
-                  }}
+                  source={
+                    (rideData?.rider_image || newRideRequest?.rider_image) 
+                      ? { uri: rideData?.rider_image || newRideRequest?.rider_image }
+                      : require("../assets/driver.png") // Default image
+                  }
                   style={styles.profileImage}
+                  defaultSource={require("../assets/driver.png")} // Fallback image while loading
                 />
                 <Text style={styles.driverName}>
-                  {/* {newRideRequest?.rider_name} */}
-                  {rideData?.rider_name}
+                  {rideData?.rider_name || newRideRequest?.rider_name || "Unknown Rider"}
                 </Text>
               </View>
               <View style={styles.timeContainer}>
                 <Text style={styles.timeText}>
-                  {newRideRequest?.time_to_pickup}
+                  {rideData?.time_to_pickup || newRideRequest?.time_to_pickup || "--"}
                 </Text>
                 <Text style={styles.timeText}>Mins</Text>
               </View>
@@ -215,8 +322,7 @@ const DriverDropoffModal = ({
                   style={styles.pickupImage}
                 />
                 <Text style={styles.pickupAddressText} numberOfLines={2}>
-                  {/* {newRideRequest?.d_address} */}
-                  {rideData?.d_address}
+                  {rideData?.d_address || newRideRequest?.d_address || "No address available"}
                 </Text>
               </View>
             </View>
@@ -246,7 +352,7 @@ const DriverDropoffModal = ({
         </ScrollView>
       </View>
     </View>
-  );
+  ) : null;
 };
 
 const styles = StyleSheet.create({

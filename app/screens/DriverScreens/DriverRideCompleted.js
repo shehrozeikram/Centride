@@ -8,6 +8,7 @@ import {
   TextInput,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 import Geocoding from "react-native-geocoding";
 import { Rating } from "react-native-ratings";
@@ -21,6 +22,7 @@ import Style from "../../utils/Styles";
 import Spacing from "../../components/Spacing";
 import Header from "../../components/Header";
 import DriverMap from "./DriverMap";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 Geocoding.init("AIzaSyDWptdKEfofkAbIBS2NBFch1dU8lDOb-Iw");
 
@@ -81,9 +83,51 @@ const DriverRideCompleted = ({ navigation, route }) => {
     }
   };
 
-  const handleSubmit = () => {
-    console.log("User rating:", rating);
-    navigation.navigate("DriverMap");
+  const handleSubmit = async () => {
+    try {
+      console.log("User rating:", rating);
+      
+      // Clear all stored states
+      const keysToRemove = [
+        "newRideRequest",
+        "activeRideState",
+        "activeModalState",
+        "currentRideState",
+        "lastRideState",
+        "bookingData",
+        "currentBooking",
+        "rideRequest",
+        "driverStatus"
+      ];
+
+      // Clear all keys in parallel
+      await Promise.all(keysToRemove.map(key => AsyncStorage.removeItem(key)));
+
+      // Navigate to DriverMap with special flags
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'DriverMap',
+            params: {
+              fromRideComplete: true,  // Add this flag to bypass ongoing_bk check
+              ongoing_bk: 0,           // Force ongoing_bk to 0
+              resetComplete: true,
+              clearBookingAlert: true,
+              timestamp: Date.now()
+            }
+          }
+        ]
+      });
+
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+      Alert.alert(
+        "Error",
+        "Failed to complete the process. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
   };
 
   const onBackPress = () => {

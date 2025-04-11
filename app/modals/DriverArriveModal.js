@@ -8,6 +8,7 @@ import {
   Dimensions,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import Geolocation from "@react-native-community/geolocation";
 import Geocoding from "react-native-geocoding";
@@ -39,209 +40,280 @@ const DriverArriveModal = ({
     estimated_distance: null,
   });
   const user = useSelector((state) => state.user?.user);
+  const intervalRef = useRef(null);
 
-  // const mapRef = useRef(null);
-
-  // console.log("directionsData-+", setDirectionsData);
-
-  // console.log("newRideRequest-+", newRideRequest);
-  // console.log("user-+", user);
-
-  useEffect(() => {
-    if (newRideRequest) {
-      getDistanceAndTime();
-    }
-  }, [newRideRequest]);
-
-  useEffect(() => {
-    const fetchRideData = async () => {
-      if (newRideRequest) {
-        setRideData(newRideRequest);
-        await saveNewRideRequestToStorage(newRideRequest);
-      } else {
-        const savedRideRequest = await getNewRideRequestFromStorage();
-        if (savedRideRequest) {
-          setRideData(savedRideRequest);
-        }
-      }
-    };
-
-    fetchRideData();
-  }, [newRideRequest]);
-
-  const saveNewRideRequestToStorage = async (request) => {
-    try {
-      await AsyncStorage.setItem("newRideRequest", JSON.stringify(request));
-      console.log("New ride request saved in AsyncStorage!");
-    } catch (error) {
-      console.error("Error saving newRideRequest to AsyncStorage", error);
-    }
-  };
-
-  const getNewRideRequestFromStorage = async () => {
-    try {
-      const savedRequest = await AsyncStorage.getItem("newRideRequest");
-      if (savedRequest !== null) {
-        console.log(
-          "Retrieved newRideRequest from AsyncStorage:",
-          JSON.parse(savedRequest)
-        );
-        return JSON.parse(savedRequest);
-      }
-    } catch (error) {
-      console.error("Error retrieving newRideRequest from AsyncStorage", error);
-    }
-  };
-
-  const getDistanceAndTime = async () => {
-    // Initial calculation
-    calculateDistanceAndTime();
-    
-    // Set up interval for periodic updates
-    const intervalId = setInterval(() => {
-      calculateDistanceAndTime();
-    }, 5000); // Update every 5 seconds
-
-    // Cleanup interval when component unmounts
-    return () => clearInterval(intervalId);
-  };
-
+  // Move all function definitions before useEffect
   const calculateDistanceAndTime = () => {
-    try {
-      Geolocation.getCurrentPosition(
-        async (position) => {
+    const currentRideData = rideData || newRideRequest;
+    
+    if (!currentRideData) {
+      console.warn("No ride data available");
+      return;
+    }
+
+    const pickupLat = parseFloat(currentRideData.p_lat);
+    const pickupLng = parseFloat(currentRideData.p_lng);
+
+    if (isNaN(pickupLat) || isNaN(pickupLng)) {
+      console.warn("Invalid pickup coordinates:", {
+        raw_p_lat: currentRideData.p_lat,
+        raw_p_lng: currentRideData.p_lng
+      });
+      return;
+    }
+
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        try {
           const { latitude, longitude } = position.coords;
-          console.log("Updated location - Lat:", latitude, "Long:", longitude);
+          
+          console.log("Calculating distance with coordinates:", {
+            driverLat: latitude,
+            driverLng: longitude,
+            pickupLat,
+            pickupLng
+          });
 
           const origin = `${latitude},${longitude}`;
-          const destination = `${newRideRequest?.p_lat},${newRideRequest?.p_lng}`;
+          const destination = `${pickupLat},${pickupLng}`;
 
           const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
 
           const response = await fetch(url);
           const data = await response.json();
 
-          if (data.status === "OK") {
+          if (data.status === "OK" && data.rows[0]?.elements[0]?.status === "OK") {
             const element = data.rows[0].elements[0];
-            if (element.status === "OK") {
-              const distanceText = element.distance.text;
-              const distanceInMeters = element.distance.value;
-              const durationText = element.duration.text;
+            const distanceInMeters = element.distance.value;
+            const distanceInKilometers = distanceInMeters / 1000;
+            const timeInMinutes = Math.max(1, Math.round((distanceInKilometers / 60) * 60));
 
-              console.log(
-                `Updated Distance: ${distanceText}, Duration: ${durationText}`
-              );
+            setCalculatedRideData({
+              time_to_pickup: timeInMinutes,
+              estimated_distance: `${distanceInKilometers.toFixed(2)} km`,
+            });
+          }
+        } catch (error) {
+          console.error("Error in distance calculation:", error);
+        }
+      },
+      (error) => console.error("Geolocation error:", error),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+    );
+  };
 
-              const distanceInKilometers = distanceInMeters / 1000;
-              const speed = 60;
-              const timeInHours = distanceInKilometers / speed;
-              let timeInMinutes = timeInHours * 60;
-              
-              if (timeInMinutes < 1) {
-                timeInMinutes = 1;
-              }
-
-              timeInMinutes = Math.round(timeInMinutes);
-
-              console.log(
-                `Updated ETA at 60 km/h: ${timeInMinutes} minutes`
-              );
-
-              setCalculatedRideData({
-                time_to_pickup: timeInMinutes,
-                estimated_distance: `${distanceInKilometers.toFixed(2)} km`,
-              });
-            }
+  const saveNewRideRequestToStorage = async (request) => {
+    try {
+      const rideState = {
+        modalState: 'ARRIVE',
+        rideRequest: request,
+        directionsData: {
+          origin: {
+            latitude: parseFloat(request.p_lat),
+            longitude: parseFloat(request.p_lng)
+          },
+          destination: {
+            latitude: parseFloat(request.d_lat),
+            longitude: parseFloat(request.d_lng)
           }
         },
-        (error) => {
-          console.error("Error getting updated location:", error);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
-      );
+        showDirections: true
+      };
+      
+      await AsyncStorage.setItem("activeRideState", JSON.stringify(rideState));
+      console.log("Saved arrive state:", rideState);
     } catch (error) {
-      console.error("Error updating distance and time:", error);
+      console.error("Error saving arrive state:", error);
     }
   };
 
-  const handleDriverArrive = async () => {
-    setLoading(true);
-    const url = `${DRIVER_BASE_URL}`;
-    const sess_id = await getSessionId();
-    const params = {
-      sess_id: sess_id,
-      action_get: "driverarrived",
-      bookingid: newRideRequest?.booking_id || rideData?.booking_id,
+  const getNewRideRequestFromStorage = async () => {
+    try {
+      const savedState = await AsyncStorage.getItem("activeRideState");
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        console.log("Retrieved ride state:", parsedState);
+        return parsedState;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error retrieving ride state from AsyncStorage:", error);
+      return null;
+    }
+  };
+
+  // Now use useEffect after all function definitions
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeData = async () => {
+      try {
+        if (newRideRequest) {
+          console.log("Setting new ride request:", newRideRequest);
+          setRideData(newRideRequest);
+          await saveNewRideRequestToStorage(newRideRequest);
+          
+          if (typeof setDirectionsData === 'function') {
+            setDirectionsData({
+              origin: {
+                latitude: parseFloat(newRideRequest.p_lat),
+                longitude: parseFloat(newRideRequest.p_lng)
+              },
+              destination: {
+                latitude: parseFloat(newRideRequest.d_lat),
+                longitude: parseFloat(newRideRequest.d_lng)
+              }
+            });
+          }
+          
+          if (typeof setShowDirections === 'function') {
+            setShowDirections(true);
+          }
+        } else {
+          const savedState = await getNewRideRequestFromStorage();
+          if (savedState && mounted) {
+            console.log("Restoring saved ride state");
+            setRideData(savedState.rideRequest);
+            
+            if (typeof setDirectionsData === 'function') {
+              setDirectionsData(savedState.directionsData);
+            }
+            
+            if (typeof setShowDirections === 'function') {
+              setShowDirections(savedState.showDirections);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing data:", error);
+      }
     };
 
-    const queryString = new URLSearchParams(params).toString();
-    const requestUrl = `${url}?${queryString}`;
+    initializeData();
+    
+    if (mounted) {
+      calculateDistanceAndTime();
+      intervalRef.current = setInterval(calculateDistanceAndTime, 5000);
+    }
 
-    try {
-      const response = await fetch(requestUrl, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        setLoading(false);
-        throw new Error("Network response was not ok");
+    return () => {
+      mounted = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
+    };
+  }, [newRideRequest]);
 
-      const data = await response.json();
-      setLoading(false);
+  // Move the early return check here, after all hooks are declared
+  if (!newRideRequest && !rideData) {
+    return null;
+  }
+
+  const handleDriverArrive = async () => {
+    if (loading) return;
+    
+    setLoading(true);
+    try {
+      const currentRideData = rideData || newRideRequest;
+      const url = `${DRIVER_BASE_URL}`;
+      const sess_id = await getSessionId();
+      const params = {
+        sess_id: sess_id,
+        action_get: "driverarrived",
+        bookingid: currentRideData?.booking_id,
+      };
+
+      const queryString = new URLSearchParams(params).toString();
+      const requestUrl = `${url}?${queryString}`;
+
+      const response = await fetch(requestUrl, { method: "GET" });
+
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      // Save the new modal state before showing pickup modal
+      await AsyncStorage.setItem("activeModalState", "PICKUP");
       setPickupModalVisible(true);
-      // setShowDirections(true)
     } catch (error) {
-      setLoading(false);
       console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancelRide = async () => {
-    const url = `${DRIVER_BASE_URL}`;
-    const sess_id = await getSessionId();
-    const params = {
-      sess_id: sess_id,
-      action_get: "bookingcancel",
-      bookingid: newRideRequest?.booking_id || rideData?.booking_id,
-      comment: "delete",
-    };
-
-    const queryString = new URLSearchParams(params).toString();
-    const requestUrl = `${url}?${queryString}`;
-
+    if (loading) return;
+    
+    setLoading(true);
     try {
-      const response = await fetch(requestUrl, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        setLoading(false);
-        throw new Error("Network response was not ok");
+      const currentRideData = rideData || newRideRequest;
+      if (!currentRideData?.booking_id) {
+        throw new Error("No booking ID found");
       }
 
-      const data = await response.json();
-      setLoading(false);
-      setShowDirections(false);
-      setDriverArriveModalVisible(false);
-      setDirectionsData(null);
+      const url = `${DRIVER_BASE_URL}`;
+      const sess_id = await getSessionId();
+      const params = {
+        sess_id: sess_id,
+        action_get: "bookingcancel",
+        bookingid: currentRideData.booking_id,
+        comment: "delete",
+      };
+
+      const queryString = new URLSearchParams(params).toString();
+      const requestUrl = `${url}?${queryString}`;
+
+      const response = await fetch(requestUrl, { method: "GET" });
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      // First clear the map states
+      if (typeof setDirectionsData === 'function') {
+        setDirectionsData(null);
+      }
+      if (typeof setShowDirections === 'function') {
+        setShowDirections(false);
+      }
+
+      // Clear local states
+      setRideData(null);
+      setCalculatedRideData({
+        time_to_pickup: null,
+        estimated_distance: null,
+      });
       
+      // Clear interval
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      // Clear storage
+      await AsyncStorage.removeItem("activeRideState");
+      
+      // Close modal last
+      if (typeof setDriverArriveModalVisible === 'function') {
+        setDriverArriveModalVisible(false);
+      }
+
+      console.log("Ride cancelled successfully");
+
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error canceling ride:", error);
+      Alert.alert(
+        "Error",
+        "Failed to cancel ride. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  // const handleCancelRide = () => {
-  //   console.log("ride is cancelled");
-  //   setDriverArriveModalVisible(false);
-  //   setShowDirections(false);
-  // };
-
+  // Render pickup modal if visible
   if (pickupModalVisible) {
     return (
       <DriverPickupModal
         visible={pickupModalVisible}
-        newRideRequest={rideData}
+        newRideRequest={rideData || newRideRequest}
         setDriverArriveModalVisible={setDriverArriveModalVisible}
         setPickupModalVisible={setPickupModalVisible}
         setDropoffModalVisible={setDropoffModalVisible}
@@ -251,27 +323,31 @@ const DriverArriveModal = ({
     );
   }
 
+  const currentRideData = rideData || newRideRequest;
+
   return (
     <View style={styles.modalContainer}>
       <View style={styles.modalContent}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Driver Info Section */}
           <View style={styles.section}>
             <View style={styles.row}>
               <View style={styles.profileAndRating}>
                 <Image
-                  source={{
-                    uri: newRideRequest?.rider_image,
-                  }}
+                  source={
+                    currentRideData?.rider_image
+                      ? { uri: currentRideData.rider_image }
+                      : require("../assets/driver.png") // Add a default image
+                  }
                   style={styles.profileImage}
+                  defaultSource={require("../assets/driver.png")} // Fallback image
                 />
                 <Text style={styles.driverName}>
-                  {rideData?.rider_name || "Unknown Rider"}
+                  {currentRideData?.rider_name || "Unknown Rider"}
                 </Text>
               </View>
               <View style={styles.timeContainer}>
                 <Text style={styles.timeText}>
-                  {calculatedRideData.time_to_pickup}
+                  {calculatedRideData.time_to_pickup || "--"}
                 </Text>
                 <Text style={styles.timeText}>Mins</Text>
               </View>
@@ -288,7 +364,7 @@ const DriverArriveModal = ({
                   style={styles.pickupImage}
                 />
                 <Text style={styles.pickupText} numberOfLines={2}>
-                  {rideData?.p_address}
+                  {currentRideData?.p_address}
                 </Text>
               </View>
             </View>

@@ -154,12 +154,15 @@ const DriverMap = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    console.log("Checking ongoing_bk in useEffect:", ongoing_bk);
-
-    if (ongoing_bk === 1) {
+    console.log("Checking ongoing_bk and route params:", ongoing_bk, route.params);
+    
+    // Only show the alert if ongoing_bk is 1 AND we're not coming from ride completion
+    if (ongoing_bk === 1 && !route.params?.fromRideComplete) {
       setShowViewAlert(true);
+    } else {
+      setShowViewAlert(false);
     }
-  }, [ongoing_bk]);
+  }, [ongoing_bk, route.params]);
 
   const onLayout = (event) => {
     const { width, height } = event.nativeEvent.layout;
