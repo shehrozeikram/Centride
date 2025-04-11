@@ -138,7 +138,6 @@ const DriverMap = ({ navigation }) => {
   const markerRef = useRef(null);
 
   const [lastBearing, setLastBearing] = useState(0);
-  const [isMapReady, setIsMapReady] = useState(false);
 
   const calculateBearing = (startLat, startLng, endLat, endLng) => {
     startLat = startLat * (Math.PI / 180);
@@ -638,25 +637,15 @@ const DriverMap = ({ navigation }) => {
         longitude: location.longitude,
       };
 
-      // Set origin immediately when we get location
-      setOrigin(newCoords);
-
-      // If map is ready and marker ref exists, animate to new position
-      if (isMapReady && markerRef.current && origin) {
+      // Animate marker if we have previous coordinates
+      if (origin) {
         animateMarkerToCoordinate(newCoords, origin);
       }
 
+      setOrigin(newCoords);
+
       if (location.latitude && location.longitude) {
         console.log("location in getLocation", location);
-        
-        // Animate to initial position if map is ready
-        if (isMapReady && mapRef.current) {
-          mapRef.current.animateToRegion({
-            ...newCoords,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }, 1000);
-        }
       }
     } catch (error) {
       console.log("Location Error:", error.code, error.message);
@@ -1067,22 +1056,14 @@ const DriverMap = ({ navigation }) => {
 
     initializeDriver();
 
-    // Start location updates if online
-    const locationUpdateInterval = setInterval(() => {
-      if (isOnline) {
-        getLocation();
-      }
-    }, 10000);
-
-    // Cleanup
+    // Cleanup interval when component unmounts
     return () => {
-      clearInterval(locationUpdateInterval);
       if (intervalIdRef.current) {
         clearInterval(intervalIdRef.current);
         intervalIdRef.current = null;
       }
     };
-  }, [isOnline, isMapReady]); // Add isMapReady to dependencies
+  }, []); // Run only once on mount
 
   // Add effect to start interval when origin is available and driver is online
   useEffect(() => {
@@ -1153,34 +1134,25 @@ const DriverMap = ({ navigation }) => {
               longitudeDelta: 0.06,
             }}
             zoomEnabled
-            onMapReady={() => {
-              setIsMapReady(true);
-              onMapReady();
-            }}
           >
-            {origin && isMapReady && (
-              <Marker 
-                ref={markerRef}
-                coordinate={origin}
-                anchor={{ x: 0.5, y: 0.5 }}
-                flat={true}
-                tracksViewChanges={false}
-              >
-                <View style={{
-                  transform: [{ rotate: `${lastBearing - 90}deg` }],
-                  backgroundColor: 'transparent',
-                }}>
-                  <Image
-                    source={require("../../assets/city-driver-icon-1.png")}
-                    style={[styles.markerImage, { 
-                      height: 45,
-                      width: 45,
-                    }]}
-                    resizeMode="contain"
-                  />
-                </View>
-              </Marker>
-            )}
+            <Marker 
+              ref={markerRef}
+              coordinate={origin}
+              anchor={{ x: 0.5, y: 0.5 }}
+              flat={true}
+              tracksViewChanges={false}
+            >
+              <View style={{
+                transform: [{ rotate: `${lastBearing - 90}deg` }],
+                backgroundColor: 'transparent',
+              }}>
+                <Image
+                  source={require("../../assets/city-driver-icon-1.png")}
+                  style={styles.markerImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </Marker>
 
             {directionsData?.origin && (
               <Marker coordinate={directionsData.destination}>
@@ -1424,7 +1396,7 @@ const styles = StyleSheet.create({
   markerImage: {
     height: 45,
     width: 45,
-    resizeMode: 'contain',
+    transform: [{ rotate: '0deg' }], // Initial rotation
   },
   headerStyle: {
     height: 40,
