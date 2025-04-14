@@ -235,6 +235,52 @@ const RiderBookingModal = ({
     }
   };
 
+  const handleAutoCancelRide = async () => {
+    try {
+      const sessId = await getSessionId();
+      const url = `https://appserver.txy.co/ajaxdriver_2_1_1.php?sess_id=${sessId}`;
+      
+      const params = {
+        sess_id: sessId,
+        action_get: "bookingcancel",
+        bookingid: newRideRequest?.booking_id,
+        comment: "delete",
+      };
+
+      const queryString = new URLSearchParams(params).toString();
+      const requestUrl = `${url}?${queryString}`;
+      
+      const response = await fetch(requestUrl, { method: "GET" });
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      // Clear map states
+      setDirectionsData(null);
+      setShowDirections(false);
+      
+      // Close modal
+      setIsModalVisible(false);
+
+    } catch (error) {
+      console.error("Error canceling ride:", error);
+    }
+  };
+
+  // Update the useEffect for auto-hide timer
+  useEffect(() => {
+    let timer;
+    if (visible) {
+      timer = setTimeout(() => {
+        handleAutoCancelRide();
+      }, 13000);
+    }
+    
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [visible]);
+
   // If pickupModalVisible is true, show DriverPickupModal
   if (driverArriveModalVisible) {
     return (
