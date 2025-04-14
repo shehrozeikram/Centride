@@ -1173,13 +1173,37 @@ const DriverMap = ({ navigation }) => {
             )}
 
             {showDirections && directionsData && (
-              <MapViewDirections
-                origin={directionsData.origin}
-                destination={directionsData.destination}
-                apikey={GOOGLE_MAPS_API_KEY}
-                strokeColor={"black"}
-                strokeWidth={2.5}
-              />
+              <>
+                {/* Primary route line */}
+                <MapViewDirections
+                  origin={directionsData.origin}
+                  destination={directionsData.destination}
+                  apikey={GOOGLE_MAPS_API_KEY}
+                  strokeColor="#0066FF"  // Professional blue color
+                  strokeWidth={4}
+                  lineDashPattern={[0]}
+                  mode="DRIVING"
+                  precision="high"
+                  lineCap="round"
+                  strokeColors={[
+                    '#0066FF',  // Start color
+                    '#00AAFF',  // Middle color
+                    '#0066FF'   // End color
+                  ]}
+                />
+                {/* Secondary line for glow effect */}
+                <MapViewDirections
+                  origin={directionsData.origin}
+                  destination={directionsData.destination}
+                  apikey={GOOGLE_MAPS_API_KEY}
+                  strokeColor="rgba(0, 102, 255, 0.2)"  // Transparent blue for glow
+                  strokeWidth={8}
+                  lineDashPattern={[0]}
+                  mode="DRIVING"
+                  precision="high"
+                  lineCap="round"
+                />
+              </>
             )}
           </MapView>
         </View>
