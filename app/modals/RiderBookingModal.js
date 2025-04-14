@@ -9,6 +9,7 @@ import {
   Dimensions,
   ScrollView,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -48,6 +49,8 @@ const RiderBookingModal = ({
   const user = useSelector((state) => state.user?.user);
 
   const prevMessageRef = useRef(null);
+
+  const [opacity] = useState(new Animated.Value(1));
 
   // console.log('======user in modal======', user)
   // console.log("newRideRequest in rider modal", newRideRequest);
@@ -281,6 +284,26 @@ const RiderBookingModal = ({
     };
   }, [visible]);
 
+  useEffect(() => {
+    const blinkAnimation = Animated.sequence([
+      Animated.timing(opacity, {
+        toValue: 0.3,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    const infiniteAnimation = Animated.loop(blinkAnimation);
+    infiniteAnimation.start();
+
+    return () => infiniteAnimation.stop();
+  }, []);
+
   // If pickupModalVisible is true, show DriverPickupModal
   if (driverArriveModalVisible) {
     return (
@@ -304,6 +327,18 @@ const RiderBookingModal = ({
       animationType="slide"
     >
       <View style={styles.modalContainer}>
+        <Animated.View style={[styles.closeButtonContainer, { opacity }]}>
+          <TouchableOpacity 
+            onPress={() => {
+              setIsModalVisible(false);
+              setShowDirections(false);
+              setDirectionsData(null);
+            }}
+            style={styles.closeButton}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </Animated.View>
         <View style={styles.modalContent}>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.section}>
@@ -631,6 +666,33 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 5,
+  },
+  closeButtonContainer: {
+    position: 'absolute',
+    top: 40,
+    alignSelf: 'center',
+    zIndex: 1000,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#000',
+    fontWeight: 'bold',
   },
 });
 
