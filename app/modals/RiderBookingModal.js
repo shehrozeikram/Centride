@@ -287,7 +287,7 @@ const RiderBookingModal = ({
   useEffect(() => {
     const blinkAnimation = Animated.sequence([
       Animated.timing(opacity, {
-        toValue: 0.3,
+        toValue: 0.5,
         duration: 800,
         useNativeDriver: true,
       }),
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#000',
+    color: '#FF0000',
     fontWeight: 'bold',
   },
 });
