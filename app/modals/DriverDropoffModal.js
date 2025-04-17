@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
+  Share,
+  Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Geocoding from "react-native-geocoding";
@@ -17,6 +20,7 @@ import { GOOGLE_MAPS_API_KEY } from "../constants/googleMapKey";
 import { DRIVER_BASE_URL } from "../utils/constants";
 import { getSessionId } from "../utils/common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -35,6 +39,8 @@ const DriverDropoffModal = ({
   const [dropoffModalVisible, setDropoffModalVisible] = useState(visible || false);
   const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -284,72 +290,187 @@ const DriverDropoffModal = ({
     }
   };
 
+  const handleCall = () => {
+    const phoneNumber = (rideData || newRideRequest)?.rider_phone;
+    if (phoneNumber) {
+      Linking.openURL(`tel:${phoneNumber}`);
+    }
+  };
+
+  const handleChat = () => {
+    // Chat functionality to be implemented
+  };
+
+  const handleMenuPress = () => {
+    setShowMenu(true);
+    Animated.spring(slideAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 10
+    }).start();
+  };
+
+  const handleCloseMenu = () => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start(() => setShowMenu(false));
+  };
+
+  const handleMenuOption = (option) => {
+    handleCloseMenu();
+    switch(option) {
+      case 'share':
+        if ((rideData || newRideRequest)?.d_address) {
+          Share.share({
+            message: `Location: ${(rideData || newRideRequest).d_address}`,
+          });
+        }
+        break;
+      case 'navigate':
+        if ((rideData || newRideRequest)?.d_lat && (rideData || newRideRequest)?.d_lng) {
+          const url = `https://www.google.com/maps/dir/?api=1&destination=${(rideData || newRideRequest).d_lat},${(rideData || newRideRequest).d_lng}`;
+          Linking.openURL(url);
+        }
+        break;
+      case 'cancel':
+        Alert.alert(
+          "Cancel Ride",
+          "Are you sure you want to cancel this ride?",
+          [
+            {
+              text: "No",
+              style: "cancel"
+            },
+            {
+              text: "Yes",
+              onPress: handleCancelRide
+            }
+          ]
+        );
+        break;
+    }
+  };
+
   return modalVisible ? (
     <View style={[styles.modalContainer, styles.transparentBackground]}>
       <View style={styles.modalContent}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.section}>
-            <View style={styles.row}>
-              <View style={styles.profileAndRating}>
+          {/* Profile Section */}
+          <View style={styles.profileSection}>
+            <View style={styles.leftSection}>
+              <View style={styles.profileImageContainer}>
                 <Image
                   source={
                     (rideData?.rider_image || newRideRequest?.rider_image) 
                       ? { uri: rideData?.rider_image || newRideRequest?.rider_image }
-                      : require("../assets/driver.png") // Default image
+                      : require("../assets/driver.png")
                   }
                   style={styles.profileImage}
-                  defaultSource={require("../assets/driver.png")} // Fallback image while loading
+                  defaultSource={require("../assets/driver.png")}
                 />
-                <Text style={styles.driverName}>
-                  {rideData?.rider_name || newRideRequest?.rider_name || "Unknown Rider"}
-                </Text>
+                <View style={styles.notificationBadge} />
+              </View>
+              <Text style={styles.nameText}>
+                {rideData?.rider_name || newRideRequest?.rider_name || "Unknown Rider"}
+              </Text>
+            </View>
+
+            <View style={styles.rightSection}>
+              <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity onPress={handleCall} style={styles.actionButton}>
+                  <Ionicons name="call" size={22} color="#555555" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleChat} style={styles.actionButton}>
+                  <Ionicons name="chatbubble" size={22} color="#555555" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleMenuPress} style={styles.actionButton}>
+                  <Ionicons name="menu" size={22} color="#555555" />
+                </TouchableOpacity>
               </View>
               <View style={styles.timeContainer}>
+                <Ionicons name="time-outline" size={20} color="#4CAF50" />
                 <Text style={styles.timeText}>
-                  {rideData?.time_to_pickup || newRideRequest?.time_to_pickup || "--"}
-                </Text>
-                <Text style={styles.timeText}>Mins</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.column}>
-              <View style={styles.pickupInfo}>
-                <Image
-                  source={require("../assets/pick-up2.png")}
-                  style={styles.pickupImage}
-                />
-                <Text style={styles.pickupAddressText} numberOfLines={2}>
-                  {rideData?.d_address || newRideRequest?.d_address || "No address available"}
+                  {rideData?.time_to_pickup || newRideRequest?.time_to_pickup || "--"} Min
                 </Text>
               </View>
             </View>
-            <View style={styles.divider} />
           </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.dropoffButton}
-              onPress={handleDropOff}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.dropoffText}>Drop Off</Text>
-              )}
-            </TouchableOpacity>
-            {/* Cancel Ride Button */}
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleCancelRide}
-            >
-              <Text style={styles.cancelText}>CANCEL RIDE</Text>
-            </TouchableOpacity>
+          {/* Dropoff Info */}
+          <View style={styles.locationContainer}>
+            <Text style={styles.locationText}>
+              {rideData?.d_address || newRideRequest?.d_address || "No address available"}
+            </Text>
           </View>
+
+          {/* Button Section */}
+          <TouchableOpacity
+            style={styles.dropoffButton}
+            onPress={handleDropOff}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.dropoffText}>Drop Off</Text>
+            )}
+          </TouchableOpacity>
         </ScrollView>
+
+        {/* Menu Modal */}
+        <Modal
+          visible={showMenu}
+          transparent={true}
+          animationType="none"
+          onRequestClose={handleCloseMenu}
+        >
+          <TouchableOpacity 
+            style={styles.menuOverlay}
+            activeOpacity={1} 
+            onPress={handleCloseMenu}
+          >
+            <Animated.View 
+              style={[
+                styles.menuContainer,
+                {
+                  transform: [{
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [300, 0]
+                    })
+                  }]
+                }
+              ]}
+            >
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => handleMenuOption('share')}
+              >
+                <Ionicons name="share-social" size={20} color="#8B00FF" />
+                <Text style={styles.menuText}>Share location</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => handleMenuOption('navigate')}
+              >
+                <Ionicons name="navigate" size={20} color="#555555" />
+                <Text style={styles.menuText}>Navigate</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.menuItem} 
+                onPress={() => handleMenuOption('cancel')}
+              >
+                <Ionicons name="close" size={20} color="#FF4444" />
+                <Text style={[styles.menuText, { color: '#FF4444' }]}>Cancel ride</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </View>
   ) : null;
@@ -361,7 +482,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     backgroundColor: "transparent",
-
     position: "absolute",
     zIndex: 99999,
     bottom: 4,
@@ -372,101 +492,113 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 20,
     overflow: "hidden",
+    padding: 20,
   },
   scrollContainer: {
     paddingVertical: 8,
   },
-  section: {
-    paddingHorizontal: 12,
-    paddingVertical: 2,
+  profileSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  profileAndRating: {
-    flexDirection: "column",
-    alignItems: "center",
+  profileImageContainer: {
+    position: 'relative',
   },
   profileImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
-  driverName: {
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFA500',
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  nameText: {
+    fontSize: 18,
+    fontWeight: '500',
     marginLeft: 10,
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#000",
+    color: '#000',
+  },
+  rightSection: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 10,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
   },
   timeContainer: {
-    backgroundColor: "#000",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
   },
   timeText: {
-    color: "#fff",
-    fontSize: 14,
+    fontSize: 16,
+    color: '#4CAF50',
+    marginLeft: 5,
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#ddd",
-    marginVertical: 6,
+  locationContainer: {
+    marginBottom: 20,
   },
-  pickupInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  pickupImage: {
-    width: 25,
-    height: 25,
-    marginRight: 6,
-  },
-  pickupText: {
-    fontSize: 12,
-    flex: 1,
-    overflow: "hidden",
-    flexWrap: "wrap",
-  },
-  buttonContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
+  locationText: {
+    fontSize: 16,
+    color: '#333',
   },
   dropoffButton: {
     backgroundColor: "orange",
     borderRadius: 30,
-    paddingVertical: 10,
-    paddingHorizontal: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    width: screenWidth * 0.85,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 10,
+    width: '100%',
   },
   dropoffText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "400",
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '500',
   },
-  cancelButton: {
-    // backgroundColor: "#f44336", // Red color
-    // borderRadius: 30,
-    // paddingVertical: 10,
-    // paddingHorizontal: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    width: screenWidth * 0.25,
-    marginLeft: "70%",
-    marginTop: 10,
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  cancelText: {
-    color: "red",
-    fontSize: 14,
-    fontWeight: "400",
+  menuContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuText: {
+    fontSize: 16,
+    marginLeft: 15,
+    color: '#333',
   },
 });
 

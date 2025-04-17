@@ -40,6 +40,7 @@ import { useSelector } from "react-redux";
 import HTMLParser from "react-native-html-parser";
 import DriverArriveModal from "../../modals/DriverArriveModal";
 import DriverDropoffModal from "../../modals/DriverDropoffModal";
+import DriverPicupModal from "../../modals/DriverPicupModal";
 let sound;
 import { GOOGLE_MAPS_API_KEY } from "../../constants/googleMapKey";
 
@@ -309,6 +310,7 @@ const DriverMap = ({ navigation }) => {
 
     const reference = message_ref.on("value", async (snapshot) => {
       const data = snapshot.val();
+      console.log("data in message_ref", data);
       if (data == null) return;
       if (!(data.hasOwnProperty("msg") && data.hasOwnProperty("msg_t"))) return;
       let last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
@@ -920,23 +922,79 @@ const DriverMap = ({ navigation }) => {
         car_type: hiddenData.car_type || null,
         cost: hiddenData.booking_cost || null,
         payment_type: hiddenData.payment_type || null,
+        p_lat: hiddenData.p_lat || null,
+        p_lng: hiddenData.p_lng || null,
+        d_lat: hiddenData.d_lat || null,
+        d_lng: hiddenData.d_lng || null,
       };
 
       console.log("Extracted Booking Details:", bookingDetails);
       setBookingDetails(bookingDetails);
-      if (bookingDetails.status === "Booking accepted") {
-        setShowViewAlert(false);
-        setDriverArriveModal(true);
-      } else if (bookingDetails.status === "Servicing booking") {
-        setLoading(false);
-        setShowViewAlert(false);
-        setDropoffModal(true);
+
+      // Set up map view with origin and destination
+      if (bookingDetails.p_lat && bookingDetails.p_lng && bookingDetails.d_lat && bookingDetails.d_lng) {
+        const origin = {
+          latitude: parseFloat(bookingDetails.p_lat),
+          longitude: parseFloat(bookingDetails.p_lng)
+        };
+        const destination = {
+          latitude: parseFloat(bookingDetails.d_lat),
+          longitude: parseFloat(bookingDetails.d_lng)
+        };
+
+        // Set directions data
+        setDirectionsData({ origin, destination });
+        setShowDirections(true);
+
+        // Center the map on the route
+        const midPoint = {
+          latitude: (origin.latitude + destination.latitude) / 2,
+          longitude: (origin.longitude + destination.longitude) / 2,
+        };
+        mapRef.current?.animateToRegion({
+          ...midPoint,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        }, 1000);
       }
-      // handleCloseArriveModal();
-      // console.log("hello");
+
+      // Show appropriate modal based on status
+      setShowViewAlert(false);
+      if (bookingDetails.status === "Booking accepted") {
+        setDriverArriveModal(true);
+        setDriverArriveModalVisible(true);
+        setPickupModalVisible(false);
+        setDropoffModalVisible(false);
+      } 
+      // else if (bookingDetails.status === "Driver arrived") {
+      //   setDriverArriveModal(false);
+      //   setDriverArriveModalVisible(false);
+      //   setPickupModalVisible(true);
+      //   setDropoffModalVisible(false);
+      // } 
+      
+      else if (bookingDetails.status === "Servicing booking") {
+        console.log("Servicing booking", bookingDetails.status);
+        setDriverArriveModal(false);
+        setDriverArriveModalVisible(false);
+        setPickupModalVisible(false);
+        setDropoffModalVisible(true);
+        setDropoffModal(true);
+        setNewRideRequest(bookingDetails);
+      }
+
+      // else if (bookingDetails.status === "Servicing booking") {
+      // console.log("Servicing booking", bookingDetails.status);
+      //   setDriverArriveModal(false);
+      //   setDriverArriveModalVisible(false);
+      //   setPickupModalVisible(false);
+      //   setDropoffModalVisible(true);
+      // }
+      setLoading(false);
     } catch (error) {
       console.error("Error:", error);
       Alert.alert("Error", "Something went wrong");
+      setLoading(false);
     }
   };
 
@@ -1095,6 +1153,26 @@ const DriverMap = ({ navigation }) => {
   //   }
   // }, [showViewAlert, isModalVisible, driverArriveModal, dropoffModal]);
 
+  const chat_msg_notify = (message) => {
+    console.log("Handling chat message notification:", message);
+    
+    // Check if we have a chat modal visible
+    if (driverArriveModal) {
+      // Pass the message to the chat modal
+      setNewRideRequest(prev => ({
+        ...prev,
+        chatMessage: message
+      }));
+    } else {
+      // If chat modal is not visible, show the modal
+      setDriverArriveModal(true);
+      setNewRideRequest(prev => ({
+        ...prev,
+        chatMessage: message
+      }));
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <View style={[styles.headerStyle]}>
@@ -1103,19 +1181,31 @@ const DriverMap = ({ navigation }) => {
 
       {driverArriveModal && (
         <DriverArriveModal
-          visible={driverArriveModal}
-          closeModal={() => setDriverArriveModal(false)}
-          setShowDirections={() => {
-            setShowDirections(false);
-            // setShowDirections(false);
-            setIsModalVisible(false);
-          }}
+          newRideRequest={newRideRequest}
+          setDriverArriveModalVisible={setDriverArriveModalVisible}
+          setDropoffModalVisible={setDropoffModalVisible}
+          setShowDirections={setShowDirections}
           setDirectionsData={setDirectionsData}
-
         />
       )}
 
-      {dropoffModal && <DriverDropoffModal visible={dropoffModal} />}
+      {pickupModalVisible && (
+        <DriverPickupModal
+          newRideRequest={newRideRequest}
+          setDriverArriveModalVisible={setDriverArriveModalVisible}
+          setPickupModalVisible={setPickupModalVisible}
+          setDropoffModalVisible={setDropoffModalVisible}
+          setShowDirections={setShowDirections}
+          setDirectionsData={setDirectionsData}
+        />
+      )}
+
+      {dropoffModalVisible && (
+        <DriverDropoffModal
+          newRideRequest={newRideRequest}
+          setDropoffModalVisible={setDropoffModalVisible}
+        />
+      )}
 
       {origin && (
         <View style={{ flex: 1 }}>
