@@ -43,6 +43,7 @@ import DriverDropoffModal from "../../modals/DriverDropoffModal";
 import DriverPicupModal from "../../modals/DriverPicupModal";
 let sound;
 import { GOOGLE_MAPS_API_KEY } from "../../constants/googleMapKey";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius of the Earth in km
@@ -1307,18 +1308,23 @@ const DriverMap = ({ navigation }) => {
       >
         <View style={styles.overlay}>
           <View style={styles.alertBox}>
-            <Text style={styles.alertText}>View your Booking</Text>
+            <View style={styles.alertHeader}>
+              <Ionicons name="car-sport" size={28} color="orange" />
+              <Text style={styles.alertTitle}>Active Booking</Text>
+            </View>
+            <Text style={styles.alertDescription}>
+              You have an ongoing booking. Would you like to view the details?
+            </Text>
             <TouchableOpacity
               onPress={getDriverHistory}
-              style={styles.okButton}
+              style={styles.viewBookingButton}
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="black" />
+                <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text style={styles.okButtonText}>OK</Text>
+                <Text style={styles.viewBookingButtonText}>View Booking</Text>
               )}
-              {/* <Text style={styles.okButtonText}>OK</Text> */}
             </TouchableOpacity>
           </View>
         </View>
@@ -1457,11 +1463,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   alertBox: {
-    width: 280,
-    padding: 20,
+    width: "85%",
     backgroundColor: "white",
-    borderRadius: 10,
-    justifyContent: "center",
+    borderRadius: 16,
+    padding: 20,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1469,26 +1474,36 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  alertText: {
-    fontSize: 18,
-    marginBottom: 20,
+  alertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#333",
+    marginLeft: 10,
+  },
+  alertDescription: {
+    fontSize: 16,
+    color: "#666",
     textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
   },
-  okButton: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-    backgroundColor: "rgba(0, 0, 0, 0)",
-    borderWidth: 1,
-    borderColor: "#fff",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+  viewBookingButton: {
+    backgroundColor: "orange",
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+    marginTop: 10,
   },
-  okButtonText: {
-    top: 10,
-    fontSize: 14,
-    color: "blue",
+  viewBookingButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
   },
   mapToggleButton: {
     position: "absolute",
