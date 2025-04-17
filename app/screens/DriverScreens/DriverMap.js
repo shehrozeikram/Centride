@@ -69,12 +69,10 @@ const calculateTime = (distance) => {
 const CustomMarker = ({ driver }) => (
   <View style={styles.markerContainer}>
     <Image
-      source={{
-        uri: "https://t3.ftcdn.net/jpg/01/92/21/40/360_F_192214085_QnQ58x0ZKRLSUEgarcjVHNWrnmH8uWTA.jpg",
-      }} // Replace with driver?.icon?.url if dynamic
+      source={require("../../assets/city-driver-icon-1.png")}
       style={[
         styles.markerIcon,
-        { transform: [{ rotate: `${driver?.b_angle}deg` }] }, // Rotate the icon
+        { transform: [{ rotate: `${driver?.b_angle}deg` }] },
       ]}
     />
   </View>
@@ -1106,7 +1104,13 @@ const DriverMap = ({ navigation }) => {
     // Add a delay of 1 second before calling animateToRegion
     setTimeout(() => {
       animateToRegion();
-    }, 1000); // Delay in milliseconds
+      // Force marker update
+      if (markerRef.current && origin) {
+        markerRef.current.setNativeProps({
+          coordinate: origin
+        });
+      }
+    }, 1000);
   };
 
   // Add cleanup effect
@@ -1228,24 +1232,16 @@ const DriverMap = ({ navigation }) => {
               longitudeDelta: 0.06,
             }}
             zoomEnabled
+            onMapReady={onMapReady}
           >
             <Marker 
               ref={markerRef}
               coordinate={origin}
               anchor={{ x: 0.5, y: 0.5 }}
               flat={true}
-              tracksViewChanges={false}
+              tracksViewChanges={true}
             >
-              <View style={{
-                transform: [{ rotate: `${lastBearing - 90}deg` }],
-                backgroundColor: 'transparent',
-              }}>
-                <Image
-                  source={require("../../assets/city-driver-icon-1.png")}
-                  style={styles.markerImage}
-                  resizeMode="contain"
-                />
-              </View>
+              <CustomMarker driver={{ b_angle: lastBearing }} />
             </Marker>
 
             {directionsData?.origin && (
