@@ -310,7 +310,7 @@ const DriverMap = ({ navigation }) => {
 
     const reference = message_ref.on("value", async (snapshot) => {
       const data = snapshot.val();
-      console.log("data in message_ref", data);
+      // console.log("data in message_ref", data);
       if (data == null) return;
       if (!(data.hasOwnProperty("msg") && data.hasOwnProperty("msg_t"))) return;
       let last_msg_time_id = await AsyncStorage.getItem("fb_last_recvd");
@@ -886,6 +886,7 @@ const DriverMap = ({ navigation }) => {
       });
 
       const apiResponse = await response.json();
+      console.log("apiResponse", apiResponse);
       const htmlContent = apiResponse.pend_onride;
 
       // Regex to match both time and status
@@ -900,6 +901,7 @@ const DriverMap = ({ navigation }) => {
       if (hiddenDataMatch && hiddenDataMatch[1]) {
         try {
           hiddenData = JSON.parse(hiddenDataMatch[1]);
+          console.log("Hidden Data:", hiddenData); // Add this to debug
         } catch (error) {
           console.error("Error parsing hidden data:", error);
         }
@@ -926,9 +928,10 @@ const DriverMap = ({ navigation }) => {
         p_lng: hiddenData.p_lng || null,
         d_lat: hiddenData.d_lat || null,
         d_lng: hiddenData.d_lng || null,
+        rider_image: hiddenData.user_image || null,
+        rider_name: hiddenData.user_firstname || null
       };
 
-      console.log("Extracted Booking Details:", bookingDetails);
       setBookingDetails(bookingDetails);
 
       // Set up map view with origin and destination
@@ -975,6 +978,7 @@ const DriverMap = ({ navigation }) => {
       
       else if (bookingDetails.status === "Servicing booking") {
         console.log("Servicing booking", bookingDetails.status);
+        console.log("newRideRequest", newRideRequest);
         setDriverArriveModal(false);
         setDriverArriveModalVisible(false);
         setPickupModalVisible(false);
@@ -1190,7 +1194,7 @@ const DriverMap = ({ navigation }) => {
       )}
 
       {pickupModalVisible && (
-        <DriverPickupModal
+        <DriverPicupModal
           newRideRequest={newRideRequest}
           setDriverArriveModalVisible={setDriverArriveModalVisible}
           setPickupModalVisible={setPickupModalVisible}

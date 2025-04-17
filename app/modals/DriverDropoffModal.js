@@ -43,6 +43,8 @@ const DriverDropoffModal = ({
   const slideAnim = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
 
+  console.log("newRideRequest===", newRideRequest);
+
   useEffect(() => {
     if (newRideRequest) {
       setModalVisible(true);
@@ -402,7 +404,7 @@ const DriverDropoffModal = ({
           {/* Dropoff Info */}
           <View style={styles.locationContainer}>
             <Text style={styles.locationText}>
-              {rideData?.d_address || newRideRequest?.d_address || "No address available"}
+              {newRideRequest?.dropoff_location  || newRideRequest?.d_address || "No address available"}
             </Text>
           </View>
 
