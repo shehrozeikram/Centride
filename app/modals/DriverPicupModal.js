@@ -20,6 +20,7 @@ import { GOOGLE_MAPS_API_KEY } from "../constants/googleMapKey";
 import { getSessionId } from "../utils/common";
 import { DRIVER_BASE_URL } from "../utils/constants";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import ChatModal from "./ChatModal";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 Geocoding.init(GOOGLE_MAPS_API_KEY);
@@ -36,6 +37,7 @@ const DriverPickupModal = ({
   const [dropoffModalVisible, setDropoffModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const handleCall = () => {
@@ -46,7 +48,10 @@ const DriverPickupModal = ({
   };
 
   const handleChat = () => {
-    // Chat functionality to be implemented
+    const currentRideData = newRideRequest || rideData;
+    if (currentRideData?.booking_id) {
+      setShowChatModal(true);
+    }
   };
 
   const handleMenuPress = () => {
@@ -294,6 +299,16 @@ const DriverPickupModal = ({
           </TouchableOpacity>
         </Modal>
       </View>
+
+      {/* Add ChatModal */}
+      <ChatModal
+        visible={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        bookingId={newRideRequest?.booking_id || rideData?.booking_id}
+        riderName={newRideRequest?.rider_name || rideData?.rider_name}
+        riderImage={newRideRequest?.rider_image || rideData?.rider_image}
+        isDriver={true}
+      />
     </View>
   );
 };

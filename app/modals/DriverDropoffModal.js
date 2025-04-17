@@ -21,6 +21,7 @@ import { DRIVER_BASE_URL } from "../utils/constants";
 import { getSessionId } from "../utils/common";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import ChatModal from "./ChatModal";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -42,6 +43,7 @@ const DriverDropoffModal = ({
   const [showMenu, setShowMenu] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
+  const [showChatModal, setShowChatModal] = useState(false);
 
   console.log("newRideRequest===", newRideRequest);
 
@@ -300,7 +302,10 @@ const DriverDropoffModal = ({
   };
 
   const handleChat = () => {
-    // Chat functionality to be implemented
+    const currentRideData = rideData || newRideRequest;
+    if (currentRideData?.booking_id) {
+      setShowChatModal(true);
+    }
   };
 
   const handleMenuPress = () => {
@@ -474,6 +479,16 @@ const DriverDropoffModal = ({
           </TouchableOpacity>
         </Modal>
       </View>
+
+      {/* Add ChatModal */}
+      <ChatModal
+        visible={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        bookingId={rideData?.booking_id || newRideRequest?.booking_id}
+        riderName={rideData?.rider_name || newRideRequest?.rider_name}
+        riderImage={rideData?.rider_image || newRideRequest?.rider_image}
+        isDriver={true}
+      />
     </View>
   ) : null;
 };
