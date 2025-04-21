@@ -1188,36 +1188,9 @@ const DriverMap = ({ navigation }) => {
         <Header isMenuIcon={true} isRightView={false} isDriver={true} />
       </View>
 
-      {driverArriveModal && (
-        <DriverArriveModal
-          newRideRequest={newRideRequest}
-          setDriverArriveModalVisible={setDriverArriveModalVisible}
-          setDropoffModalVisible={setDropoffModalVisible}
-          setShowDirections={setShowDirections}
-          setDirectionsData={setDirectionsData}
-        />
-      )}
-
-      {pickupModalVisible && (
-        <DriverPicupModal
-          newRideRequest={newRideRequest}
-          setDriverArriveModalVisible={setDriverArriveModalVisible}
-          setPickupModalVisible={setPickupModalVisible}
-          setDropoffModalVisible={setDropoffModalVisible}
-          setShowDirections={setShowDirections}
-          setDirectionsData={setDirectionsData}
-        />
-      )}
-
-      {dropoffModalVisible && (
-        <DriverDropoffModal
-          newRideRequest={newRideRequest}
-          setDropoffModalVisible={setDropoffModalVisible}
-        />
-      )}
-
+      {/* Map Section */}
       {origin && (
-        <View style={{ flex: 1 }}>
+        <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
             style={styles.map}
@@ -1265,29 +1238,27 @@ const DriverMap = ({ navigation }) => {
 
             {showDirections && directionsData && (
               <>
-                {/* Primary route line */}
                 <MapViewDirections
                   origin={directionsData.origin}
                   destination={directionsData.destination}
                   apikey={GOOGLE_MAPS_API_KEY}
-                  strokeColor="#0066FF"  // Professional blue color
+                  strokeColor="#0066FF"
                   strokeWidth={4}
                   lineDashPattern={[0]}
                   mode="DRIVING"
                   precision="high"
                   lineCap="round"
                   strokeColors={[
-                    '#0066FF',  // Start color
-                    '#00AAFF',  // Middle color
-                    '#0066FF'   // End color
+                    '#0066FF',
+                    '#00AAFF',
+                    '#0066FF'
                   ]}
                 />
-                {/* Secondary line for glow effect */}
                 <MapViewDirections
                   origin={directionsData.origin}
                   destination={directionsData.destination}
                   apikey={GOOGLE_MAPS_API_KEY}
-                  strokeColor="rgba(0, 102, 255, 0.2)"  // Transparent blue for glow
+                  strokeColor="rgba(0, 102, 255, 0.2)"
                   strokeWidth={8}
                   lineDashPattern={[0]}
                   mode="DRIVING"
@@ -1298,6 +1269,56 @@ const DriverMap = ({ navigation }) => {
             )}
           </MapView>
         </View>
+      )}
+
+      {/* Bottom Info Section */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Trips")}
+        style={styles.infoContainer}
+      >
+        <View style={styles.mainContainer}>
+          <View style={styles.tripsContainer}>
+            <Text style={styles.text}>Completed Trips</Text>
+            <Text style={styles.number}>{completedTrips}</Text>
+          </View>
+          <View style={styles.earningsContainer}>
+            <Text style={styles.text}>Today's earning</Text>
+            <Text style={styles.number}>Rs {todayEarning}</Text>
+          </View>
+          <View style={styles.onlineContainer}>
+            <Text style={styles.text}>Time online</Text>
+            <Text style={styles.number}>{timeOnline}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* Modals */}
+      {driverArriveModal && (
+        <DriverArriveModal
+          newRideRequest={newRideRequest}
+          setDriverArriveModalVisible={setDriverArriveModalVisible}
+          setDropoffModalVisible={setDropoffModalVisible}
+          setShowDirections={setShowDirections}
+          setDirectionsData={setDirectionsData}
+        />
+      )}
+
+      {pickupModalVisible && (
+        <DriverPicupModal
+          newRideRequest={newRideRequest}
+          setDriverArriveModalVisible={setDriverArriveModalVisible}
+          setPickupModalVisible={setPickupModalVisible}
+          setDropoffModalVisible={setDropoffModalVisible}
+          setShowDirections={setShowDirections}
+          setDirectionsData={setDirectionsData}
+        />
+      )}
+
+      {dropoffModalVisible && (
+        <DriverDropoffModal
+          newRideRequest={newRideRequest}
+          setDropoffModalVisible={setDropoffModalVisible}
+        />
       )}
 
       <Modal
@@ -1348,30 +1369,10 @@ const DriverMap = ({ navigation }) => {
         style={[
           styles.mapToggleButton,
           { position: "absolute", right: 10, top: 150 },
-        ]} // Positioned on the right side of the map
+        ]}
         onPress={openNavigator}
       >
         <Text style={styles.mapToggleText}>Navigator</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Trips")}
-        style={styles.infoContainer}
-      >
-        <View style={styles.mainContainer}>
-          <View style={styles.tripsContainer}>
-            <Text style={styles.text}>Completed Trips</Text>
-            <Text style={styles.number}>{completedTrips}</Text>
-          </View>
-          <View style={styles.earningsContainer}>
-            {/* <Text style={styles.text}>Today's earning</Text>
-            <Text style={styles.number}>Rs {todayEarning}</Text> */}
-          </View>
-          <View style={styles.onlineContainer}>
-            <Text style={styles.text}>Time online</Text>
-            <Text style={styles.number}>{timeOnline}</Text>
-          </View>
-        </View>
       </TouchableOpacity>
 
       <RiderBookingModal
@@ -1385,34 +1386,42 @@ const DriverMap = ({ navigation }) => {
         setDropoffModalVisible={setDropoffModalVisible}
         setShowDirections={setShowDirections}
         setIsOnline={setIsOnline}
-        setIsModalVisible = {setIsModalVisible}
-        setDirectionsData = {setDirectionsData}
-
+        setIsModalVisible={setIsModalVisible}
+        setDirectionsData={setDirectionsData}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  mapContainer: {
+    flex: 1,
+  },
   map: {
     width: "100%",
     height: "100%",
   },
-  earningsContainer: {
-    flexDirection: "column",
-    gap: 15,
-  },
   infoContainer: {
     backgroundColor: "#FFFFFF",
-    height: "14%",
+    height: 100,
     width: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    position: "absolute",
+    bottom: 0,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   mainContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 25,
+    marginTop: 15,
   },
   number: {
     marginLeft: 20,
@@ -1431,6 +1440,10 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: 15,
     color: "black",
+  },
+  earningsContainer: {
+    flexDirection: "column",
+    gap: 15,
   },
   headerStyle: {
     height: 40,
@@ -1527,19 +1540,6 @@ const styles = StyleSheet.create({
     width: 45,
     transform: [{ rotate: '0deg' }], // Initial rotation
   },
-  headerStyle: {
-    height: 40,
-    width: 40,
-    borderRadius: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 5,
-    position: "absolute",
-    backgroundColor: "black",
-    top: Platform.OS === "ios" ? 60 : 30,
-    left: 10,
-    zIndex: 9999,
-  },
   toggleButton: {
     position: "absolute",
     top: "5%",
@@ -1553,7 +1553,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 5,
   },
-
   toggleButtonText: {
     color: "white",
     fontWeight: "bold",
