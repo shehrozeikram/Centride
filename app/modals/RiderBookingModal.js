@@ -268,22 +268,6 @@ const RiderBookingModal = ({
     }
   };
 
-  // Update the useEffect for auto-hide timer
-  useEffect(() => {
-    let timer;
-    if (visible) {
-      timer = setTimeout(() => {
-        handleAutoCancelRide();
-      }, 13000);
-    }
-    
-    return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [visible]);
-
   useEffect(() => {
     const blinkAnimation = Animated.sequence([
       Animated.timing(opacity, {
@@ -303,6 +287,22 @@ const RiderBookingModal = ({
 
     return () => infiniteAnimation.stop();
   }, []);
+
+  // Update the useEffect for auto-hide timer
+  useEffect(() => {
+    let timer;
+    if (visible) {
+      timer = setTimeout(() => {
+        handleAutoCancelRide();
+      }, (newRideRequest?.driver_accept_duration || 180) * 1000);
+    }
+    
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [visible]);
 
   // If pickupModalVisible is true, show DriverPickupModal
   if (driverArriveModalVisible) {

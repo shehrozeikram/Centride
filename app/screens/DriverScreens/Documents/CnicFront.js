@@ -28,8 +28,40 @@ const CnicFront = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [doc_id, setDocId] = useState();
   const [docStatus, setDocStatus] = useState('Required');
+  const [cnicError, setCnicError] = useState('');
   const route = useRoute();
   const navigation = useNavigation();
+
+  const formatCnicNumber = (value) => {
+    // Remove all non-digit characters
+    const numbers = value.replace(/\D/g, '');
+    
+    // Format the number with hyphens
+    let formatted = '';
+    if (numbers.length > 0) {
+      formatted = numbers.slice(0, 5);
+      if (numbers.length > 5) {
+        formatted += '-' + numbers.slice(5, 12);
+        if (numbers.length > 12) {
+          formatted += '-' + numbers.slice(12, 13);
+        }
+      }
+    }
+    return formatted;
+  };
+
+  const handleCnicChange = (value) => {
+    const formatted = formatCnicNumber(value);
+    setCnicNumber(formatted);
+    
+    // Validate CNIC length
+    const numbers = formatted.replace(/\D/g, '');
+    if (numbers.length > 0 && numbers.length !== 13) {
+      setCnicError('CNIC number must be exactly 13 digits');
+    } else {
+      setCnicError('');
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -124,18 +156,22 @@ const CnicFront = () => {
   }
 
   const handleImageUpdate = async (imagePath) => {
+    // Validate CNIC before submission
+    const numbers = cnicNumber.replace(/\D/g, '');
+    if (numbers.length !== 13) {
+      setCnicError('CNIC number must be exactly 13 digits');
+      return;
+    }
+
     const base64Image = await convertToBase64(imagePath)
     const documentData = {
         action: 'saveUserDoc',
-        // photo: `data:image/jpeg;base64,${base64Image}`, 
         doc_id: doc_id,
         u_doc_expiry_date:expiryDate,
         doc_expiry:expiryDate,
         u_doc_id_num: cnicNumber,
         doc_id_input: cnicNumber,
         u_doc_img: base64Image,
-        
-        
     }
 
     // Update user photo
@@ -152,8 +188,13 @@ const CnicFront = () => {
   }
 
   const handleSubmit = () => {
+    // Validate CNIC before submission
+    const numbers = cnicNumber.replace(/\D/g, '');
+    if (numbers.length !== 13) {
+      setCnicError('CNIC number must be exactly 13 digits');
+      return;
+    }
     handleImageUpdate(selectedImage?.path)
-    // Alert.alert('Submitted', `CNIC Number: ${cnicNumber}`)
   }
 
   return (
@@ -198,13 +239,16 @@ const CnicFront = () => {
       {/* CNIC Number Input */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Enter the CNIC number of the driver</Text>
-        <Text style={styles.subLabel}>CNIC number without spaces</Text>
+        <Text style={styles.subLabel}>Format: XXXXX-XXXXXXX-X</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, cnicError ? styles.inputError : null]}
           placeholder="12345-1234567-1"
           value={cnicNumber}
-          onChangeText={setCnicNumber}
+          onChangeText={handleCnicChange}
+          keyboardType="numeric"
+          maxLength={15}
         />
+        {cnicError ? <Text style={styles.errorText}>{cnicError}</Text> : null}
       </View>
 
       {/* Submit Button */}
@@ -287,6 +331,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 4,
     paddingHorizontal: 10,
+  },
+  inputError: {
+    borderColor: '#FF4444',
+  },
+  errorText: {
+    color: '#FF4444',
+    fontSize: 12,
+    marginTop: 5,
   },
 });
 

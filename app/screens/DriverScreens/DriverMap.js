@@ -414,7 +414,7 @@ const DriverMap = ({ navigation }) => {
     playSound(soundFile);
     setTimeout(() => {
       setIsModalVisible(false);
-    }, 13000);
+    }, (newRideRequest?.driver_accept_duration || 180) * 1000);
   };
 
   const booking_allocate_notify = (notification) => {
