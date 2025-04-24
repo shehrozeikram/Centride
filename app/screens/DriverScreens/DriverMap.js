@@ -967,32 +967,23 @@ const DriverMap = ({ navigation }) => {
         setDriverArriveModalVisible(true);
         setPickupModalVisible(false);
         setDropoffModalVisible(false);
-      } 
-      // else if (bookingDetails.status === "Driver arrived") {
-      //   setDriverArriveModal(false);
-      //   setDriverArriveModalVisible(false);
-      //   setPickupModalVisible(true);
-      //   setDropoffModalVisible(false);
-      // } 
-      
-      else if (bookingDetails.status === "Servicing booking") {
+        setDropoffModal(false);
+      } else if (bookingDetails.status === "Servicing booking") {
         console.log("Servicing booking", bookingDetails.status);
-        console.log("newRideRequest", newRideRequest);
         setDriverArriveModal(false);
         setDriverArriveModalVisible(false);
         setPickupModalVisible(false);
         setDropoffModalVisible(true);
         setDropoffModal(true);
         setNewRideRequest(bookingDetails);
+      } else {
+        // Reset all modals if status doesn't match
+        setDriverArriveModal(false);
+        setDriverArriveModalVisible(false);
+        setPickupModalVisible(false);
+        setDropoffModalVisible(false);
+        setDropoffModal(false);
       }
-
-      // else if (bookingDetails.status === "Servicing booking") {
-      // console.log("Servicing booking", bookingDetails.status);
-      //   setDriverArriveModal(false);
-      //   setDriverArriveModalVisible(false);
-      //   setPickupModalVisible(false);
-      //   setDropoffModalVisible(true);
-      // }
       setLoading(false);
     } catch (error) {
       console.error("Error:", error);
@@ -1318,6 +1309,11 @@ const DriverMap = ({ navigation }) => {
         <DriverDropoffModal
           newRideRequest={newRideRequest}
           setDropoffModalVisible={setDropoffModalVisible}
+          onClose={() => {
+            setNewRideRequest(null);
+            setDropoffModalVisible(false);
+            setDropoffModal(false);
+          }}
         />
       )}
 

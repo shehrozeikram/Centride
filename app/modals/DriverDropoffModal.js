@@ -272,12 +272,16 @@ const DriverDropoffModal = ({
       }
 
       // Reset all modal visibility states
-      // Check if functions exist before calling them
       if (typeof setDriverArriveModalVisible === 'function') {
         setDriverArriveModalVisible(false);
       }
       if (typeof setPickupModalVisible === 'function') {
         setPickupModalVisible(false);
+      }
+
+      // Reset newRideRequest in parent component
+      if (typeof onClose === 'function') {
+        onClose();
       }
 
       console.log("Ride cancelled and all states reset successfully");

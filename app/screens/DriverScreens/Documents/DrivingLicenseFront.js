@@ -15,18 +15,95 @@ import AppButton from '../../../components/AppButton'
 import AppInputField from '../../../components/AppInputField'
 import { Post } from '../../../network/network'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import { convertToBase64, pickImage } from '../../../utils/common'
+import { convertToBase64, pickImage, getSessionId } from '../../../utils/common'
+import { DRIVER_BASE_URL } from '../../../utils/constants'
 
 const DrivingLicenseFront = () => {
     const [expiryDate, setExpiryDate] = useState('')
     const [cnicNumber, setCnicNumber] = useState('')
     const [selectedImage, setSelectedImage] = useState(null)
     const [doc_id, setDocId] = useState()
+    const [docStatus, setDocStatus] = useState('Required')
     const route = useRoute()
     const navigation = useNavigation()
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case '0': return '#FFA500'; // Pending - Orange
+            case '1': return '#FF4444'; // Failed - Red
+            case '2': return '#8B00FF'; // Expired - Purple
+            case '3': return '#4CAF50'; // Approved - Green
+            default: return '#E91E63'; // Required - Pink
+        }
+    };
+
+    const getStatusText = (status) => {
+        switch (status) {
+            case '0': return 'Pending';
+            case '1': return 'Failed';
+            case '2': return 'Expired';
+            case '3': return 'Approved';
+            default: return 'Required';
+        }
+    };
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case '0': return 'time-outline';
+            case '1': return 'close-circle-outline';
+            case '2': return 'alert-circle-outline';
+            case '3': return 'checkmark-circle-outline';
+            default: return 'alert-circle-outline';
+        }
+    };
+
+    const handleDocs = async () => {
+        try {
+            const sess_id = await getSessionId();
+            const url = `${DRIVER_BASE_URL}?sess_id=${sess_id}`;
+    
+            const body = new URLSearchParams({
+                action: "getUserDocs",
+            }).toString();
+    
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: body,
+            });
+    
+            const responseData = await response.json();
+            console.log('responseData', responseData);
+    
+            if (responseData.success === 1 && responseData.user_docs) {
+                const doc = responseData.user_docs[doc_id];
+                if (doc) {
+                    setDocStatus(doc.u_doc_status || '0');
+                    if (['0', '2', '3'].includes(doc.u_doc_status) && doc.u_doc_img) {
+                        setSelectedImage({ path: doc.u_doc_img });
+                    }
+                    if (doc.u_doc_expiry_date) {
+                        setExpiryDate(doc.u_doc_expiry_date);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error in handleDocs:", error);
+        }
+    };
+
     useEffect(() => {
         handleRoute()
     }, [route?.params])
+
+    useEffect(() => {
+        if (doc_id) {
+            handleDocs();
+        }
+    }, [doc_id])
+
     const handleRoute = () => {
         if (route.params) {
             console.log('===========ROUTE==========', route.params?.doc_Id)
@@ -41,12 +118,13 @@ const DrivingLicenseFront = () => {
 
     const handleImageUpdate = async (imagePath) => {
         console.log('=========Image Ready To Upload==============')
+        console.log('=========Expiry Date==============', expiryDate)
+        console.log('=========Doc_id==============', doc_id)
         const base64Image = await convertToBase64(imagePath)
         const documentData = {
             action: 'saveUserDoc',
-            photo: `data:image/jpeg;base64,${base64Image}`, // Base64 string
             doc_id: doc_id,
-            //   doc_expiry:expiryDate,
+            doc_expiry: expiryDate,
             doc_img: base64Image,
         }
 
@@ -56,7 +134,7 @@ const DrivingLicenseFront = () => {
         })
             .then((response) => {
                 navigation.goBack()
-                console.log('======IMAGE-UPDATE====', response)
+                console.log('==response==', response)
             })
             .catch((error) => {
                 console.log('======IMAGE-UPDATE ERROR====', error)
@@ -65,15 +143,14 @@ const DrivingLicenseFront = () => {
 
     const handleSubmit = () => {
         handleImageUpdate(selectedImage?.path)
-        // Alert.alert('Submitted', `CNIC Number: ${cnicNumber}`)
     }
 
     return (
         <View style={styles.container}>
-            {/* Required Tag */}
-            <View style={styles.requiredContainer}>
-                <Ionicons name='information-circle' size={16} color='#FF5722' />
-                <Text style={styles.requiredTag}>Required</Text>
+            {/* Status Tag */}
+            <View style={[styles.requiredContainer, { backgroundColor: getStatusColor(docStatus) }]}>
+                <Ionicons name={getStatusIcon(docStatus)} size={16} color="white" />
+                <Text style={[styles.requiredTag, { color: 'white' }]}>{getStatusText(docStatus)}</Text>
             </View>
 
             {/* Title and Description */}
@@ -95,7 +172,7 @@ const DrivingLicenseFront = () => {
                     />
                 ) : (
                     <Image
-                        source={require('../../../assets/vehicle-doc-sample.png')} // Replace with your sample image path
+                        source={require('../../../assets/vehicle-doc-sample.png')}
                         style={styles.sampleImage}
                     />
                 )}
@@ -115,7 +192,6 @@ const DrivingLicenseFront = () => {
             </View>
 
             {/* Submit Button */}
-
             <AppButton onPress={handleSubmit} name='Submit' />
         </View>
     )
@@ -126,16 +202,18 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         backgroundColor: '#f9f9f9',
-        // marginTop: 50,
     },
     requiredContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
     },
     requiredTag: {
         marginLeft: 5,
-        color: '#FF5722',
         fontWeight: 'bold',
     },
     infoContainer: {
